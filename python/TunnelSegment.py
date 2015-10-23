@@ -32,7 +32,7 @@ class InSituCondition:
             self.Rmr = rmr
         else:
             self.Rmr = gsi+5
-        self.SigmaV = gamma*overburden/1000.0
+        self.SigmaV = gamma*overburden/1000.0 # MPa
     
     def UpdateK0KaKp(self, typ, fi):
         self.Kp = (1.0 + math.sin(math.radians(fi)))/(1.0 - math.sin(math.radians(fi)))
@@ -54,6 +54,9 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.Ar = min(0.5, self.A)
         self.SigmaC = ucs*self.S**self.A	# parametro di Hoek & Brown
         self.SigmaCm = ucs*(((self.Mb+4.0*self.S-self.A*(self.Mb-8.0*self.S))*(self.Mb/4.0+self.S)**(self.A-1.0))/(2.0*(1.0+self.A)*(2.0+self.A)))	# parametro di Hoek & Brown
+        if sv < 0.001 or self.SigmaCm < 0.001:
+            print "ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" %(ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv)
+            exit(-1)
         self.Sigma3max = (0.47*(self.SigmaCm/sv)**(-0.94))*self.SigmaCm # parametro di Hoek & Brown
 
 class MohrCoulomb:
@@ -179,6 +182,8 @@ class TBM:
 class TBMSegment:
     # definisco la condizione intrinseca (TODO verificare definizione con Luca o Paolo)
     def __init__(self, gamma, ni, e, ucs, st, psi, mi, overburden, groundwaterdepth, k0min, k0max, rcType, rcValue, excavType, excavArea, excavWidth, excavHeight, refLength, pi, aunsupported, tbm):
+        if ucs <= 1.0:
+            print "gamma= %f E= %f ucs= %f" % (gamma, e, ucs)
         self.Rock = Rock(gamma, ni, e, ucs,  st, psi)	#importo definizione di Rock
         self.InSituCondition = InSituCondition(overburden, groundwaterdepth, gamma, k0min, k0max, rcType, rcValue)	#importo defizione di stato in situ
         if excavType == 'Mech':
@@ -211,7 +216,8 @@ class TBMSegment:
             self.Rpl = R
         
         self.Tbm = tbm
-        self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen)
+        self.TunnelClosureAtShieldEndPanet = min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
+        self.TunnelClosureAtShieldEndVlacho = min(self.TunnelClosure(self.Tbm.Slen, 'V'),  R)
         """
         if self.TunnelClosureAtShieldEnd>self.Tbm.OverExcavation:
             # definisco il punto di contatto sullo scudo
@@ -287,16 +293,19 @@ class TBMSegment:
         ustar = 1-(1.0-u0star)*math.exp(-3.0*xstar/2.0/Rstar)
         return umax*ustar # convergenza del cavo in m alla distanza x dal fronte
 
-    def CavityConvergence(self, x):
+    def CavityConvergence(self, x, opt):
         # risultato in m
         # x in m
-        #return self.LDP_Panet_1995(x)
-        return self.LDP_Vlachopoulos_2009(x)
+        # opt e' opzione di calcolo P = panet, V = Vlachopoulos
+        if opt == 'p' or opt == 'P':
+            return self.LDP_Panet_1995(x)
+        else:
+            return self.LDP_Vlachopoulos_2009(x)
     
-    def TunnelClosure(self, x):
+    def TunnelClosure(self, x, opt):
         # risultato in m
         # x in m
-        return self.CavityConvergence(x) - self.CavityConvergence(0.0)
+        return self.CavityConvergence(x, opt) - self.CavityConvergence(0.0, opt)
     
     def PiUr(self, dur):
         # restituisce il valore di pressione equivalente a una convergenza del cavo pari a dur
