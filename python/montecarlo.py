@@ -13,20 +13,25 @@ os.chdir(path)
 conn = sqlite3.connect('bbt_mules_2-3.db')
 conn.row_factory = bbtparameter_factory
 cur = conn.cursor()
+print "start querying database  "
 bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,profilo_id,geoitem_id FROM bbtparameter ORDER BY profilo_id")
 # recupero tutti i parametri
 bbt_parameters = []
 for bbt_parameter in bbtresults:
     bbt_parameters.append(bbt_parameter)
 conn.close()
-
+print "start loading and evaluating parameters"
 # definisco la TBM
-tbm = TBM(10.0, 10.0, 10.0, 0.15, 12, 0.17, 0.03, 2.25)
-BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi'])
+tbm = TBM(10.0, 10.0, 10.0, 0.15, 12, 0.17, 0.03, 2.25, 0.15)
+BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi','closure'])
 p_eval = zeros(shape=(12,len(bbt_parameters)), dtype=float)
 i=0
 pPrev = 0
 bbt_evalparameters = []
+# progress bar
+N = len(bbt_parameters)
+point = N / 100
+increment = N / 20
 for bbt_parameter in bbt_parameters:
     p_eval[0][i] = bbt_parameter.fine
     p_eval[1][i] = bbt_parameter.he
@@ -38,22 +43,27 @@ for bbt_parameter in bbt_parameters:
     p_eval[7][i] = norm(bbt_parameter.ei_med,bbt_parameter.ei_stdev).rvs()
     p_eval[8][i] = norm(bbt_parameter.cai_med,bbt_parameter.cai_stdev).rvs()
     p_eval[9][i] = norm(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev).rvs()
-    pEval = BbtParameterEval(p_eval[0][i],p_eval[1][i],p_eval[2][i],p_eval[3][i],p_eval[4][i],p_eval[5][i],p_eval[6][i],p_eval[7][i],p_eval[8][i],p_eval[9][i])
-    bbt_evalparameters.append(pEval)
-    tbmseg = TBMSegment(p_eval[4][i], 0.2, p_eval[7][i], p_eval[5][i],0.0,0.0, p_eval[6][i],p_eval[3][i],p_eval[3][i], 0.5, 1.0, p_eval[9][i], 0, 'Mech', (5**2)*math.pi, 10, 10, tbm.Slen, 0.0, 1.5,  tbm)
-    p_eval[10][i] = tbmseg.TunnelClosure(10.0)
+    p_eval[10][i] = 0
+    #tbmseg = TBMSegment(p_eval[4][i], 0.2, p_eval[7][i], p_eval[5][i],0.0,0.0, p_eval[6][i],p_eval[3][i],p_eval[3][i], 0.5, 1.0, p_eval[9][i], 0, 'Mech', (5**2)*math.pi, 10, 10, tbm.Slen, 0.0, 1.5,  tbm)
+    # p_eval[10][i] = tbmseg.TunnelClosure(10.0)
     if pPrev != bbt_parameter.geoitem_id:
         plot((p_eval[0][i], p_eval[0][i]), (0, p_eval[1][i]),'y-', linewidth=0.3)
         pPrev = bbt_parameter.geoitem_id
+    pEval = BbtParameterEval(p_eval[0][i],p_eval[1][i],p_eval[2][i],p_eval[3][i],p_eval[4][i],p_eval[5][i],p_eval[6][i],p_eval[7][i],p_eval[8][i],p_eval[9][i],p_eval[10][i])
+    bbt_evalparameters.append(pEval)
+    if(i % (5 * point) == 0):
+        sys.stdout.write("\r[" + "=" * (i / increment) +  " " * ((N - i)/ increment) + "]" +  str(i / point) + "%")
+        sys.stdout.flush()
     i += 1
 
 output = open('bbtdata.pkl', 'wb')
 pickle.dump(bbt_evalparameters, output)
 output.close()
-
+print "\nparameters pickled in %s " % path
+print "Plotting profile and related stuff"
 plot(p_eval[0],p_eval[1], linewidth=2, color='black')
 plot(p_eval[0],p_eval[2], linewidth=3, color='r')
-# plot(p_eval[0],20*p_eval[4], linewidth=2, color='blue')
+# plot(p_eval[0],p_eval[10], linewidth=2, color='blue')
 axis([max(p_eval[0])*1.1,min(p_eval[0])*0.9,0,max(p_eval[1])+1])
 show()
 

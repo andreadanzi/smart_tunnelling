@@ -13,41 +13,21 @@ eimin = r1['min']
 eimax = r1['max']
 avg, sigma = get_sigma_95(eimin,eimax)
 tnorm_r1 = truncnorm((eimin - avg) / sigma, (eimax - avg) / sigma, loc=avg, scale=sigma)
-print r1
-print avg
-print tnorm_r1.mean()
-print tnorm_r1.interval(0.9544)
-print "======"
 r2 = {'min':0.7,'max':2.4}
 eimin = r2['min']
 eimax = r2['max']
 avg, sigma = get_sigma_95(eimin,eimax)
 tnorm_r2 = truncnorm((eimin - avg) / sigma, (eimax - avg) / sigma, loc=avg, scale=sigma)
-print r2
-print avg
-print tnorm_r2.mean()
-print tnorm_r2.interval(0.9544)
-print "======"
 r3 = {'min':0.9,'max':2.8}
 eimin = r3['min']
 eimax = r3['max']
 avg, sigma = get_sigma_95(eimin,eimax)
 tnorm_r3 = truncnorm((eimin - avg) / sigma, (eimax - avg) / sigma, loc=avg, scale=sigma)
-print r3
-print avg
-print tnorm_r3.mean()
-print tnorm_r3.interval(0.9544)
-print "======"
 r4 = {'min':0.5,'max':0.9}
 eimin = r4['min']
 eimax = r4['max']
 avg, sigma = get_sigma_95(eimin,eimax)
 tnorm_r4 = truncnorm((eimin - avg) / sigma, (eimax - avg) / sigma, loc=avg, scale=sigma)
-print r4
-print avg
-print tnorm_r4.mean()
-print tnorm_r4.interval(0.9544)
-print "======"
 ar =[r1,r2,r3,r4]
 
 #parametri base fattore imprevisti

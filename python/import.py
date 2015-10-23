@@ -181,7 +181,7 @@ for k in geoitems:
         geosec = gx[i]
         for j in range(prev,prev+px[i]):
             pk = geoitems[k][j]
-            tmparr = [pk.inizio , pk.fine, pk.est, pk.nord, pk.he, pk.hp, pk.co, pk.tipo, geosec.g_med,geosec.g_stddev,geosec.sigma_ci_avg,geosec.sigma_ci_stdev,geosec.mi_med,geosec.mi_stdev,geosec.ei_med,geosec.ei_stdev,geosec.cai_med,geosec.cai_stdev,geosec.gsi_med,geosec.gsi_stdev,pk.id,geosec.id]
+            tmparr = [pk.inizio , pk.fine, pk.est, pk.nord, pk.he, pk.hp, pk.co, pk.tipo, geosec.g_med,geosec.g_stddev,geosec.sigma_ci_avg,geosec.sigma_ci_stdev,geosec.mi_med,geosec.mi_stdev,geosec.ei_med,geosec.ei_stdev,geosec.cai_med,geosec.cai_stdev,geosec.gsi_med,geosec.gsi_stdev,geosec.rmr_med,geosec.rmr_stdev,pk.id,geosec.id]
             print "\t profile %f-%f has geoclass ending in %f with perc %f" % (pk.inizio,pk.fine,geosec.fine,geosec.perc)
             bbtpar = BbtParameter(*tmparr)
             bbtpar_items.append(bbtpar)
@@ -194,10 +194,10 @@ c.execute('delete from BbtGeoitem')
 c.execute('delete from BbtProfilo')
 c.execute('delete from BbtParameter')
 for geoseg in geoseg_list:
-    c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
+    c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
 for bbtpro in profilo_list:
     c.execute('insert into BbtProfilo (id,inizio,fine,est,nord,he,hp,co,tipo) values (?,?,?,?,?,?,?,?,?)', bbtpro)
 for bbtpar in bbtpar_items:
-    c.execute('insert into BbtParameter (inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,profilo_id,geoitem_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bbtpar)
+    c.execute('insert into BbtParameter (inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bbtpar)
 conn.commit()
 conn.close()
