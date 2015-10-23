@@ -14,7 +14,7 @@ conn = sqlite3.connect('bbt_mules_2-3.db')
 conn.row_factory = bbtparameter_factory
 cur = conn.cursor()
 print "start querying database  "
-bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,profilo_id,geoitem_id FROM bbtparameter ORDER BY profilo_id")
+bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id FROM bbtparameter ORDER BY profilo_id")
 # recupero tutti i parametri
 bbt_parameters = []
 for bbt_parameter in bbtresults:
@@ -23,7 +23,7 @@ conn.close()
 print "start loading and evaluating parameters"
 # definisco la TBM
 tbm = TBM(10.0, 10.0, 10.0, 0.15, 12, 0.17, 0.03, 2.25, 0.15)
-BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi','closure'])
+BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi','rmr','closure'])
 p_eval = zeros(shape=(12,len(bbt_parameters)), dtype=float)
 i=0
 pPrev = 0
@@ -37,19 +37,20 @@ for bbt_parameter in bbt_parameters:
     p_eval[1][i] = bbt_parameter.he
     p_eval[2][i] = bbt_parameter.hp
     p_eval[3][i] = bbt_parameter.co
-    p_eval[4][i] = norm(bbt_parameter.g_med,bbt_parameter.g_stddev).rvs()
-    p_eval[5][i] = norm(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev).rvs()
-    p_eval[6][i] = norm(bbt_parameter.mi_med,bbt_parameter.mi_stdev).rvs()
-    p_eval[7][i] = norm(bbt_parameter.ei_med,bbt_parameter.ei_stdev).rvs()
-    p_eval[8][i] = norm(bbt_parameter.cai_med,bbt_parameter.cai_stdev).rvs()
-    p_eval[9][i] = norm(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev).rvs()
-    p_eval[10][i] = 0
-    #tbmseg = TBMSegment(p_eval[4][i], 0.2, p_eval[7][i], p_eval[5][i],0.0,0.0, p_eval[6][i],p_eval[3][i],p_eval[3][i], 0.5, 1.0, p_eval[9][i], 0, 'Mech', (5**2)*math.pi, 10, 10, tbm.Slen, 0.0, 1.5,  tbm)
+    p_eval[4][i] = get_my_norm_function(bbt_parameter.g_med,bbt_parameter.g_stddev).rvs()
+    p_eval[5][i] = get_my_norm_function(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev).rvs()
+    p_eval[6][i] = get_my_norm_function(bbt_parameter.mi_med,bbt_parameter.mi_stdev).rvs()
+    p_eval[7][i] = get_my_norm_function(bbt_parameter.ei_med,bbt_parameter.ei_stdev).rvs()
+    p_eval[8][i] = get_my_norm_function(bbt_parameter.cai_med,bbt_parameter.cai_stdev).rvs()
+    p_eval[9][i] = get_my_norm_function(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev).rvs()
+    p_eval[10][i] = get_my_norm_function(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev).rvs()
+    p_eval[11][i] = 0
+    #tbmseg = TBMSegment(p_eval[4][i], 0.2, p_eval[7][i], p_eval[5][i],0.0,0.0, p_eval[6][i],p_eval[3][i],p_eval[3][i], 0.5, 1.0, p_eval[9][i], p_eval[10][i], 'Mech', (5**2)*math.pi, 10, 10, tbm.Slen, 0.0, 1.5,  tbm)
     # p_eval[10][i] = tbmseg.TunnelClosure(10.0)
     if pPrev != bbt_parameter.geoitem_id:
         plot((p_eval[0][i], p_eval[0][i]), (0, p_eval[1][i]),'y-', linewidth=0.3)
         pPrev = bbt_parameter.geoitem_id
-    pEval = BbtParameterEval(p_eval[0][i],p_eval[1][i],p_eval[2][i],p_eval[3][i],p_eval[4][i],p_eval[5][i],p_eval[6][i],p_eval[7][i],p_eval[8][i],p_eval[9][i],p_eval[10][i])
+    pEval = BbtParameterEval(p_eval[0][i],p_eval[1][i],p_eval[2][i],p_eval[3][i],p_eval[4][i],p_eval[5][i],p_eval[6][i],p_eval[7][i],p_eval[8][i],p_eval[9][i],p_eval[10][i],p_eval[11][i])
     bbt_evalparameters.append(pEval)
     if(i % (5 * point) == 0):
         sys.stdout.write("\r[" + "=" * (i / increment) +  " " * ((N - i)/ increment) + "]" +  str(i / point) + "%")
@@ -63,7 +64,8 @@ print "\nparameters pickled in %s " % path
 print "Plotting profile and related stuff"
 plot(p_eval[0],p_eval[1], linewidth=2, color='black')
 plot(p_eval[0],p_eval[2], linewidth=3, color='r')
-# plot(p_eval[0],p_eval[10], linewidth=2, color='blue')
+plot(p_eval[0],p_eval[5])
+plot(p_eval[0],p_eval[7])
 axis([max(p_eval[0])*1.1,min(p_eval[0])*0.9,0,max(p_eval[1])+1])
 show()
 

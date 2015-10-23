@@ -3,7 +3,7 @@ import csv, pprint, os
 import sys
 from collections import defaultdict
 from collections import namedtuple
-from bbtnamedtuples import BbtGeoitem, BbtParameter, BbtProfilo
+from bbtnamedtuples import BbtGeoitem, BbtParameter, BbtProfilo, BbtReliability
 from collections import OrderedDict
 import numpy as np
 from pylab import *
@@ -61,6 +61,31 @@ with open('gl_nord.csv', 'rb') as csvfile:
         dPk[strVal].append(row[1:])
         print "%f - %s " % (pkend, ', '.join(row[1:]))
 
+#Affidabilita modello GEO
+fname = 'valutazione_modello_geo.xls'
+book = xlrd.open_workbook(fname)
+xl_sheet = book.sheet_by_name(u'ce')
+headrow = xl_sheet.row(3)  # header
+row = xl_sheet.row(4)  # first row
+num_cols = xl_sheet.ncols
+reliability_list = []
+for row_idx in range(4, xl_sheet.nrows):
+    rowvalues=[]
+    for col_idx in range(0, num_cols):  # Iterate through columns
+        cell_obj = xl_sheet.cell(row_idx, col_idx)  # Get cell object by row, col
+        rowvalues.append(cell_obj.value)
+    reliability_item = BbtReliability(*rowvalues)
+    reliability_list.append(reliability_item)
+# salvo in db BbtReliability
+conn = sqlite3.connect('bbt_mules_2-3.db')
+c = conn.cursor()
+c.execute('delete from BbtReliability')
+for rel in reliability_list:
+    c.execute('insert into BbtReliability (id ,inizio, fine , gmr_class, gmr_val, reliability, eval_var) values (?,?,?,?,?,?,?)', rel)
+conn.commit()
+conn.close()
+
+# caratteristiche GEO da tavola
 fname = 'bbt_ce.xls'
 book = xlrd.open_workbook(fname)
 xl_sheet = book.sheet_by_name(u'geoce')
@@ -75,7 +100,19 @@ for row_idx in range(3, xl_sheet.nrows):
         rowvalues.append(cell_obj.value)
     geoseg = BbtGeoitem(*rowvalues)
     geoseg_list.append(geoseg)
+    reliab_match = [rel for rel in reliability_list if rel.inizio < geoseg.fine <= rel.fine]
+    for reli in reliab_match:
+        print "reliab %d-%s finisce in %f vicino a Geoseg %f" % (reli.id,reli.gmr_class, reli.fine,geoseg.fine)
     geosec_index[geoseg.fine].append(geoseg)
+# salvo in db BbtGeoitem e BbtReliability
+conn = sqlite3.connect('bbt_mules_2-3.db')
+c = conn.cursor()
+c.execute('delete from BbtGeoitem')
+for geoseg in geoseg_list:
+    c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
+conn.commit()
+conn.close()
+
 # Profilo
 profilo='Report_CE-10metri.xls'
 bprofilo = xlrd.open_workbook(profilo)
@@ -146,6 +183,16 @@ for row_idx in range(17, civilReport_sheet.nrows):
     if rowvalues:
         bbtpro = BbtProfilo(*rowvalues)
         profilo_list.append(bbtpro)
+
+# salvo profilo
+conn = sqlite3.connect('bbt_mules_2-3.db')
+c = conn.cursor()
+c.execute('delete from BbtProfilo')
+for bbtpro in profilo_list:
+    c.execute('insert into BbtProfilo (id,inizio,fine,est,nord,he,hp,co,tipo) values (?,?,?,?,?,?,?,?,?)', bbtpro)
+conn.commit()
+conn.close()
+
 # BbtParameter rappresenta il segmento unitario con i parametri geologici base valorizzati secondo i dati provenienti dalle tavole geologiche
 geoitems=defaultdict(list)
 for bbtpro in profilo_list:
@@ -182,21 +229,14 @@ for k in geoitems:
         for j in range(prev,prev+px[i]):
             pk = geoitems[k][j]
             tmparr = [pk.inizio , pk.fine, pk.est, pk.nord, pk.he, pk.hp, pk.co, pk.tipo, geosec.g_med,geosec.g_stddev,geosec.sigma_ci_avg,geosec.sigma_ci_stdev,geosec.mi_med,geosec.mi_stdev,geosec.ei_med,geosec.ei_stdev,geosec.cai_med,geosec.cai_stdev,geosec.gsi_med,geosec.gsi_stdev,geosec.rmr_med,geosec.rmr_stdev,pk.id,geosec.id]
-            print "\t profile %f-%f has geoclass ending in %f with perc %f" % (pk.inizio,pk.fine,geosec.fine,geosec.perc)
+            #print "\t profile %f-%f has geoclass ending in %f with perc %f" % (pk.inizio,pk.fine,geosec.fine,geosec.perc)
             bbtpar = BbtParameter(*tmparr)
             bbtpar_items.append(bbtpar)
         prev += px[i]
-
-
+# salvo parametri
 conn = sqlite3.connect('bbt_mules_2-3.db')
 c = conn.cursor()
-c.execute('delete from BbtGeoitem')
-c.execute('delete from BbtProfilo')
 c.execute('delete from BbtParameter')
-for geoseg in geoseg_list:
-    c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
-for bbtpro in profilo_list:
-    c.execute('insert into BbtProfilo (id,inizio,fine,est,nord,he,hp,co,tipo) values (?,?,?,?,?,?,?,?,?)', bbtpro)
 for bbtpar in bbtpar_items:
     c.execute('insert into BbtParameter (inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bbtpar)
 conn.commit()

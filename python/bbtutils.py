@@ -1,5 +1,8 @@
-from scipy.stats import *
+#from scipy.stats import *
 
+import numpy as np
+from pylab import *
+from scipy.stats import *
 
 # funzione che restituisce media e sigma di una gaussiana sulla base di valori minimi e massimi al 95 percentile
 def get_sigma_95(min,max):
@@ -42,6 +45,16 @@ hipk = (0.2,0.4,0.3)
 #Custom made discrete distribution for Human Factor - da chiamare con hi[hcustm.rvs()] restituisce S N o F sulla base della distribuzione
 hcustm = rv_discrete(name='custm', values=(hixk, hipk))
 
+def get_my_norm_function(mean,std):
+    minval = mean - 2*std
+    if std > 0 and minval < 0:
+        lower = mean - std
+        upper = mean + std
+        a, b = (lower - mean) / std, (upper - mean) / std
+        myNorm = truncnorm(a, b, loc=mean, scale=std)
+    else:
+        myNorm = norm(mean,std)
+    return myNorm
 
 # distribuzione binomiale (tempo di ritorno) di eventi ogni l metri che causano ritardo di N giorni, dove N = il doppio del massimo tra i tempi
 def evento_eccezionale(l,ecc):
