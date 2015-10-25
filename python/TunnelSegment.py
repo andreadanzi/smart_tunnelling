@@ -53,6 +53,7 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.Sr = math.exp((gsi-100.0)/(9.0-3.0*1.0))	# parametro di Hoek & Brown
         self.Ar = min(0.5, self.A)
         self.SigmaC = ucs*self.S**self.A	# parametro di Hoek & Brown
+        self.SigmaT = self.S*ucs/self.Mb # a meno del segno e' la resistenza a trazione
         self.SigmaCm = ucs*(((self.Mb+4.0*self.S-self.A*(self.Mb-8.0*self.S))*(self.Mb/4.0+self.S)**(self.A-1.0))/(2.0*(1.0+self.A)*(2.0+self.A)))	# parametro di Hoek & Brown
         if sv < 0.001 or self.SigmaCm < 0.001:
             print "ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" %(ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv)
@@ -63,7 +64,7 @@ class MohrCoulomb:
 	def __init__(self):
 		self.Fi =0.0
 		self.Fir = 0.0
-		self.C = 0.0
+		self.C = 0.0 #in KPa
 		self.SigmaCm0 = 0.0 
 	
 	# inizializzazione per rocce
@@ -73,7 +74,7 @@ class MohrCoulomb:
 		self.Fir = math.degrees(math.asin((6.0*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3max/ucs)**(hb.Ar-1.0))\
 				/(2.0*(1.0+hb.Ar)*(2.0+hb.Ar)+(6.0*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3max/ucs)**(hb.Ar-1.0)))))
 		self.C = (ucs*((1.0+2.0*hb.A)*hb.S+(1.0-hb.A)*hb.Mb*(hb.Sigma3max/ucs))*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0)) \
-				/((1.0+hb.A)*(2.0+hb.A)*math.sqrt(1.0+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0))/((1.0+hb.A)*(2.0+hb.A))))*1000.0
+				/((1.0+hb.A)*(2.0+hb.A)*math.sqrt(1.0+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0))/((1.0+hb.A)*(2.0+hb.A))))*1000.0 #in KPa
 		self.SigmaCm0 = 2.0*self.C*math.cos(math.radians(self.Fi))/(1.0-math.sin(math.radians(self.Fi)))/1000.0
 	
 	#inizializzazione per terreni
@@ -105,21 +106,58 @@ class Excavation:
             else:
                 self.OverburdenType = 'd'
 
-class BrittleFailureRisk:
-	# come da Hoek, Carranza, Torres, 2002
-	def __init__(self, scm, p0):
-		self.Val = p0/scm
-		if self.Val < 0.1:
-			self.Class = 'Stable behaviour'
-		elif self.Val < 0.2:
-			self.Class = 'Spalling-Slabbing'
-		elif self.Val < 0.3:
-			self.Class = 'Rockbursting'
-		elif self.Val < 0.4:
-			self.Class = 'Squeezing'
-		else:
-			self.Class = 'Severe Squeezing'
-			
+class rockBursting:
+    # rockbursting secondo Hoek
+    def __init__(self, ucs, rmr, p0):
+        if ucs > 105.0 and rmr > 60:
+            self.Val = p0/ucs
+        else:
+            self.Val = 0.0
+        if self.Val <= 0.1:
+            self.Class = 'Stable behaviour'
+        elif self.Val <= 0.2:
+            self.Class = 'Spalling'
+        elif self.Val <= 0.3:
+            self.Class = 'Severe spalling - slabbing'
+        elif self.Val < 0.4:
+            self.Class = 'Need of important stabilization measure'
+        else:
+            self.Class = 'Cavity collapse (rock burst)'
+
+class frontStability:
+    # stabilita' del fronte secondo Panet (Ns e Lambdae)
+    def __init__(self, ratio,  sigmaCm, p0, kp):
+        
+        if ratio < 2.5:
+            # criterio non applicabile per basse coperture ratio = copertura/diametro di scavo equivalente
+            self.Ns = 0
+            self.State = 'Not applicable'
+            self.lambdae = 1.5
+            self.Class = 'Not applicable'
+            
+        
+        self.Ns = 2.0*p0/sigmaCm
+        if self.Ns <1:
+            self.State = 'Elastic'
+        elif self.Ns <2:
+            self.State = 'Plastic zone not interesting tunnel face'
+        elif self.Ns <5:
+            self.State = 'Plastic zone partially interesting tunnel face'
+        else:
+            self.State = 'Plastic zone entirely interesting tunnel face'
+        
+        if self.Ns >1:
+            self.lambdae = (kp-1.0+2.0/self.Ns)/(kp+1.0)
+        else:
+            self.lambdae = 0.0
+        
+        if self.lambdae > 0.6:
+            self.Class = 'Stability'
+        elif self.lambdae > 0.3:
+            self.Class = 'Short term stability'
+        else:
+            self.Class = 'Instability'
+
 class Tamez:
 	# stabilita' del fronte secondo Tamez
 	def __init__(self, materialtype, overburden, excav, mc, insitu, gamma, pi, aunsupported):
@@ -154,7 +192,7 @@ class Tamez:
 			self.Class = 'A - stability'
 			
 class TBM:
-    def __init__(self, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, friction):
+    def __init__(self, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, Ft, friction):
         self.Slen = slen # shield length
         self.SdiamMin = sdiammin    #shield minimum diameter
         self.SdiamMax = sdiammax    #shield maximum diameter
@@ -165,27 +203,17 @@ class TBM:
         self.CutterSpacing = cs #Cutter spacing
         self.Friction = friction # coefficiente di attrito tra ammasso e scudo
         self.BackupDragForce = 8000.0 # kN
-       
-    def SetThrustAndTorque(self, psi, ucs, sigmat,  RMR):
-        rate = (0.003968, 0.003968, 0.00496, 0.005952, 0.007824, 0.009696, 0.011352, 0.013008, 0.011136, 0.009264, 0.009264) #in m per rivoluzione
-        i_1 = int(math.floor(RMR/10.0))
-        i = i_1+1
-        locp = rate(i_1)+(rate(i)-rate(i-1))/10.0*(RMR-i_1*10)
-        locfi = math.acos((self.CutterRadius-locp)/self.CutterRadius)
-        locP0 = 2.12*math.pow((self.CutterSpacing*(ucs**2)*sigmat/(locfi*math.sqrt(self.CutterRadius*self.CutterThickness))), 1.0/3.0)
-        locFt = locP0*locfi*self.CutterRadius*self.CutterThickness/(1.0+psi)
-        locFn = locFt*math.cos(locfi/2.0)
-        locFr = locFt*math.sin(locfi/2.0)
-        self.Thrust = self.CutterNo*locFn
-        self.Torque = 0.3*(self.SdiamMax+2.0*self.OverExcavation)*self.CutterNo*locFr
+        self.penetrationPerRevolution = (0.003968, 0.003968, 0.00496, 0.005952, 0.007824, 0.009696, 0.011352, 0.013008, 0.011136, 0.009264, 0.009264) #in m per rivoluzione
+        self.psi = 0.0 # angolo da definire in base alla macchina
+        self.Ft = Ft # kN max load per cutter ring
 
 class TBMSegment:
     # definisco la condizione intrinseca (TODO verificare definizione con Luca o Paolo)
-    def __init__(self, gamma, ni, e, ucs, st, psi, mi, overburden, groundwaterdepth, k0min, k0max, rcType, rcValue, excavType, excavArea, excavWidth, excavHeight, refLength, pi, aunsupported, tbm):
+    def __init__(self, gamma, ni, e, ucs, st, psi, mi, overburden, groundwaterdepth, k0min, k0max, gsi, rmr, excavType, excavArea, excavWidth, excavHeight, refLength, pi, aunsupported, tbm):
         if ucs <= 1.0:
             print "gamma= %f E= %f ucs= %f" % (gamma, e, ucs)
         self.Rock = Rock(gamma, ni, e, ucs,  st, psi)	#importo definizione di Rock
-        self.InSituCondition = InSituCondition(overburden, groundwaterdepth, gamma, k0min, k0max, rcType, rcValue)	#importo defizione di stato in situ
+        self.InSituCondition = InSituCondition(overburden, groundwaterdepth, gamma, k0min, k0max, gsi, rmr)	#importo defizione di stato in situ
         if excavType == 'Mech':
             self.D = 0.0
         else:
@@ -195,8 +223,10 @@ class TBMSegment:
         self.MohrCoulomb.SetRock(self.HoekBrown, ucs)
         self.Excavation = Excavation(excavType, excavArea, excavWidth, excavHeight, refLength, overburden, self.MohrCoulomb.Fi)
         self.InSituCondition.UpdateK0KaKp(self.Excavation.OverburdenType,self.MohrCoulomb.Fi)
-        self.BrittleFailureRisk = BrittleFailureRisk(self.HoekBrown.SigmaCm,self.InSituCondition.SigmaV)
+        self.rockBurst = rockBursting(ucs, rmr, self.InSituCondition.SigmaV)
         self.Tamez = Tamez('r',overburden, self.Excavation, self.MohrCoulomb, self.InSituCondition, gamma, pi, aunsupported)
+        self.frontStability = frontStability(self.InSituCondition.Overburden/(2.0*self.Excavation.Radius), \
+                                    self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi))) #, self.InSituCondition.Kp)
  
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
@@ -216,8 +246,27 @@ class TBMSegment:
             self.Rpl = R
         
         self.Tbm = tbm
-        self.TunnelClosureAtShieldEndPanet = min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
+        self.TunnelClosureAtShieldEndPanet = self.TunnelClosure(self.Tbm.Slen, 'P') # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
         self.TunnelClosureAtShieldEndVlacho = min(self.TunnelClosure(self.Tbm.Slen, 'V'),  R)
+        
+        # definisco thrust e torque
+        psi = self.Tbm.psi
+        ucs = self.Rock.Ucs
+        sigmat = self.Rock.Sigmat
+        RMR = self.InSituCondition.Rmr
+        rate = self.Tbm.penetrationPerRevolution
+
+        i_1 = int(math.floor(RMR/10.0))
+        i = i_1+1
+        locp = rate[i_1]+(rate[i]-rate[i-1])/10.0*(RMR-i_1*10)
+        locfi = math.acos((self.Tbm.CutterRadius-locp)/self.Tbm.CutterRadius)
+        locP0 = 2.12*math.pow((self.Tbm.CutterSpacing*(ucs**2)*sigmat/(locfi*math.sqrt(self.Tbm.CutterRadius*self.Tbm.CutterThickness))), 1.0/3.0)
+        locFt = 1000.0*locP0*locfi*self.Tbm.CutterRadius*self.Tbm.CutterThickness/(1.0+psi) # in kN
+        locFn = locFt*math.cos(locfi/2.0) # in kN
+        locFr = locFt*math.sin(locfi/2.0) # in kN
+        self.Thrust = self.Tbm.CutterNo*locFn # in kN
+        self.Torque = 0.3*(self.Tbm.SdiamMax+2.0*self.Tbm.OverExcavation)*self.Tbm.CutterNo*locFr # in kNm
+        
         """
         if self.TunnelClosureAtShieldEnd>self.Tbm.OverExcavation:
             # definisco il punto di contatto sullo scudo
@@ -247,12 +296,16 @@ class TBMSegment:
     def UrPi(self, pi):
         # ur in m
         # pi in MPa (1 MPa = 1000 kN/m2)
+        coefTanFi = 1.0
+        coefC = 1.0
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
         E = self.Rock.E
         fi = math.radians(self.MohrCoulomb.Fi)
+        fi = math.atan(math.tan(fi)/coefTanFi)
         fir = math.radians(self.MohrCoulomb.Fir)
-        c = self.MohrCoulomb.C / 1000.0 # MPa
+        fi = math.atan(math.tan(fir)/coefTanFi)
+        c = self.MohrCoulomb.C / 1000.0 / coefC # MPa
         psi = math.radians(self.Rock.Psi)
         p0 = self.P0
         pcr = self.Pcr # in MPa
@@ -327,5 +380,9 @@ class TBMSegment:
         while self.TunnelClosure(x)<urlim and x < self.Tbm.Slen:
             x += 0.005 # incremento di 5 mm
         return x
-        
+    
+    def pkCe2Gl(self, pkCe):
+        #semplice conversione tra pk del cunicolo con la pk della galleria di linea (vale per la tratta nord)
+        pkGl = 59230.0-pkCe
+        return pkGl
 
