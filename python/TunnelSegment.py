@@ -192,7 +192,9 @@ class Tamez:
 			self.Class = 'A - stability'
 			
 class TBM:
-    def __init__(self, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, Ft, friction):
+    def __init__(self, type,  slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust,  installedThrustForce, installedAuxiliaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type):
+        self.type = type # tipo tbm: O, S, DS
+        self.rpm = rpm
         self.Slen = slen # shield length
         self.SdiamMin = sdiammin    #shield minimum diameter
         self.SdiamMax = sdiammax    #shield maximum diameter
@@ -202,10 +204,30 @@ class TBM:
         self.CutterThickness = ct #Cutterthickness
         self.CutterSpacing = cs #Cutter spacing
         self.Friction = friction # coefficiente di attrito tra ammasso e scudo
-        self.BackupDragForce = 8000.0 # kN
-        self.penetrationPerRevolution = (0.003968, 0.003968, 0.00496, 0.005952, 0.007824, 0.009696, 0.011352, 0.013008, 0.011136, 0.009264, 0.009264) #in m per rivoluzione
-        self.psi = 0.0 # angolo da definire in base alla macchina
+        self.BackupDragForce = backupDragForce # kN (8000 per la GL, 4000 per il CE
+        # penetration rate per ogni decina di rmr: 0, 10, 20, 30.....100
+        self.penetrationPerRevolution = (0.00430150833333333, 0.00430150833333333, 0.00513665, 0.00597179166666667, 0.0065686, 0.007082075, 0.00729155, 0.00741769166666667, 0.0065785, 0.00573930833333333, 0.00573930833333333)  #in m per rivoluzione
+        # definisco l'Utilization Factor
+        if self.type == 'O':
+            self.uf = (0.110166666666667,0.110166666666667,0.159111111111111,0.208055555555556,0.288194444444445,0.368333333333333,0.4335,0.498666666666667,0.498666666666667,0.498666666666667,0.498666666666667)
+        elif self.type =='D':
+            self.uf = (0.154166666666667,0.154166666666667,0.189583333333333,0.225,0.285416666666667,0.345833333333333,0.377083333333333,0.408333333333333,0.408333333333333,0.408333333333333,0.408333333333333)
+        elif self.type == 'DS':
+            self.uf = (0.15,0.15,0.219166666666667,0.288333333333333,0.354722222222222,0.421111111111111,0.442361111111111,0.463611111111111,0.463611111111111,0.463611111111111,0.463611111111111)
+        else:
+            exit(-700)
+        # angolo da definire in base alla macchina
+        # come suggerito da Rostami et Al. lo faccio variare linearmente da -0.2 a 0.2 in modo inversamente proporzionale allo spessore del cutter
+        tInf = 0.013 # 13 mm
+        tSup = 0.024 # 24 mm
+        self.psi = 0.2 - 0.4 * (ct-tInf) / (tSup-tInf) # angolo da definire in base alla macchina
         self.Ft = Ft # kN max load per cutter ring
+        self.totalContactThrust = totalContactThrust #in kN
+        self.installedThrustForce = installedThrustForce #in kN
+        self.installedAuxiliaryThrustForce = installedAuxiliaryThrustForce #in kN
+        self.nominalTorque = nominalTorque #in kNm
+        self.breakawayTorque = breakawayTorque #in kNm
+        self.LDP_type = LDP_type # tipo di formulazione per convergenza del cavo: P = Panet, V = Vlachopoulos-Dietrich
 
 class TBMSegment:
     # definisco la condizione intrinseca (TODO verificare definizione con Luca o Paolo)
@@ -226,7 +248,7 @@ class TBMSegment:
         self.rockBurst = rockBursting(ucs, rmr, self.InSituCondition.SigmaV)
         self.Tamez = Tamez('r',overburden, self.Excavation, self.MohrCoulomb, self.InSituCondition, gamma, pi, aunsupported)
         self.frontStability = frontStability(self.InSituCondition.Overburden/(2.0*self.Excavation.Radius), \
-                                    self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi))) #, self.InSituCondition.Kp)
+                                    self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, self.InSituCondition.Kp) #, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi)))
  
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
@@ -246,31 +268,47 @@ class TBMSegment:
             self.Rpl = R
         
         self.Tbm = tbm
-        self.TunnelClosureAtShieldEndPanet = self.TunnelClosure(self.Tbm.Slen, 'P') # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
-        self.TunnelClosureAtShieldEndVlacho = min(self.TunnelClosure(self.Tbm.Slen, 'V'),  R)
+        self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
         
         # definisco thrust e torque
         psi = self.Tbm.psi
         ucs = self.Rock.Ucs
-        sigmat = self.Rock.Sigmat
+        sigmat = ucs/12.0 # self.Rock.Sigmat
         RMR = self.InSituCondition.Rmr
         rate = self.Tbm.penetrationPerRevolution
+        uf = self.Tbm.uf
 
         i_1 = int(math.floor(RMR/10.0))
         i = i_1+1
         locp = rate[i_1]+(rate[i]-rate[i-1])/10.0*(RMR-i_1*10)
+        locuf = uf[i_1]+(uf[i]-uf[i-1])/10.0*(RMR-i_1*10)
         locfi = math.acos((self.Tbm.CutterRadius-locp)/self.Tbm.CutterRadius)
         locP0 = 2.12*math.pow((self.Tbm.CutterSpacing*(ucs**2)*sigmat/(locfi*math.sqrt(self.Tbm.CutterRadius*self.Tbm.CutterThickness))), 1.0/3.0)
         locFt = 1000.0*locP0*locfi*self.Tbm.CutterRadius*self.Tbm.CutterThickness/(1.0+psi) # in kN
+        pRateReduction = 0.0
+        if locFt > self.Tbm.Ft:
+            locFt = self.Tbm.Ft
+            locfi=locFt*(1.0+psi)/(1000.0*locP0*self.Tbm.CutterRadius*self.Tbm.CutterThickness)
+            pRid = self.Tbm.CutterRadius*(1.-math.cos(locfi))
+            pRateReduction = locp-pRid
+            locp = pRid
+            
         locFn = locFt*math.cos(locfi/2.0) # in kN
         locFr = locFt*math.sin(locfi/2.0) # in kN
-        self.Thrust = self.Tbm.CutterNo*locFn # in kN
-        self.Torque = 0.3*(self.Tbm.SdiamMax+2.0*self.Tbm.OverExcavation)*self.Tbm.CutterNo*locFr # in kNm
+        self.penetrationRate = locp # m / rotazione
+        self.penetrationRateReduction = pRateReduction
+        self.contactThrust = self.Tbm.CutterNo*locFn # in kN
+        self.torque = 0.3*(self.Tbm.SdiamMax+2.0*self.Tbm.OverExcavation)*self.Tbm.CutterNo*locFr # in kNm
+        self.dailyAdvanceRate = 24.*locuf*locp*self.Tbm.rpm*60.*340./365. # in m/gg con anni di 340 gg
         
-        """
         if self.TunnelClosureAtShieldEnd>self.Tbm.OverExcavation:
             # definisco il punto di contatto sullo scudo
             self.Xcontact = self.xLim(self.Tbm.OverExcavation)
+            # integrazione semplificata, assumo la pressione come triangolare
+            maxPressure = self.PiUr(self.Tbm.OverExcavation) - self.PiUr(self.TunnelClosureAtShieldEnd)
+            total = maxPressure*(self.Tbm.Slen-self.Xcontact)/2.0
+            
+            """
             # integro la pressione sullo scudo dal punto di contatto a fine scudo
             pref = self.PiUr(self.Tbm.OverExcavation)
             x = self.xLim(self.Tbm.OverExcavation)
@@ -287,11 +325,13 @@ class TBMSegment:
                 total += (pi+pi_1)/2.0*step
                 pi_1 = pi
                 x += step
-            self.PressureOnShield = total*self.Tbm.SdiamMin*math.pi*self.Tbm.Friction*1000.0 # forza in kN
+            """
+            self.frictionForce = total*self.Tbm.SdiamMax*math.pi*self.Tbm.Friction*1000.0 # forza in kN
         else:
-            self.PressureOnShield = 0.0 # in kN
-            self.Xcontact = tbm.OverExcavation
-        """
+            self.frictionForce = 0.0 # in kN
+            self.Xcontact = tbm.Slen
+        self.availableThrust = self.Tbm.installedThrustForce - self.contactThrust - self.Tbm.BackupDragForce
+        self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
     
     def UrPi(self, pi):
         # ur in m
@@ -346,19 +386,20 @@ class TBMSegment:
         ustar = 1-(1.0-u0star)*math.exp(-3.0*xstar/2.0/Rstar)
         return umax*ustar # convergenza del cavo in m alla distanza x dal fronte
 
-    def CavityConvergence(self, x, opt):
+    def CavityConvergence(self, x):
         # risultato in m
         # x in m
         # opt e' opzione di calcolo P = panet, V = Vlachopoulos
+        opt = self.Tbm.LDP_type
         if opt == 'p' or opt == 'P':
             return self.LDP_Panet_1995(x)
         else:
             return self.LDP_Vlachopoulos_2009(x)
     
-    def TunnelClosure(self, x, opt):
+    def TunnelClosure(self, x):
         # risultato in m
         # x in m
-        return self.CavityConvergence(x, opt) - self.CavityConvergence(0.0, opt)
+        return self.CavityConvergence(x) - self.CavityConvergence(0.0)
     
     def PiUr(self, dur):
         # restituisce il valore di pressione equivalente a una convergenza del cavo pari a dur
@@ -386,3 +427,9 @@ class TBMSegment:
         pkGl = 59230.0-pkCe
         return pkGl
 
+class StabilizationMeasure:
+    def __init__(self, pkFrom, pkTo, type, len):
+        self.pkFrom =pkFrom
+        self.pkTo = pkTo
+        self.type = type
+        self.len = len
