@@ -17,8 +17,8 @@ os.chdir(path)
 pkl_file = open('bbtdata.pkl', 'rb')
 # carico un file mettendo il contenuto nell'oggettto bbt_evalparameters che e una lista di BbtParameterEval
 bbt_evalparameters = pickle.load(pkl_file)
-#          (slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
-tbm = TBM('DS', 10., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
+#          (type, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
+tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
 
 dimarray = len(bbt_evalparameters)
 varnum = 20
@@ -48,6 +48,13 @@ for i in range(dimarray):
     vcheck[i][0] = vplot[0][i]          #progressive GL
     vcheck[i][1] = vplot[1][i]          #copertura
     vcheck[i][2] = vplot[2][i]          #tunnel closure a fine scudo in cm
+    vcheck[i][3] = tbmsect.HoekBrown.Mr          #mb res
+    vcheck[i][4] = tbmsect.HoekBrown.Sr          #s res   
+    vcheck[i][5] = tbmsect.HoekBrown.Ar          #a res
+    vcheck[i][6] = tbmsect.HoekBrown.SigmaC          #
+    vcheck[i][7] = tbmsect.HoekBrown.SigmaCr          #a res
+    vcheck[i][8] = tbmsect.UrPi_HB(0.)
+"""
     vcheck[i][3] = vplot[3][i]          #valore coefficiente per rockburst
     vcheck[i][4] = vplot[4][i]          #valore Panet Ns    
     vcheck[i][5] = vplot[5][i]          #valore Panet lambdae
@@ -59,6 +66,7 @@ for i in range(dimarray):
     vcheck[i][11] = vplot[11][i]       #thrust totale richiesto in kN (fronte+attrito+backup)
     vcheck[i][12] = vplot[12][i]       #thrust disponibile per vincere attrito in kN
     vcheck[i][13] = vplot[13][i]       #produzione in m/gg (con 340 gg lavorativi anno)
+"""
 
 # interventi particolari (stabilization measure
 sm = (\
@@ -131,7 +139,6 @@ for cur in sm:
         sm3yplot[cnt3][0] = y3
         sm3yplot[cnt3][1] = y3
         cnt3+=1
-
 # plot risultati
 # figura 1
 fig1 = plt.figure()
@@ -262,13 +269,12 @@ ax42s.set_ylim(0.0, max(vplot[1])*1.5)
 
 plt.show()
 
-"""
 # esposrto in csv i valori di confronto
 with open('confronto.csv', 'wb') as f:
     writer = csv.writer(f,delimiter=",")
     writer.writerows(vcheck)
 
-
+"""
 plot(vplot[0], vplot[1], label='Panet_1995')
 plot(vplot[0], vplot[2], label='Vlachopoulos_2009')
 plot((min(vplot[0]), max(vplot[0])), (0.1, 0.1), label='Sovrascavo')

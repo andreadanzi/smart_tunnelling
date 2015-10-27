@@ -1,5 +1,23 @@
 import math
 
+def derivative(f, x, nu, a, so, h):
+    res = (f(x+h, nu, a, so) - f(x-h, nu, a, so)) / (2.0*h)
+    if res ==0:
+        res = 0.00001
+    return res  # might want to return a small non-zero if ==0
+
+def pcrit(x, nu, a, so):
+    return nu*x**a+2.*x-2.*so     # just a function to show it works
+
+def solve(f, x0, nu, a, so, h):
+    lastX = x0
+    nextX = lastX + 10* h  # "different than lastX so loop starts OK
+    while (abs(lastX - nextX) > h):  # this is how you terminate the loop - note use of abs()
+        newY = f(nextX, nu, a, so)                     # just for debug... see what happens
+        lastX = nextX
+        nextX = max(lastX - newY / derivative(f, lastX, nu, a, so, h), 2.*h)  # update estimate using N-R, lo limito a rimanere oltre lo zero
+    return nextX
+
 class Rock:
     # definisce le caratteristiche della roccia intatta
     def __init__(self, gamma, ni, e, ucs,  st, psi):
@@ -49,40 +67,54 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.Mb = mi*math.exp((gsi-100.0)/(28.0-14.0*d)) # parametro di Hoek & Brown
         self.S = math.exp((gsi-100.0)/(9.0-3.0*d))	# parametro di Hoek & Brown
         self.A = 0.5+(1.0/6.0)*((math.exp(-gsi/15.0))-(math.exp(-20.0/3.0)))	# parametro di Hoek & Brown
-        self.Mr = mi*math.exp((gsi-100.0)/(28.0-14.0*1.0)) # parametro di Hoek & Brown
-        self.Sr = math.exp((gsi-100.0)/(9.0-3.0*1.0))	# parametro di Hoek & Brown
-        self.Ar = min(0.5, self.A)
         self.SigmaC = ucs*self.S**self.A	# parametro di Hoek & Brown
         self.SigmaT = self.S*ucs/self.Mb # a meno del segno e' la resistenza a trazione
         self.SigmaCm = ucs*(((self.Mb+4.0*self.S-self.A*(self.Mb-8.0*self.S))*(self.Mb/4.0+self.S)**(self.A-1.0))/(2.0*(1.0+self.A)*(2.0+self.A)))	# parametro di Hoek & Brown
         if sv < 0.001 or self.SigmaCm < 0.001:
             print "ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" %(ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv)
-            exit(-1)
+            exit(-701)
         self.Sigma3max = (0.47*(self.SigmaCm/sv)**(-0.94))*self.SigmaCm # parametro di Hoek & Brown
+        
+        # parametri residui
+        dr = 1.
+        self.dr = dr
+        self.Mr = mi*math.exp((gsi-100.0)/(28.0-14.0*dr)) # parametro di Hoek & Brown
+        self.Sr = math.exp((gsi-100.0)/(9.0-3.0*dr))	# parametro di Hoek & Brown
+        self.Ar = min(0.5, self.A)
+        self.SigmaCr = ucs*self.Sr**self.Ar	# parametro di Hoek & Brown
+        self.SigmaTr = self.Sr*ucs/self.Mr # a meno del segno e' la resistenza a trazione
+        self.SigmaCmr = ucs*(((self.Mr+4.0*self.Sr-self.Ar*(self.Mr-8.0*self.Sr))*(self.Mr/4.0+self.Sr)**(self.Ar-1.0))/(2.0*(1.0+self.Ar)*(2.0+self.Ar)))	# parametro di Hoek & Brown
+        self.Sigma3maxr = (0.47*(self.SigmaCmr/sv)**(-0.94))*self.SigmaCmr # parametro di Hoek & Brown
 
 class MohrCoulomb:
-	def __init__(self):
-		self.Fi =0.0
-		self.Fir = 0.0
-		self.C = 0.0 #in KPa
-		self.SigmaCm0 = 0.0 
-	
-	# inizializzazione per rocce
-	def SetRock(self, hb, ucs):
-		self.Fi = math.degrees(math.asin((6.0*hb.A*hb.Mb*(hb.S+hb.Mb*hb.Sigma3max/ucs)**(hb.A-1.0))\
-				/(2.0*(1.0+hb.A)*(2.0+hb.A)+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*hb.Sigma3max/ucs)**(hb.A-1.0)))))
-		self.Fir = math.degrees(math.asin((6.0*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3max/ucs)**(hb.Ar-1.0))\
-				/(2.0*(1.0+hb.Ar)*(2.0+hb.Ar)+(6.0*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3max/ucs)**(hb.Ar-1.0)))))
-		self.C = (ucs*((1.0+2.0*hb.A)*hb.S+(1.0-hb.A)*hb.Mb*(hb.Sigma3max/ucs))*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0)) \
-				/((1.0+hb.A)*(2.0+hb.A)*math.sqrt(1.0+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0))/((1.0+hb.A)*(2.0+hb.A))))*1000.0 #in KPa
-		self.SigmaCm0 = 2.0*self.C*math.cos(math.radians(self.Fi))/(1.0-math.sin(math.radians(self.Fi)))/1000.0
-	
-	#inizializzazione per terreni
-	def SetSoil(self, fi, c, fir):
-		self.Fi = fi
-		self.C = c
-		self.Fir = fir
-		self.SigmaCm0 = 2.0*c*math.cos(math.radians(fi))/(1.0-math.sin(math.radians(fi)))/1000.0		
+    def __init__(self):
+        self.Fi =0.
+        self.Fir = 0.
+        self.C = 0. #in KPa
+        self.Cr = 0. #in KPa
+        self.SigmaCm0 = 0.
+    
+    # inizializzazione per rocce
+    def SetRock(self, hb, ucs):
+        self.Fi = math.degrees(math.asin((6.0*hb.A*hb.Mb*(hb.S+hb.Mb*hb.Sigma3max/ucs)**(hb.A-1.0))\
+                /(2.0*(1.0+hb.A)*(2.0+hb.A)+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*hb.Sigma3max/ucs)**(hb.A-1.0)))))
+        self.C = (ucs*((1.0+2.0*hb.A)*hb.S+(1.0-hb.A)*hb.Mb*(hb.Sigma3max/ucs))*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0)) \
+        		/((1.0+hb.A)*(2.0+hb.A)*math.sqrt(1.0+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0))/((1.0+hb.A)*(2.0+hb.A))))*1000.0 #in KPa
+        self.SigmaCm0 = 2.0*self.C*math.cos(math.radians(self.Fi))/(1.0-math.sin(math.radians(self.Fi)))/1000.
+        
+        # parametri residui
+        self.Fir = math.degrees(math.asin((6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3maxr/ucs)**(hb.Ar-1.))\
+        		/(2.*(1.+hb.Ar)*(2.+hb.Ar)+(6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3maxr/ucs)**(hb.Ar-1.)))))
+        self.Cr = (ucs*((1.+2.*hb.Ar)*hb.Sr+(1.-hb.Ar)*hb.Mr*(hb.Sigma3maxr/ucs))*(hb.Sr+hb.Mr*(hb.Sigma3maxr/ucs))**(hb.Ar-1.)) \
+        		/((1.+hb.Ar)*(2.0+hb.Ar)*math.sqrt(1.+(6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*(hb.Sigma3maxr/ucs))**(hb.Ar-1.))/((1.+hb.Ar)*(2.+hb.Ar))))*1000.0 #in KPa
+        self.SigmaCm0r = 2.0*self.Cr*math.cos(math.radians(self.Fir))/(1.0-math.sin(math.radians(self.Fir)))/1000.0
+    
+    #inizializzazione per terreni
+    def SetSoil(self, fi, c, fir):
+        self.Fi = fi
+        self.C = c
+        self.Fir = fir
+        self.SigmaCm0 = 2.0*c*math.cos(math.radians(fi))/(1.0-math.sin(math.radians(fi)))/1000.0
 
 class Excavation:
     # caratteristiche legate allo scavo
@@ -253,17 +285,18 @@ class TBMSegment:
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
         fi = math.radians(self.MohrCoulomb.Fi)
+        c = self.MohrCoulomb.C / 1000. # MPa
         fir = math.radians(self.MohrCoulomb.Fir)
-        c = self.MohrCoulomb.C / 1000.0 # MPa
-        pi_c_tan = c / math.tan(fir)
+        cr = self.MohrCoulomb.C / 1000. # MPa
+        pi_cr_tan = cr / math.tan(fir)
         p0 = self.Rock.Gamma * (self.InSituCondition.Overburden+self.Excavation.Height/2.0) / 1000.0 # in MPa
         self.P0 = p0
-        self.Pcr = p0 * (1.0-math.sin(fi)) - c * math.cos(fi) # in MPa
+        self.Pcr = p0 * (1.-math.sin(fi)) - c * math.cos(fi) # in MPa
         self.Pocp = p0 + c / math.tan(fi)
-        self.Pocr = p0 + c / math.tan(fir)
-        self.Nfir = (1.0+math.sin(fir)) / (1.0-math.sin(fir))
+        self.Pocr = p0 + cr / math.tan(fir)
+        self.Nfir = (1.+math.sin(fir)) / (1.-math.sin(fir))
         if self.Pcr < p0:
-            self.Rpl = (((self.Pocr-self.Pocp*math.sin(fi))/pi_c_tan)**(1.0/(self.Nfir-1.0)))*R
+            self.Rpl = (((self.Pocr-self.Pocp*math.sin(fi))/pi_cr_tan)**(1.0/(self.Nfir-1.)))*R
         else:
             self.Rpl = R
         
@@ -332,7 +365,53 @@ class TBMSegment:
             self.Xcontact = tbm.Slen
         self.availableThrust = self.Tbm.installedThrustForce - self.contactThrust - self.Tbm.BackupDragForce
         self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
-    
+
+   
+    def UrPi_HB(self, pi):
+        #curva caratteristica con parametri di H-B secondo Carranza torres del 2006
+        sigma0 = self.InSituCondition.SigmaV
+        sigmaci = self.Rock.Ucs
+        R = self.Excavation.Radius
+        psi = math.radians(self.Rock.Psi)
+        ni = self.Rock.Ni
+        
+        mb = self.HoekBrown.Mb
+        s = self.HoekBrown.S
+        a = self.HoekBrown.A
+        nu = mb**((2.*a-1.)/a)
+        mb_sci = sigmaci*mb**((1.-a)/a)
+        s_mb = s/(mb**(1./a))
+        S0 = sigma0/mb_sci+s_mb
+        Pi = pi/mb_sci+s_mb
+        x0 =((1.-math.sqrt(1.+16.*S0))/4.)**2
+        Picr = solve(pcrit, x0, nu, a, S0, 0.00001)
+        picr = (Picr-s_mb)*mb_sci
+
+        mb_r = self.HoekBrown.Mr
+        s_r = self.HoekBrown.Sr
+        a_r = self.HoekBrown.Ar
+        nu_r = mb_r**((2.*a_r-1.)/a_r)
+        mb_sci_r = sigmaci*mb_r**((1.-a_r)/a_r)
+        s_mb_r = s_r/(mb_r**(1./a_r))
+        S0_r = sigma0/mb_sci_r+s_mb_r
+        Pi_r = pi/mb_sci_r+s_mb_r
+        Picr_r = picr/mb_sci_r+s_mb_r
+        Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
+        
+        Kpsi = (1.+math.sin(psi))/(1.-math.sin(psi))
+        A1 = -Kpsi
+        A2 = 1.-ni-ni*Kpsi
+        A3 = ni-(1.-ni)*Kpsi
+        
+
+
+
+
+        return Rpl
+
+
+
+
     def UrPi(self, pi):
         # ur in m
         # pi in MPa (1 MPa = 1000 kN/m2)
@@ -343,10 +422,13 @@ class TBMSegment:
         E = self.Rock.E
         fi = math.radians(self.MohrCoulomb.Fi)
         fi = math.atan(math.tan(fi)/coefTanFi)
-        fir = math.radians(self.MohrCoulomb.Fir)
-        fi = math.atan(math.tan(fir)/coefTanFi)
         c = self.MohrCoulomb.C / 1000.0 / coefC # MPa
         psi = math.radians(self.Rock.Psi)
+
+        fir = math.radians(self.MohrCoulomb.Fir)
+        fir = math.atan(math.tan(fir)/coefTanFi)
+        cr = self.MohrCoulomb.Cr / 1000.0 / coefC # MPa
+
         p0 = self.P0
         pcr = self.Pcr # in MPa
         pocp = self.Pocp
@@ -355,12 +437,12 @@ class TBMSegment:
         uremax = (1.0+ni)/E*(p0-pi)*R
         if pcr < p0:
             Ki = (1.0+math.sin(psi))/(1.0-math.sin(psi))
-            pi_c_tan = pi + c / math.tan(fir)
-            Rpl = (((pocr-pocp*math.sin(fi))/pi_c_tan)**(1.0/(Nfir-1.0)))*R
+            pi_cr_tan = pi + cr / math.tan(fir)
+            Rpl = (((pocr-pocp*math.sin(fi))/pi_cr_tan)**(1.0/(Nfir-1.0)))*R
             RplK_1rK = Rpl**(Ki+1.0)/R**Ki
             RplK_KrK = Rpl**(Nfir+Ki)/R**Ki-R**Nfir
             primaparte = RplK_1rK*pocp*math.sin(fi)+pocr*(1.0-2.0*ni)*(RplK_1rK-R)
-            secondaparte = (1.0+Nfir*Ki-ni*(Ki+1)*(Nfir+1.0))*pi_c_tan
+            secondaparte = (1.0+Nfir*Ki-ni*(Ki+1)*(Nfir+1.0))*pi_cr_tan
             terzaparte = 1.0/((Nfir+Ki)*R**(Nfir-1.0))*RplK_KrK
             urplmax = ((1.0+ni)/E)*(primaparte-secondaparte*terzaparte)
         else:
