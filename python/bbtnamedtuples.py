@@ -30,7 +30,7 @@ BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'frictionForce',\
                                                     'requiredThrustForce',\
                                                     'availableThrust',\
-                                                    'dailyAdvanceRate'])
+                                                    'dailyAdvanceRate','profilo_id','geoitem_id'])
 
 
 def bbtparameter_factory(cursor, row):
