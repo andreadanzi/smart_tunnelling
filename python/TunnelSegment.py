@@ -8,6 +8,9 @@ def derivative(f, x, nu, a, so, h):
 
 def pcrit(x, nu, a, so):
     return nu*x**a+2.*x-2.*so     # just a function to show it works
+    
+def U(rho, u, uP, c1, c2):
+    return c1/rho*uP-c1/(rho**2)*u+c2
 
 def solve(f, x0, nu, a, so, h):
     lastX = x0
@@ -28,7 +31,7 @@ class Rock:
         self.Sigmat = st #tensile strength
         self.Psi = psi
         self.Lambda = e*ni/((1.0+ni)*(1.0-2.0*ni))
-        self.G = e/(2*(1+ni))
+        self.G = e/(2.*(1.+ni))
 
 class InSituCondition:
 # caratteristiche dell'ammasso e stato tensionale locale
@@ -76,14 +79,21 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.Sigma3max = (0.47*(self.SigmaCm/sv)**(-0.94))*self.SigmaCm # parametro di Hoek & Brown
         
         # parametri residui
-        dr = 1.
+        dr = 0. # TODO mettere legge
+        ucsr = ucs # TODO mettere legge
+        gsir = gsi # TODO mettere legge
         self.dr = dr
-        self.Mr = mi*math.exp((gsi-100.0)/(28.0-14.0*dr)) # parametro di Hoek & Brown
-        self.Sr = math.exp((gsi-100.0)/(9.0-3.0*dr))	# parametro di Hoek & Brown
-        self.Ar = min(0.5, self.A)
-        self.SigmaCr = ucs*self.Sr**self.Ar	# parametro di Hoek & Brown
-        self.SigmaTr = self.Sr*ucs/self.Mr # a meno del segno e' la resistenza a trazione
-        self.SigmaCmr = ucs*(((self.Mr+4.0*self.Sr-self.Ar*(self.Mr-8.0*self.Sr))*(self.Mr/4.0+self.Sr)**(self.Ar-1.0))/(2.0*(1.0+self.Ar)*(2.0+self.Ar)))	# parametro di Hoek & Brown
+        self.ucsr = ucsr
+        self.gsir = gsir
+        self.Mr = mi*math.exp((gsir-100.0)/(28.0-14.0*dr)) # parametro di Hoek & Brown
+        self.Sr = math.exp((gsir-100.0)/(9.0-3.0*dr))	# parametro di Hoek & Brown
+        if dr != 0.:
+            self.Ar = 0.5 #min(0.5, self.A)
+        else:
+            self.Ar = 0.5 #self.A 
+        self.SigmaCr = ucsr*self.Sr**self.Ar	# parametro di Hoek & Brown
+        self.SigmaTr = self.Sr*ucsr/self.Mr # a meno del segno e' la resistenza a trazione
+        self.SigmaCmr = ucsr*(((self.Mr+4.0*self.Sr-self.Ar*(self.Mr-8.0*self.Sr))*(self.Mr/4.0+self.Sr)**(self.Ar-1.0))/(2.0*(1.0+self.Ar)*(2.0+self.Ar)))	# parametro di Hoek & Brown
         self.Sigma3maxr = (0.47*(self.SigmaCmr/sv)**(-0.94))*self.SigmaCmr # parametro di Hoek & Brown
 
 class MohrCoulomb:
@@ -370,47 +380,103 @@ class TBMSegment:
     def UrPi_HB(self, pi):
         #curva caratteristica con parametri di H-B secondo Carranza torres del 2006
         sigma0 = self.InSituCondition.SigmaV
-        sigmaci = self.Rock.Ucs
+        sci = self.Rock.Ucs
         R = self.Excavation.Radius
         psi = math.radians(self.Rock.Psi)
         ni = self.Rock.Ni
+        G = self.Rock.G # riporto il modulo in MPa
         
         mb = self.HoekBrown.Mb
         s = self.HoekBrown.S
         a = self.HoekBrown.A
         nu = mb**((2.*a-1.)/a)
-        mb_sci = sigmaci*mb**((1.-a)/a)
+        mb_sci = sci*mb**((1.-a)/a)
         s_mb = s/(mb**(1./a))
         S0 = sigma0/mb_sci+s_mb
-        Pi = pi/mb_sci+s_mb
+        # Pi = pi/mb_sci+s_mb
         x0 =((1.-math.sqrt(1.+16.*S0))/4.)**2
         Picr = solve(pcrit, x0, nu, a, S0, 0.00001)
         picr = (Picr-s_mb)*mb_sci
 
+        sci_r = self.HoekBrown.ucsr
         mb_r = self.HoekBrown.Mr
         s_r = self.HoekBrown.Sr
         a_r = self.HoekBrown.Ar
         nu_r = mb_r**((2.*a_r-1.)/a_r)
-        mb_sci_r = sigmaci*mb_r**((1.-a_r)/a_r)
+        mb_sci_r = sci_r*mb_r**((1.-a_r)/a_r)
         s_mb_r = s_r/(mb_r**(1./a_r))
         S0_r = sigma0/mb_sci_r+s_mb_r
         Pi_r = pi/mb_sci_r+s_mb_r
         Picr_r = picr/mb_sci_r+s_mb_r
         Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
+        G_r = G/mb_sci_r
         
         Kpsi = (1.+math.sin(psi))/(1.-math.sin(psi))
         A1 = -Kpsi
         A2 = 1.-ni-ni*Kpsi
         A3 = ni-(1.-ni)*Kpsi
         
+        # condizioni iniziali su ur (ur1) e urP (ur1P)
+        rho = 1.
+        Rpl_2G_r = Rpl/(2.*G_r)
+        if Rpl > R:
+            # roclab nel caso di utilizzo dei soli valori di picco imposta a_r = 0.5
+            # altrimenti considera il valore modificato di a_r ma non usa runge kutta ma la formula semplificata
+            """
+            if a_r != .5:
+                # integrazione con runge kutta. teoricamente corretta per l'esempio di carranza torres
+                # ma manca verifica piu' stesa visto che il roc support implementa la formula approssimata
+                # valida per a_r = 0.5
+                ur = Rpl_2G_r*(S0_r-Picr_r)
+                urP = A1*ur\
+                    +Rpl_2G_r*(1.-ni*(1.-A1))*(Picr_r-S0_r)\
+                    -Rpl_2G_r*(A1+ni*(1.-A1))*(Picr_r+nu_r*Picr_r**a_r-S0_r)
+                intPntCnt = 20
+                h = (R/Rpl-1.)/(intPntCnt-1.)
+                h_2 = h/2.
+                c1 = A1
+                for i in range(1, intPntCnt+1):
+                    Sr_r = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho))**(1./(1.-a_r))
+                    SrP_r = nu_r/rho*Sr_r**a_r
+                    StP_r = (1.+a_r*nu_r*Sr_r**(a_r-1.))*SrP_r
+                    c2 = Rpl_2G_r*(A2*SrP_r-A3*StP_r)
 
+                    Sr_r_h_2 = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho+h_2))**(1./(1.-a_r))
+                    SrP_r_h_2 = nu_r/(rho+h_2)*Sr_r_h_2**a_r
+                    StP_r_h_2 = (1.+a_r*nu_r*Sr_r_h_2**(a_r-1.))*SrP_r_h_2
+                    c2_h_2 = Rpl_2G_r*(A2*SrP_r_h_2-A3*StP_r_h_2)
 
+                    Sr_r_h = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho+h))**(1./(1.-a_r))
+                    SrP_r_h = nu_r/(rho+h)*Sr_r_h**a_r
+                    StP_r_h = (1.+a_r*nu_r*Sr_r_h**(a_r-1.))*SrP_r_h
+                    c2_h = Rpl_2G_r*(A2*SrP_r_h-A3*StP_r_h)
 
+                    k1 = h * U(rho, ur, urP, c1, c2)
+                    k2 = h * U(rho+h_2, ur+h_2*urP, urP+h_2*k1, c1, c2_h_2)
+                    k3 = h * U(rho+h_2, ur+h_2*urP+h_2**2*k1, h_2*k2, c1, c2_h_2)
+                    k4 = h * U(rho+h, ur+h*urP+(h**2)/2.*k2, urP+h*k3, c1, c2_h)
+                    
+                    ur += h*(urP+(k1+k2+k3)/6.)
+                    urP += (k1+2.*k2+2.*k3+k4)/6.
 
-        return Rpl
-
-
-
+                    r = Rpl-(i-1.)/(intPntCnt-1.)*(Rpl - R)
+                    rho = r/Rpl
+            else:
+            """
+            rho = R/Rpl
+            ur1 = Rpl_2G_r*(S0_r-Picr_r)
+            ur1P = A1*ur1\
+                +Rpl_2G_r*(1.-ni*(1.-A1))*(Picr_r-S0_r)\
+                -Rpl_2G_r*(A1+ni*(1.-A1))*(Picr_r+nu_r*Picr_r**a_r-S0_r)
+            ur = (rho**A1-A1*rho)/(1.-A1)*ur1\
+                +(rho-rho**A1)/(1.-A1)*ur1P\
+                +Rpl_2G_r/4.*(A2-A3)/(1.-A1)*rho*(math.log(rho))**2\
+                +Rpl_2G_r*((A2-A3)/(1.-A1)**2*math.sqrt(Picr_r)-.5*(A2-A1*A3)/(1.-A1)**3)\
+                *(rho**A1-rho+(1.-A1)*rho*math.log(rho))
+            
+        else:
+            ur = (S0_r-Picr_r)/(2.*G_r)*Rpl**2/R
+        return ur
 
     def UrPi(self, pi):
         # ur in m
@@ -422,7 +488,7 @@ class TBMSegment:
         E = self.Rock.E
         fi = math.radians(self.MohrCoulomb.Fi)
         fi = math.atan(math.tan(fi)/coefTanFi)
-        c = self.MohrCoulomb.C / 1000.0 / coefC # MPa
+        #c = self.MohrCoulomb.C / 1000.0 / coefC # MPa
         psi = math.radians(self.Rock.Psi)
 
         fir = math.radians(self.MohrCoulomb.Fir)
