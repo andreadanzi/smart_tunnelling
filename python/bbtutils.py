@@ -45,16 +45,29 @@ hipk = (0.2,0.4,0.3)
 #Custom made discrete distribution for Human Factor - da chiamare con hi[hcustm.rvs()] restituisce S N o F sulla base della distribuzione
 hcustm = rv_discrete(name='custm', values=(hixk, hipk))
 
-def get_my_norm_function(mean,std):
-    minval = mean - 2*std
-    if std > 0 and minval < 0:
-        lower = mean - std
-        upper = mean + std
+def get_my_norm_rvs(mean,std,name=''):
+    if mean==-1: return mean
+    if std > 0:
+        lower = mean - 3*std
+        upper = mean + 3*std
+        if lower < 0:
+            # print "1 - lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+            lower = mean - 2*std
+            upper = mean + 2*std
+            if lower < 0:
+                # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+                lower = mean - std
+                upper = mean + std
         a, b = (lower - mean) / std, (upper - mean) / std
         myNorm = truncnorm(a, b, loc=mean, scale=std)
+        retVal = myNorm.rvs()
     else:
-        myNorm = norm(mean,std)
-    return myNorm
+        myNorm = norm(mean, std)
+        retVal = myNorm.rvs()
+    if retVal < 0:
+        print "retVal = %f < 0 for %s ith input %f and %f" % (retVal,name,mean,std)
+        retVal = mean - std
+    return retVal
 
 # distribuzione binomiale (tempo di ritorno) di eventi ogni l metri che causano ritardo di N giorni, dove N = il doppio del massimo tra i tempi
 def evento_eccezionale(l,ecc):

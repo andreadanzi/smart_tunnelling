@@ -1,5 +1,5 @@
 import pickle
-import sys, os
+import sys, os, datetime
 import numpy as np
 from pylab import *
 from scipy.stats import *
@@ -21,10 +21,13 @@ for bbt_parameter in bbtresults:
     bbt_parameters.append(bbt_parameter)
 conn.close()
 print "start loading and evaluating parameters"
-# definisco la TBM
-tbm = TBM(10.0, 10.0, 10.0, 0.15, 12, 0.17, 0.03, 2.25, 0.15)
-BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi','rmr','closure'])
-p_eval = zeros(shape=(12,len(bbt_parameters)), dtype=float)
+# definisco la TBM (type, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
+tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
+
+dimarray = len(bbt_parameters)
+varnum = 26
+vplot = zeros(shape=(varnum, dimarray), dtype=float)
+vcheck = zeros(shape=(dimarray,  varnum), dtype=float)
 i=0
 pPrev = 0
 bbt_evalparameters = []
@@ -32,47 +35,106 @@ bbt_evalparameters = []
 N = len(bbt_parameters)
 point = N / 100
 increment = N / 20
+now = datetime.datetime.now()
+strnow = now.strftime("%Y%m%dT%H%M%S")
 for bbt_parameter in bbt_parameters:
-    p_eval[0][i] = bbt_parameter.fine
-    p_eval[1][i] = bbt_parameter.he
-    p_eval[2][i] = bbt_parameter.hp
-    p_eval[3][i] = bbt_parameter.co
-    p_eval[4][i] = get_my_norm_function(bbt_parameter.g_med,bbt_parameter.g_stddev).rvs()
-    p_eval[5][i] = get_my_norm_function(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev).rvs()
-    p_eval[6][i] = get_my_norm_function(bbt_parameter.mi_med,bbt_parameter.mi_stdev).rvs()
-    p_eval[7][i] = get_my_norm_function(bbt_parameter.ei_med,bbt_parameter.ei_stdev).rvs()
-    p_eval[8][i] = get_my_norm_function(bbt_parameter.cai_med,bbt_parameter.cai_stdev).rvs()
-    p_eval[9][i] = get_my_norm_function(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev).rvs()
-    p_eval[10][i] = get_my_norm_function(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev).rvs()
-    p_eval[11][i] = 0
-    #tbmseg = TBMSegment(p_eval[4][i], 0.2, p_eval[7][i], p_eval[5][i],0.0,0.0, p_eval[6][i],p_eval[3][i],p_eval[3][i], 0.5, 1.0, p_eval[9][i], p_eval[10][i], 'Mech', (5**2)*math.pi, 10, 10, tbm.Slen, 0.0, 1.5,  tbm)
-    # p_eval[10][i] = tbmseg.TunnelClosure(10.0)
+    vplot[0][i] = 0 #strnow
+    vplot[1][i] = 0 #iteration_no
+    vplot[2][i] = bbt_parameter.fine
+    vplot[3][i] = bbt_parameter.he
+    vplot[4][i] = bbt_parameter.hp
+    co = vplot[5][i] = bbt_parameter.co
+    gamma = vplot[6][i] = get_my_norm_rvs(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma')
+    sigma = vplot[7][i] = get_my_norm_rvs(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma')
+    mi = vplot[8][i] = get_my_norm_rvs(bbt_parameter.mi_med,bbt_parameter.mi_stdev,'mi')
+    ei = vplot[9][i] = get_my_norm_rvs(bbt_parameter.ei_med,bbt_parameter.ei_stdev,'ei')
+    vplot[10][i] = get_my_norm_rvs(bbt_parameter.cai_med,bbt_parameter.cai_stdev,'cai')
+    gsi = vplot[11][i] = get_my_norm_rvs(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev,'gsi')
+    rmr = vplot[12][i] = get_my_norm_rvs(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev,'rmr')
+    tbmsect = TBMSegment(gamma, .2, ei*1000., sigma, 5.,0., mi, co, co, .5, 1., gsi, rmr, 'Mech', (tbm.SdiamMax**2)*math.pi/4., tbm.SdiamMax, tbm.SdiamMax, tbm.Slen, 0., tbm.Slen,  tbm)
+    vplot[13][i] = tbmsect.pkCe2Gl(bbt_parameter.fine)
+    #vplot[12][i] = co
+    vplot[14][i] = tbmsect.TunnelClosureAtShieldEnd*100. #in cm
+    vplot[15][i] = tbmsect.rockBurst.Val
+    vplot[16][i] = tbmsect.frontStability.Ns
+    vplot[17][i] = tbmsect.frontStability.lambdae
+    vplot[18][i] = tbmsect.penetrationRate*1000. #in mm/giro
+    vplot[19][i] = tbmsect.penetrationRateReduction*1000. #in mm/giro
+    vplot[20][i] = tbmsect.contactThrust
+    vplot[21][i] = tbmsect.torque
+    vplot[22][i] = tbmsect.frictionForce
+    vplot[23][i] = tbmsect.requiredThrustForce
+    vplot[24][i] = tbmsect.availableThrust
+    vplot[25][i] = tbmsect.dailyAdvanceRate
+
     if pPrev != bbt_parameter.geoitem_id:
-        plot((p_eval[0][i], p_eval[0][i]), (0, p_eval[1][i]),'y-', linewidth=0.3)
+        plot((vplot[2][i], vplot[2][i]), (0, vplot[3][i]),'y-', linewidth=0.3)
         pPrev = bbt_parameter.geoitem_id
-    pEval = BbtParameterEval(p_eval[0][i],p_eval[1][i],p_eval[2][i],p_eval[3][i],p_eval[4][i],p_eval[5][i],p_eval[6][i],p_eval[7][i],p_eval[8][i],p_eval[9][i],p_eval[10][i],p_eval[11][i])
+    list_val = []
+    list_val.append(strnow)
+    list_val.append(0)
+    for j in range(2,len(vplot[:,i])):
+        list_val.append(vplot[j][i])
+    pEval = BbtParameterEval(*list_val)
     bbt_evalparameters.append(pEval)
     if(i % (5 * point) == 0):
         sys.stdout.write("\r[" + "=" * (i / increment) +  " " * ((N - i)/ increment) + "]" +  str(i / point) + "%")
         sys.stdout.flush()
     i += 1
-
+"""
 output = open('bbtdata.pkl', 'wb')
 pickle.dump(bbt_evalparameters, output)
 output.close()
 print "\nparameters pickled in %s " % path
-print "Plotting profile and related stuff"
-plot(p_eval[0],p_eval[1], linewidth=2, color='black')
-plot(p_eval[0],p_eval[2], linewidth=3, color='r')
-plot(p_eval[0],p_eval[5])
-plot(p_eval[0],p_eval[7])
-axis([max(p_eval[0])*1.1,min(p_eval[0])*0.9,0,max(p_eval[1])+1])
+"""
+print "\nPlotting profile and related stuff"
+plot(vplot[2],vplot[3], linewidth=2, color='black')
+plot(vplot[2],vplot[4], linewidth=3, color='r')
+plot(vplot[2],vplot[7])
+plot(vplot[2],vplot[9])
+axis([max(vplot[2])*1.1,min(vplot[2])*0.9,0,max(vplot[3])+1])
 show()
 
-lmax = max(p_eval[0]) - min(p_eval[0])
+lmax = max(vplot[2]) - min(vplot[2])
 deltal = 10
-seg = len(p_eval[0])
-print "Lunghezza dello scavo da %f a %f L=%f, %f segmenti di lunghezza %f " % ( min(p_eval[0]), max(p_eval[0]) , lmax, seg, deltal )
+seg = len(vplot[2])
+print "Lunghezza dello scavo da %f a %f L=%f, %f segmenti di lunghezza %f " % ( min(vplot[2]), max(vplot[2]) , lmax, seg, deltal )
+# salvo parametri di valutazione
+# salvo parametri
+conn = sqlite3.connect('bbt_mules_2-3.db')
+c = conn.cursor()
+c.execute('delete from BbtParameterEval')
+for bbtpar in bbt_evalparameters:
+    c.execute("insert into BbtParameterEval (           insertdate,\
+                                                        iteration_no, \
+                                                        fine,\
+                                                        he,\
+                                                        hp,\
+                                                        co,\
+                                                        gamma,\
+                                                        sigma,\
+                                                        mi,\
+                                                        ei,\
+                                                        cai,\
+                                                        gsi,\
+                                                        rmr,\
+                                                        pkgl,\
+                                                        closure,\
+                                                        rockburst,\
+                                                        front_stability_ns,\
+                                                        front_stability_lambda,\
+                                                        penetrationRate,\
+                                                        penetrationRateReduction,\
+                                                        contactThrust,\
+                                                        torque,\
+                                                        frictionForce,\
+                                                        requiredThrustForce,\
+                                                        availableThrust,\
+                                                        dailyAdvanceRate \
+    ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
+conn.commit()
+conn.close()
+exit(-1)
 #######################
 gi = zeros(shape=(seg,), dtype=float)
 gti = zeros(shape=(seg,), dtype=float)
