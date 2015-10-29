@@ -18,7 +18,7 @@ pkl_file = open('bbtdata.pkl', 'rb')
 # carico un file mettendo il contenuto nell'oggettto bbt_evalparameters che e una lista di BbtParameterEval
 bbt_evalparameters = pickle.load(pkl_file)
 #          (type, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
-tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
+tbm = TBM('DS', 10., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
 
 dimarray = len(bbt_evalparameters)
 varnum = 20

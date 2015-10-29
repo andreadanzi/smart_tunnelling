@@ -88,9 +88,9 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.Mr = mi*math.exp((gsir-100.0)/(28.0-14.0*dr)) # parametro di Hoek & Brown
         self.Sr = math.exp((gsir-100.0)/(9.0-3.0*dr))	# parametro di Hoek & Brown
         if dr != 0.:
-            self.Ar = 0.5 #min(0.5, self.A)
+            self.Ar = min(0.5, self.A)
         else:
-            self.Ar = 0.5 #self.A 
+            self.Ar = 0.5 # questo per allinearsi all'approccio di rocsupport 
         self.SigmaCr = ucsr*self.Sr**self.Ar	# parametro di Hoek & Brown
         self.SigmaTr = self.Sr*ucsr/self.Mr # a meno del segno e' la resistenza a trazione
         self.SigmaCmr = ucsr*(((self.Mr+4.0*self.Sr-self.Ar*(self.Mr-8.0*self.Sr))*(self.Mr/4.0+self.Sr)**(self.Ar-1.0))/(2.0*(1.0+self.Ar)*(2.0+self.Ar)))	# parametro di Hoek & Brown
@@ -431,7 +431,7 @@ class TBMSegment:
                 urP = A1*ur\
                     +Rpl_2G_r*(1.-ni*(1.-A1))*(Picr_r-S0_r)\
                     -Rpl_2G_r*(A1+ni*(1.-A1))*(Picr_r+nu_r*Picr_r**a_r-S0_r)
-                intPntCnt = 20
+                intPntCnt = 5
                 h = (R/Rpl-1.)/(intPntCnt-1.)
                 h_2 = h/2.
                 c1 = A1
@@ -439,22 +439,31 @@ class TBMSegment:
                     Sr_r = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho))**(1./(1.-a_r))
                     SrP_r = nu_r/rho*Sr_r**a_r
                     StP_r = (1.+a_r*nu_r*Sr_r**(a_r-1.))*SrP_r
+                    c1 = -mb_sci_r*SrP_r
+                    A2 = 1.-ni-ni*mb_sci_r*SrP_r
+                    A3 = ni-(1.-ni)*mb_sci_r*SrP_r
                     c2 = Rpl_2G_r*(A2*SrP_r-A3*StP_r)
 
                     Sr_r_h_2 = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho+h_2))**(1./(1.-a_r))
                     SrP_r_h_2 = nu_r/(rho+h_2)*Sr_r_h_2**a_r
                     StP_r_h_2 = (1.+a_r*nu_r*Sr_r_h_2**(a_r-1.))*SrP_r_h_2
+                    c1_h_2 = -mb_sci_r*SrP_r_h_2
+                    A2 = 1.-ni-ni*mb_sci_r*SrP_r_h_2
+                    A3 = ni-(1.-ni)*mb_sci_r*SrP_r_h_2
                     c2_h_2 = Rpl_2G_r*(A2*SrP_r_h_2-A3*StP_r_h_2)
 
                     Sr_r_h = (Picr_r**(1.-a_r)+(1.-a_r)*nu_r*math.log(rho+h))**(1./(1.-a_r))
                     SrP_r_h = nu_r/(rho+h)*Sr_r_h**a_r
                     StP_r_h = (1.+a_r*nu_r*Sr_r_h**(a_r-1.))*SrP_r_h
+                    c1_h = -mb_sci_r*SrP_r_h
+                    A2 = 1.-ni-ni*mb_sci_r*SrP_r_h
+                    A3 = ni-(1.-ni)*mb_sci_r*SrP_r_h
                     c2_h = Rpl_2G_r*(A2*SrP_r_h-A3*StP_r_h)
 
                     k1 = h * U(rho, ur, urP, c1, c2)
-                    k2 = h * U(rho+h_2, ur+h_2*urP, urP+h_2*k1, c1, c2_h_2)
-                    k3 = h * U(rho+h_2, ur+h_2*urP+h_2**2*k1, h_2*k2, c1, c2_h_2)
-                    k4 = h * U(rho+h, ur+h*urP+(h**2)/2.*k2, urP+h*k3, c1, c2_h)
+                    k2 = h * U(rho+h_2, ur+h_2*urP, urP+h_2*k1, c1_h_2, c2_h_2)
+                    k3 = h * U(rho+h_2, ur+h_2*urP+h_2**2*k1, h_2*k2, c1_h_2, c2_h_2)
+                    k4 = h * U(rho+h, ur+h*urP+(h**2)/2.*k2, urP+h*k3, c1_h, c2_h)
                     
                     ur += h*(urP+(k1+k2+k3)/6.)
                     urP += (k1+2.*k2+2.*k3+k4)/6.
@@ -518,14 +527,14 @@ class TBMSegment:
     def LDP_Panet_1995(self, x):
         # risultato in m
         # x in m
-        urmax = self.UrPi(0.0)
+        urmax = self.UrPi_HB(0.0)
         R = self.Excavation.Radius # in m
         return urmax*(0.25+0.75*(1.0-(0.75/(0.75+x/R))**2)) # convergenza del cavo in m alla distanza x dal fronte
 
     def LDP_Vlachopoulos_2009(self, x):
         # risultato in m
         # x in m
-        umax = self.UrPi(0.0)
+        umax = self.UrPi_HB(0.0)
         Rt = self.Excavation.Radius # in m
         Rp = self.Rpl
         Rstar = Rp/Rt
@@ -557,7 +566,7 @@ class TBMSegment:
         pi = 0.0
         for i in range(0, int(math.floor(p0*200.0))):
             pi = i / 200.0
-            urcur = self.UrPi(pi)
+            urcur = self.UrPi_HB(pi)
             if urcur <= ur:
                 return pi
         return pi
