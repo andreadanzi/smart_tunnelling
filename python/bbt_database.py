@@ -6,7 +6,7 @@ def get_bbtparameters(sDBPath):
     conn.row_factory = bbtparameter_factory
     cur = conn.cursor()
     print "start querying database  "
-    bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id FROM bbtparameter ORDER BY profilo_id")
+    bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id,title,sigma_ti_min,sigma_ti_max,k0_min,k0_max FROM bbtparameter ORDER BY profilo_id")
     bbt_parameters = []
     for bbt_parameter in bbtresults:
         bbt_parameters.append(bbt_parameter)
@@ -18,7 +18,7 @@ def insert_parameters(sDBPath,bbtpar_items):
     c = conn.cursor()
     c.execute('delete from BbtParameter')
     for bbtpar in bbtpar_items:
-        c.execute('insert into BbtParameter (inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bbtpar)
+        c.execute('insert into BbtParameter (inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id,title,sigma_ti_min,sigma_ti_max,k0_min,k0_max) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', bbtpar)
     conn.commit()
     conn.close()
 
@@ -36,7 +36,7 @@ def insert_geoitems(sDBPath,geoseg_list):
     c = conn.cursor()
     c.execute('delete from BbtGeoitem')
     for geoseg in geoseg_list:
-        c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
+        c.execute('insert into BbtGeoitem (id,inizio,fine,l,perc,type,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,title,sigma_ti_min,sigma_ti_max,k0_min,k0_max ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', geoseg)
     conn.commit()
     conn.close()
 
@@ -80,7 +80,7 @@ def insert_bbtparameterseval(sDBPath, bbt_evalparameters):
                                                             frictionForce,\
                                                             requiredThrustForce,\
                                                             availableThrust,\
-                                                            dailyAdvanceRate,profilo_id, geoitem_id \
-        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
+                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0 \
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
     conn.commit()
     conn.close()

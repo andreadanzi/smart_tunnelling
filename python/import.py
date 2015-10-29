@@ -178,7 +178,7 @@ for k in geoitems:
         geosec = gx[i]
         for j in range(prev,prev+px[i]):
             pk = geoitems[k][j]
-            tmparr = [pk.inizio , pk.fine, pk.est, pk.nord, pk.he, pk.hp, pk.co, pk.tipo, geosec.g_med,geosec.g_stddev,geosec.sigma_ci_avg,geosec.sigma_ci_stdev,geosec.mi_med,geosec.mi_stdev,geosec.ei_med,geosec.ei_stdev,geosec.cai_med,geosec.cai_stdev,geosec.gsi_med,geosec.gsi_stdev,geosec.rmr_med,geosec.rmr_stdev,pk.id,geosec.id]
+            tmparr = [pk.inizio , pk.fine, pk.est, pk.nord, pk.he, pk.hp, pk.co, pk.tipo, geosec.g_med,geosec.g_stddev,geosec.sigma_ci_avg,geosec.sigma_ci_stdev,geosec.mi_med,geosec.mi_stdev,geosec.ei_med,geosec.ei_stdev,geosec.cai_med,geosec.cai_stdev,geosec.gsi_med,geosec.gsi_stdev,geosec.rmr_med,geosec.rmr_stdev,pk.id,geosec.id,geosec.title,geosec.sigma_ti_min,geosec.sigma_ti_max,geosec.k0_min,geosec.k0_max]
             #print "\t profile %f-%f has geoclass ending in %f with perc %f" % (pk.inizio,pk.fine,geosec.fine,geosec.perc)
             bbtpar = BbtParameter(*tmparr)
             bbtpar_items.append(bbtpar)
@@ -186,3 +186,4 @@ for k in geoitems:
 # salvo parametri
 insert_parameters(sDBPath,bbtpar_items)
 ######### BbtParameter fine
+print "######### BbtParameter fine"

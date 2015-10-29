@@ -6,6 +6,8 @@ from scipy.stats import *
 
 # funzione che restituisce media e sigma di una gaussiana sulla base di valori minimi e massimi al 95 percentile
 def get_sigma_95(min,max):
+    if min==-1 or max == -1:
+        return -1, 0
     avg = (max+min)/2.0
     sigma = (max-avg)/2.0
     return avg, sigma
@@ -68,6 +70,24 @@ def get_my_norm_rvs(mean,std,name=''):
         print "retVal = %f < 0 for %s ith input %f and %f" % (retVal,name,mean,std)
         retVal = mean - std
     return retVal
+
+def get_my_norm_rvs_min_max(vmin,vmax,name=''):
+    mean , std = get_sigma_95(vmin,vmax)
+    if mean == -1: return mean
+    lower = vmin
+    upper = vmax
+    if lower < 0:
+        # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+        lower = mean - std
+        upper = mean + std
+    a, b = (lower - mean) / std, (upper - mean) / std
+    myNorm = truncnorm(a, b, loc=mean, scale=std)
+    retVal = myNorm.rvs()
+    if retVal < 0:
+        print "retVal = %f < 0 for %s ith input %f and %f" % (retVal,name,mean,std)
+        retVal = mean - std
+    return retVal
+
 
 # distribuzione binomiale (tempo di ritorno) di eventi ogni l metri che causano ritardo di N giorni, dove N = il doppio del massimo tra i tempi
 def evento_eccezionale(l,ecc):

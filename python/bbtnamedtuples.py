@@ -1,9 +1,9 @@
 from collections import namedtuple
 # id	inizio	fine	L	perc	type	g_med	g_stddev	sigma_ci_avg	sigma_ci_stdev	mi_med	mi_stdev	ei_med	ei_stdev	cai_med	cai_stdev	gsi_med	gsi_stdev
-BbtGeoitem = namedtuple('BbtGeoitem', ['id','inizio','fine','l','perc','type','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev'])
+BbtGeoitem = namedtuple('BbtGeoitem', ['id','inizio','fine','l','perc','type','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev','title','sigma_ti_min','sigma_ti_max','k0_min','k0_max'])
 #id=Vertice altimetrico inizio(calcolato)	fine=Progressiva	Est	Nord	he=Quota altimetrica esistente	hp=Progetto quota altimetrica	co=Differenza quota altimetrica	tipo=Tipo di punto
 BbtProfilo = namedtuple('BbtProfilo',['id','inizio','fine','est','nord','he','hp','co','tipo'])
-BbtParameter =  namedtuple('BbtParameter',['inizio','fine','est','nord','he','hp','co','tipo','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev','profilo_id','geoitem_id'])
+BbtParameter =  namedtuple('BbtParameter',['inizio','fine','est','nord','he','hp','co','tipo','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev','profilo_id','geoitem_id','title','sigma_ti_min','sigma_ti_max','k0_min','k0_max'])
 BbtReliability = namedtuple('BbtReliability',['id','inizio','fine','gmr_class','gmr_val','reliability','eval_var'])
 BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'iteration_no',
@@ -30,7 +30,7 @@ BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'frictionForce',\
                                                     'requiredThrustForce',\
                                                     'availableThrust',\
-                                                    'dailyAdvanceRate','profilo_id','geoitem_id'])
+                                                    'dailyAdvanceRate','profilo_id','geoitem_id','title','sigma_ti','k0'])
 
 
 def bbtparameter_factory(cursor, row):

@@ -15,7 +15,7 @@ def evaluate_parameters(bbt_parameters, iter_no=0):
     tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
 
     dimarray = len(bbt_parameters)
-    varnum = 28
+    varnum = 30
     vplot = zeros(shape=(varnum, dimarray), dtype=float)
     vcheck = zeros(shape=(dimarray,  varnum), dtype=float)
     i=0
@@ -56,12 +56,16 @@ def evaluate_parameters(bbt_parameters, iter_no=0):
         vplot[25][i] = tbmsect.dailyAdvanceRate
         vplot[26][i] = bbt_parameter.profilo_id
         vplot[27][i] = bbt_parameter.geoitem_id
+        vplot[28][i] = get_my_norm_rvs_min_max(bbt_parameter.sigma_ti_min,bbt_parameter.sigma_ti_max,'sigma_ti')
+        vplot[29][i] = get_my_norm_rvs_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0')
 
         list_val = []
         list_val.append(strnow)
         list_val.append(0)
         for j in range(2,len(vplot[:,i])):
             list_val.append(vplot[j][i])
+            if j==27:
+                list_val.append(bbt_parameter.title)
         pEval = BbtParameterEval(*list_val)
         bbt_evalparameters.append(pEval)
         if(i % (5 * point) == 0):
