@@ -1,3 +1,4 @@
+import timeit
 import pickle
 import sys, os, datetime
 import numpy as np
@@ -10,10 +11,8 @@ from collections import namedtuple
 from bbtnamedtuples import *
 
 ########## funzione che prende i parametri, calcolo il resto sulla base di RBM e TunnelSegment e restituisce la relativa lista di valori
-def evaluate_parameters(bbt_parameters, iter_no=0):
-    print "evaluate_parameters - start loading and evaluating parameters"
+def evaluate_parameters(bbt_parameters, iter_no):
     tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
-
     dimarray = len(bbt_parameters)
     varnum = 30
     vplot = zeros(shape=(varnum, dimarray), dtype=float)
@@ -58,19 +57,15 @@ def evaluate_parameters(bbt_parameters, iter_no=0):
         vplot[27][i] = bbt_parameter.geoitem_id
         vplot[28][i] = get_my_norm_rvs_min_max(bbt_parameter.sigma_ti_min,bbt_parameter.sigma_ti_max,'sigma_ti')
         vplot[29][i] = get_my_norm_rvs_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0')
-
         list_val = []
         list_val.append(strnow)
-        list_val.append(0)
+        list_val.append(iter_no)
         for j in range(2,len(vplot[:,i])):
             list_val.append(vplot[j][i])
             if j==27:
                 list_val.append(bbt_parameter.title)
         pEval = BbtParameterEval(*list_val)
         bbt_evalparameters.append(pEval)
-        if(i % (5 * point) == 0):
-            sys.stdout.write("\r[" + "=" * (i / increment) +  " " * ((N - i)/ increment) + "]" +  str(i / point) + "%")
-            sys.stdout.flush()
         i += 1
     return bbt_evalparameters
 
@@ -109,11 +104,45 @@ if not os.path.isfile(sDBPath):
 ########## Leggo dal DB BbtParameter
 bbt_parameters = get_bbtparameters(sDBPath)
 ########## Eseguo calcolo sulla base di TunnelSegment
-bbt_evalparameters = evaluate_parameters(bbt_parameters,0)
+
+time0 = timeit.default_timer()
+print("########## Eseguo calcolo sulla base di TunnelSegment")
+bbt_evalparameters_0 = evaluate_parameters(bbt_parameters,0)
+time1 = timeit.default_timer()
+elapsed = time1 - time0
+print "Fatto 1 in %f sec" % elapsed
+bbt_evalparameters_1 = evaluate_parameters(bbt_parameters,1)
+time2 = timeit.default_timer()
+elapsed = time2 - time1
+print "Fatto 2 in %f sec" % elapsed
+bbt_evalparameters_2 = evaluate_parameters(bbt_parameters,2)
+time3 = timeit.default_timer()
+elapsed = time3 - time2
+print "Fatto 3 in %f sec" % elapsed
+bbt_evalparameters_0.extend(bbt_evalparameters_1)
+bbt_evalparameters_0.extend(bbt_evalparameters_2)
+insert_bbtparameterseval(sDBPath,bbt_evalparameters_0)
+time4 = timeit.default_timer()
+elapsed = time4 - time3
+print "inserito nel DB in %f sec" % elapsed
+
+exit(1234)
+
+N = 1024*4
+point = N / 100
+increment = N / 20
+for k in range(N):
+    bbt_evalparameters = evaluate_parameters(bbt_parameters,k)
+    insert_bbtparameterseval(sDBPath,bbt_evalparameters)
+    print k
+    if(k % (5 * point) == 0):
+        sys.stdout.write("\r[" + "=" * (k / increment) +  " " * ((N - k)/ increment) + "]" +  str(k / point) + "%")
+        sys.stdout.flush()
+
+
 ########## Stampo
-plot_parametereval(bbt_evalparameters)
+# plot_parametereval(bbt_evalparameters)
 # salvo valori di valutazione
-insert_bbtparameterseval(sDBPath,bbt_evalparameters)
 exit(-1)
 #######################
 gi = zeros(shape=(seg,), dtype=float)
@@ -134,9 +163,7 @@ def calcola_giorni_avanzamento():
 
 #N = 1024*32
 sys.stdout.flush()
-N = 1024*4
-point = N / 100
-increment = N / 20
+
 bi = zeros(shape=(N,), dtype=float)
 bj = zeros(shape=(N,), dtype=float)
 for k in range(N):
