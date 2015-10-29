@@ -4,26 +4,14 @@ import numpy as np
 from pylab import *
 from scipy.stats import *
 from bbtutils import *
-import sqlite3
+from bbt_database import *
 from TunnelSegment import *
 from collections import namedtuple
 from bbtnamedtuples import *
-path = os.path.dirname(os.path.realpath(__file__))
-os.chdir(path)
-conn = sqlite3.connect('bbt_mules_2-3.db')
-conn.row_factory = bbtparameter_factory
-cur = conn.cursor()
-print "start querying database  "
-bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id FROM bbtparameter ORDER BY profilo_id")
-# recupero tutti i parametri
-bbt_parameters = []
-for bbt_parameter in bbtresults:
-    bbt_parameters.append(bbt_parameter)
-conn.close()
 
+########## funzione che prende i parametri, calcolo il resto sulla base di RBM e TunnelSegment e restituisce la relativa lista di valori
 def evaluate_parameters(bbt_parameters, iter_no=0):
     print "evaluate_parameters - start loading and evaluating parameters"
-    # definisco la TBM (type, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
     tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
 
     dimarray = len(bbt_parameters)
@@ -82,6 +70,7 @@ def evaluate_parameters(bbt_parameters, iter_no=0):
         i += 1
     return bbt_evalparameters
 
+#### stampa
 def plot_parametereval(bbt_evalparameters):
     pPrev = 0
     vplot2=[]
@@ -91,11 +80,11 @@ def plot_parametereval(bbt_evalparameters):
     for bbt_parametereval in bbt_evalparameters:
         if pPrev != bbt_parametereval.geoitem_id:
             plot((bbt_parametereval.fine, bbt_parametereval.fine), (0, bbt_parametereval.he),'y-', linewidth=0.3)
-            pPrev = bbt_parameter.geoitem_id
-            vplot2.append(bbt_parametereval.fine)
-            vplot3.append(bbt_parametereval.he)
-            vplot4.append(bbt_parametereval.hp)
-            vplotval.append(bbt_parametereval.sigma)
+            pPrev = bbt_parametereval.geoitem_id
+        vplot2.append(bbt_parametereval.fine)
+        vplot3.append(bbt_parametereval.he)
+        vplot4.append(bbt_parametereval.hp)
+        vplotval.append(bbt_parametereval.dailyAdvanceRate)
 
     print "\nPlotting profile and related stuff"
     plot(vplot2,vplot3, linewidth=2, color='black')
@@ -104,43 +93,23 @@ def plot_parametereval(bbt_evalparameters):
     axis([max(vplot2)*1.1,min(vplot2)*0.9,0,max(vplot3)+1])
     show()
 
+########## Mi metto nella directory corrente
+path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(path)
+########## File vari: DB
+sDBName = 'bbt_mules_2-3.db'
+sDBPath = os.path.join(os.path.abspath('..'),'db', sDBName)
+if not os.path.isfile(sDBPath):
+    print "Errore! File %s inesistente!" % sDBPath
+    exit(1)
+########## Leggo dal DB BbtParameter
+bbt_parameters = get_bbtparameters(sDBPath)
+########## Eseguo calcolo sulla base di TunnelSegment
 bbt_evalparameters = evaluate_parameters(bbt_parameters,0)
+########## Stampo
 plot_parametereval(bbt_evalparameters)
-# salvo parametri di valutazione
-# salvo parametri
-conn = sqlite3.connect('bbt_mules_2-3.db')
-c = conn.cursor()
-c.execute('delete from BbtParameterEval')
-for bbtpar in bbt_evalparameters:
-    c.execute("insert into BbtParameterEval (           insertdate,\
-                                                        iteration_no, \
-                                                        fine,\
-                                                        he,\
-                                                        hp,\
-                                                        co,\
-                                                        gamma,\
-                                                        sigma,\
-                                                        mi,\
-                                                        ei,\
-                                                        cai,\
-                                                        gsi,\
-                                                        rmr,\
-                                                        pkgl,\
-                                                        closure,\
-                                                        rockburst,\
-                                                        front_stability_ns,\
-                                                        front_stability_lambda,\
-                                                        penetrationRate,\
-                                                        penetrationRateReduction,\
-                                                        contactThrust,\
-                                                        torque,\
-                                                        frictionForce,\
-                                                        requiredThrustForce,\
-                                                        availableThrust,\
-                                                        dailyAdvanceRate,profilo_id, geoitem_id \
-    ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
-conn.commit()
-conn.close()
+# salvo valori di valutazione
+insert_bbtparameterseval(sDBPath,bbt_evalparameters)
 exit(-1)
 #######################
 gi = zeros(shape=(seg,), dtype=float)

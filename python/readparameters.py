@@ -7,8 +7,15 @@ from bbtnamedtuples import *
 path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(path)
 
+########## File vari: DB
+sDBName = 'bbt_mules_2-3.db'
+sDBPath = os.path.join(os.path.abspath('..'),'db', sDBName)
+if not os.path.isfile(sDBPath):
+    print "Errore! File %s inesistente!" % sDBPath
+    exit(1)
+
 # mi connetto al database
-conn = sqlite3.connect('bbt_mules_2-3.db')
+conn = sqlite3.connect(sDBPath)
 # definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
 conn.row_factory = bbtparametereval_factory
 cur = conn.cursor()
