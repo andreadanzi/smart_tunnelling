@@ -3,6 +3,14 @@
 import numpy as np
 from pylab import *
 from scipy.stats import *
+import ConfigParser, os
+
+path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(path)
+##########
+sCFGName = 'bbt.cfg'
+bbtConfig = ConfigParser.RawConfigParser()
+bbtConfig.read(sCFGName)
 
 # funzione che restituisce media e sigma di una gaussiana sulla base di valori minimi e massimi al 95 percentile
 def get_sigma_95(min,max):
