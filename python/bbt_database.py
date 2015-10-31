@@ -50,10 +50,10 @@ def insert_bbtreliability(sDBPath, reliability_list):
     conn.close()
 
 
-def insert_bbtparameterseval(sDBPath, bbt_evalparameters):
+def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
     conn = sqlite3.connect(sDBPath)
     c = conn.cursor()
-    c.execute('delete from BbtParameterEval')
+    c.execute("delete from BbtParameterEval WHERE iteration_no = %d" % iteration_no)
     for bbtpar in bbt_evalparameters:
         c.execute("insert into BbtParameterEval (           insertdate,\
                                                             iteration_no, \

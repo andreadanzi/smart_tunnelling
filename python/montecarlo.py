@@ -9,6 +9,7 @@ from bbt_database import *
 from TunnelSegment import *
 from collections import namedtuple
 from bbtnamedtuples import *
+bbt_parameter_func = []
 
 ########## funzione che prende i parametri, calcolo il resto sulla base di RBM e TunnelSegment e restituisce la relativa lista di valori
 def evaluate_parameters(bbt_parameters, iter_no):
@@ -26,19 +27,20 @@ def evaluate_parameters(bbt_parameters, iter_no):
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
     for bbt_parameter in bbt_parameters:
+        df = bbt_parameter_func[i]
         vplot[0][i] = 0
         vplot[1][i] = iter_no #iteration_no
         vplot[2][i] = bbt_parameter.fine
         vplot[3][i] = bbt_parameter.he
         vplot[4][i] = bbt_parameter.hp
         co = vplot[5][i] = bbt_parameter.co
-        gamma = vplot[6][i] = get_my_norm_rvs(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma')
-        sigma = vplot[7][i] = get_my_norm_rvs(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma')
-        mi = vplot[8][i] = get_my_norm_rvs(bbt_parameter.mi_med,bbt_parameter.mi_stdev,'mi')
-        ei = vplot[9][i] = get_my_norm_rvs(bbt_parameter.ei_med,bbt_parameter.ei_stdev,'ei')
-        vplot[10][i] = get_my_norm_rvs(bbt_parameter.cai_med,bbt_parameter.cai_stdev,'cai')
-        gsi = vplot[11][i] = get_my_norm_rvs(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev,'gsi')
-        rmr = vplot[12][i] = get_my_norm_rvs(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev,'rmr')
+        gamma = vplot[6][i] = df['gamma'].rvs()
+        sigma = vplot[7][i] = df['sigma'].rvs()
+        mi = vplot[8][i] = df['mi'].rvs()
+        ei = vplot[9][i] = df['ei'].rvs()
+        vplot[10][i] = df['cai'].rvs()
+        gsi = vplot[11][i] = df['gsi'].rvs()
+        rmr = vplot[12][i] = df['rmr'].rvs()
         tbmsect = TBMSegment(gamma, .2, ei*1000., sigma, 5.,0., mi, co, co, .5, 1., gsi, rmr, 'Mech', (tbm.SdiamMax**2)*math.pi/4., tbm.SdiamMax, tbm.SdiamMax, tbm.Slen, 0., tbm.Slen,  tbm)
         vplot[13][i] = tbmsect.pkCe2Gl(bbt_parameter.fine)
         vplot[14][i] = tbmsect.TunnelClosureAtShieldEnd*100. #in cm
@@ -96,48 +98,40 @@ def plot_parametereval(bbt_evalparameters):
 path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(path)
 ########## File vari: DB
-sDBName = 'bbt_mules_2-3.db'
-sDBPath = os.path.join(os.path.abspath('..'),'db', sDBName)
+sDBName = bbtConfig.get('Database','dbname')
+sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
 if not os.path.isfile(sDBPath):
     print "Errore! File %s inesistente!" % sDBPath
     exit(1)
 ########## Leggo dal DB BbtParameter
 bbt_parameters = get_bbtparameters(sDBPath)
+
+
+########## creo funzioni di distribuzione per ogni segmento 
+for bbt_parameter in bbt_parameters:
+    gamma = get_my_norm(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma')
+    sigma = get_my_norm(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma')
+    mi = get_my_norm(bbt_parameter.mi_med,bbt_parameter.mi_stdev,'mi')
+    ei = get_my_norm(bbt_parameter.ei_med,bbt_parameter.ei_stdev,'ei')
+    cai = get_my_norm(bbt_parameter.cai_med,bbt_parameter.cai_stdev,'cai')
+    gsi = get_my_norm(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev,'gsi')
+    rmr =  get_my_norm(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev,'rmr')
+    bbt_parameter_func.append({'gamma':gamma,'sigma':sigma,'mi':mi,'ei':ei,'cai':cai,'gsi':gsi,'rmr':rmr})
+
 ########## Eseguo calcolo sulla base di TunnelSegment
 
-time0 = timeit.default_timer()
+
 print("########## Eseguo calcolo sulla base di TunnelSegment")
-bbt_evalparameters_0 = evaluate_parameters(bbt_parameters,0)
-time1 = timeit.default_timer()
-elapsed = time1 - time0
-print "Fatto 1 in %f sec" % elapsed
-bbt_evalparameters_1 = evaluate_parameters(bbt_parameters,1)
-time2 = timeit.default_timer()
-elapsed = time2 - time1
-print "Fatto 2 in %f sec" % elapsed
-bbt_evalparameters_2 = evaluate_parameters(bbt_parameters,2)
-time3 = timeit.default_timer()
-elapsed = time3 - time2
-print "Fatto 3 in %f sec" % elapsed
-bbt_evalparameters_0.extend(bbt_evalparameters_1)
-bbt_evalparameters_0.extend(bbt_evalparameters_2)
-insert_bbtparameterseval(sDBPath,bbt_evalparameters_0)
-time4 = timeit.default_timer()
-elapsed = time4 - time3
-print "inserito nel DB in %f sec" % elapsed
-
-exit(1234)
-
-N = 1024*4
+#N = 1024*4
+N = 10
 point = N / 100
 increment = N / 20
+time0 = timeit.default_timer()
 for k in range(N):
     bbt_evalparameters = evaluate_parameters(bbt_parameters,k)
-    insert_bbtparameterseval(sDBPath,bbt_evalparameters)
-    print k
-    if(k % (5 * point) == 0):
-        sys.stdout.write("\r[" + "=" * (k / increment) +  " " * ((N - k)/ increment) + "]" +  str(k / point) + "%")
-        sys.stdout.flush()
+    elapsed = timeit.default_timer() - time0
+    insert_bbtparameterseval(sDBPath,bbt_evalparameters,k)
+
 
 
 ########## Stampo

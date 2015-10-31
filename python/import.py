@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections import namedtuple
 from bbtnamedtuples import BbtGeoitem, BbtParameter, BbtProfilo, BbtReliability
 from bbt_database import *
+from bbtutils import *
 from collections import OrderedDict
 import numpy as np
 from pylab import *
@@ -13,20 +14,20 @@ import xlrd
 path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(path)
 ########## File vari: DB e file excel
-sDBName = 'bbt_mules_2-3.db'
-sDBPath = os.path.join(os.path.abspath('..'),'db', sDBName)
+sDBName = bbtConfig.get('Database','dbname')
+sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
 if not os.path.isfile(sDBPath):
     print "Errore! File %s inesistente!" % sDBPath
     exit(1)
-sGeoReliability_XLS = os.path.join(os.path.abspath('..'),'resources','valutazione_modello_geo.xls')
+sGeoReliability_XLS = os.path.join(os.path.abspath('..'),bbtConfig.get('Import','folder'),bbtConfig.get('Import','valutazione'))
 if not os.path.isfile(sGeoReliability_XLS):
     print "Errore! File %s inesistente!" % sGeoReliability_XLS
     exit(2)
-sCE_XLS = os.path.join(os.path.abspath('..'),'resources','bbt_ce.xls')
+sCE_XLS = os.path.join(os.path.abspath('..'),bbtConfig.get('Import','folder'),bbtConfig.get('Import','geo'))
 if not os.path.isfile(sCE_XLS):
     print "Errore! File %s inesistente!" % sCE_XLS
     exit(3)
-sProfilo_XLS =os.path.join(os.path.abspath('..'),'resources','Report_CE-10metri.xls')
+sProfilo_XLS =os.path.join(os.path.abspath('..'),bbtConfig.get('Import','folder'),bbtConfig.get('Import','profilo'))
 if not os.path.isfile(sProfilo_XLS):
     print "Errore! File %s inesistente!" % sProfilo_XLS
     exit(4)
