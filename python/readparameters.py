@@ -61,6 +61,10 @@ for bbt_parametereval in bbtresults:
     i += 1
 conn.close()
 
+if N==0:
+    print "Nothing found in %s, empty tables?" % sDBPath
+    exit()
+
 aa = zeros(shape=(N,), dtype=float)
 error = zeros(shape=(N,), dtype=float)
 lowe = zeros(shape=(N,), dtype=float)

@@ -1,3 +1,4 @@
 *.pyc
 python/confronto.csv
 python/parameters_eval.csv
+*.bkp

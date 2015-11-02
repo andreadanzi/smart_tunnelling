@@ -107,7 +107,7 @@ if not os.path.isfile(sDBPath):
 bbt_parameters = get_bbtparameters(sDBPath)
 
 
-########## creo funzioni di distribuzione per ogni segmento 
+########## creo funzioni di distribuzione per ogni segmento
 for bbt_parameter in bbt_parameters:
     gamma = get_my_norm(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma')
     sigma = get_my_norm(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma')
