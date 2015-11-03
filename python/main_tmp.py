@@ -1,73 +1,279 @@
-import math
 from TunnelSegment import *
+from tbmconfig import *
 from pylab import *
 import matplotlib.pyplot as plt
-import csv
-
-# andrea: pickle serve per serializzare e deserializzare oggetti che stanno in memoria, per poterli scivere su un file per poi riutilizzarli
-import pickle, os, pprint
+import sqlite3, os,  csv #, pickle
+from bbtutils import *
+from bbtnamedtuples import *
 from collections import namedtuple
-# BbtParameterEval e il tipo dato con cui ho serializzato i dati, e un contenitore di valori che puoi richiamare con il nome dl campo
-BbtParameterEval =  namedtuple('BbtParameterEval',['fine','he','hp','co','gamma','sigma','mi','ei','cai','gsi', 'rmr', 'closure'])
-# ricavo il percorso della directory contenente il file corrente (main.py)
-path = os.path.dirname(os.path.realpath(__file__))
-# mi metto nella directory corrente
-os.chdir(path)
-# leggo il file serializzato (bbtdata.pkl) che ti ho messo nella stessa directory sul Drive
-pkl_file = open('bbtdata.pkl', 'rb')
-# carico un file mettendo il contenuto nell'oggettto bbt_evalparameters che e una lista di BbtParameterEval
-bbt_evalparameters = pickle.load(pkl_file)
-#          (type, slen, sdiammin, sdiammax, overexcav, cno, cr, ct, cs, rpm, Ft, totalContactThrust, installedThrustForce, installedAucillaryThrustForce, nominalTorque, breakawayTorque, backupDragForce, friction, LDP_type)
-tbm = TBM('DS', 10., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
 
-dimarray = len(bbt_evalparameters)
+# inizializzo i performance index
+#indicatori di produzione (restituiscono un tempo in ore)
+# vanno sommati segmento a segmento
+P0 = PerformanceIndex('Produzione effettiva') #
+P1 = PerformanceIndex('Produzione in condizioni standard') #
+P2 = PerformanceIndex('Montaggio e smontaggio TBM') #
+P3 = PerformanceIndex('Avanzamento in rocce dure') #
+P4 = PerformanceIndex('Preparazione prospezioni')
+P5 = PerformanceIndex('Preparazione consolidamenti')
+
+#indicatori geotecnici (restituiscono un parametro adimensionale che considera tempi, costi e impatti
+# vanno sommati segmento a segmento
+
+G1 = PerformanceIndex('Instabilita\' del fronte')
+G2 = PerformanceIndex('Instabilita\' del cavo')
+G5 = PerformanceIndex('Splaccaggio calotta')
+G6 = PerformanceIndex('Cavita\' o faglie')
+G7 = PerformanceIndex('Venute acqua')
+G8 = PerformanceIndex('Presenza gas')
+G11 = PerformanceIndex('Rigonfiamento')
+G12 = PerformanceIndex('Distacco blocchi al fronte')
+G13 = PerformanceIndex('Rockburst')
+
+#indicatori vari
+V1 = PerformanceIndex('Ambiente di lavoro')
+V2 = PerformanceIndex('Costo TBM')
+V3 = PerformanceIndex('Attrezzaggio per prospezioni')
+V4 = PerformanceIndex('Deviazione traiettoria')
+V5 = PerformanceIndex('Integrita\' conci')
+V6 = PerformanceIndex('Complessita\' TBM')
+
+#inizializzo le info sul tracciato
+alnCE=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217.)
+alnGLNORD=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', 44191.75, 32088.)
+alnGLSUD=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 54015.)
+
+#loop sui tracciati (ora prendo solo il CE
+alnCurr = alnCE
+pkMinCurr = min(alnCurr.pkStart, alnCurr.pkEnd)
+pkMaxCurr = max(alnCurr.pkStart, alnCurr.pkEnd)
+# leggo le tbm
+# ora la prendo secca ma andrebbero prese tutte quelle che in cui (vedi riga commentata sotto
+# if alnCurr.tbmKey in tbmData.alignmentCode:
+tbmData = tbms['CE_DS_HRK']
+tbm = TBM(tbmData, 'V')
+
+#posso subito definire gli indicatori vari e i tempi di montaggio e smontaggio
+pCur=1.
+
+iCur=tbm.P2.impact
+P2.updateIndex(pCur, iCur, 1.)
+P2.convertDaysToImpactAndFinalizeIndex(1.)
+
+iCur=tbm.P4.impact
+P4.updateIndex(pCur, iCur, 1.)
+P4.convertDaysToImpactAndFinalizeIndex(1.)
+
+iCur=tbm.V1.impact
+V1.updateIndex(pCur, iCur, 1.)
+V1.finalizeIndex(1.)
+
+iCur=tbm.V2.impact
+V2.updateIndex(pCur, iCur, 1.)
+V2.finalizeIndex(1.)
+
+iCur=tbm.V3.impact
+V3.updateIndex(pCur, iCur, 1.)
+V3.finalizeIndex(1.)
+
+iCur=tbm.V4.impact
+V4.updateIndex(pCur, iCur, 1.)
+V4.finalizeIndex(1.)
+
+iCur=tbm.V5.impact
+V5.updateIndex(pCur, iCur, 1.)
+V5.finalizeIndex(1.)
+
+iCur=tbm.V6.impact
+V6.updateIndex(pCur, iCur, 1.)
+V6.finalizeIndex(1.)
+
+# mi metto nella directory corrente
+path = os.path.dirname(os.path.realpath(__file__))
+os.chdir(path)
+
+########## File vari: DB
+sDBName = bbtConfig.get('Database','dbname')
+sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
+if not os.path.isfile(sDBPath):
+    print "Errore! File %s inesistente!" % sDBPath
+    exit(1)
+
+# mi connetto al database
+conn = sqlite3.connect(sDBPath)
+
+# definisco il tipo di riga che vado a leggere, la funzione bbtmyparameter_factory serve per spiegare al modulo del db dove metterte i valori delle colonne
+BbtMyParameter =  namedtuple('BbtMyParameter',['descr','inizio','fine','length','he','hp','co','gamma','sci','mi','ei','gsi','rmr', 'sti', 'k0_min', 'k0_max'])
+def bbtmyparameter_factory(cursor, row):
+    return BbtMyParameter(*row)
+# spiego al modulo del db dove metterte i valori delle colonne
+conn.row_factory = bbtmyparameter_factory
+cur = conn.cursor()
+print "start querying database  "
+# eseguo la query, che deve avere le colonne nello stesso ordine di quelle che vuoi che vadano a finire in BbtMyParameter definito prima
+bbtresults = cur.execute("SELECT title,inizio,fine,abs(fine-inizio) as length,he,hp,co,g_med,sigma_ci_avg,mi_med,ei_med,gsi_med,rmr_med, (sigma_ti_min + sigma_ti_max) / 2 as sigma_ti, k0_min, k0_max FROM bbtparameter ORDER BY fine")
+res=bbtresults.fetchall()
+# recupero tutti i parametri e li metto in una lista
+bbt_parameterseval = []  # servono????
+
+dimarray = len(res)
 varnum = 20
 vplot = zeros(shape=(varnum, dimarray), dtype=float)
 vcheck = zeros(shape=(dimarray,  varnum), dtype=float)
 
-for i in range(dimarray):
-    p = bbt_evalparameters[i]
-    # qui puoi instanziare i tuoi TBMSegment usando p.fine, p.he, p.hp, p.co, p.gamma, p.sigma, p.mi, p.ei, p.cai, p.gsi
-    #                                            (gamma,            ni,     e,                  ucs,            sigmat, psi, mi,   ob, waterdepth, k0min, k0max, gsi, rmr, excavType, excavArea,                                                            excavWidth,        excavHeight, refLength,      pi,     lunsupported, tbm)
-    tbmsect = TBMSegment(p.gamma, .2, p.ei*1000., p.sigma, 5.,0., p.mi, p.co, p.co, .5, 1., p.gsi, p.rmr, 'Mech', (tbm.SdiamMax**2)*math.pi/4., tbm.SdiamMax, tbm.SdiamMax, tbm.Slen, 0., tbm.Slen,  tbm)
-    vplot[0][i] = tbmsect.pkCe2Gl(p.fine)
-    vplot[1][i] = p.co
-    vplot[2][i] = tbmsect.TunnelClosureAtShieldEnd*100. #in cm
-    vplot[3][i] = tbmsect.rockBurst.Val
-    vplot[4][i] = tbmsect.frontStability.Ns
-    vplot[5][i] = tbmsect.frontStability.lambdae
-    vplot[6][i] = tbmsect.penetrationRate*1000. #in mm/giro
-    vplot[7][i] = tbmsect.penetrationRateReduction*1000. #in mm/giro
-    vplot[8][i] = tbmsect.contactThrust
-    vplot[9][i] = tbmsect.torque
-    vplot[10][i] = tbmsect.frictionForce
-    vplot[11][i] = tbmsect.requiredThrustForce
-    vplot[12][i] = tbmsect.availableThrust
-    vplot[13][i] = tbmsect.dailyAdvanceRate
+i=0
+for p in res:
     
-    vcheck[i][0] = vplot[0][i]          #progressive GL
-    vcheck[i][1] = vplot[1][i]          #copertura
-    vcheck[i][2] = vplot[2][i]          #tunnel closure a fine scudo in cm
-    vcheck[i][3] = tbmsect.HoekBrown.Mr          #mb res
-    vcheck[i][4] = tbmsect.HoekBrown.Sr          #s res   
-    vcheck[i][5] = tbmsect.HoekBrown.Ar          #a res
-    vcheck[i][6] = tbmsect.HoekBrown.SigmaC          #
-    vcheck[i][7] = tbmsect.HoekBrown.SigmaCr          #a res
-    vcheck[i][8] = tbmsect.UrPi_HB(0.)
-"""
-    vcheck[i][3] = vplot[3][i]          #valore coefficiente per rockburst
-    vcheck[i][4] = vplot[4][i]          #valore Panet Ns    
-    vcheck[i][5] = vplot[5][i]          #valore Panet lambdae
-    vcheck[i][6] = vplot[6][i]          #penetration rate in mm/giro
-    vcheck[i][7] = vplot[7][i]          #riduzione della penetration rate in mm/giro
-    vcheck[i][8] = vplot[8][i]          #thrust sul fronte in kN    
-    vcheck[i][9] = vplot[9][i]          #torque sul fronte in kNm
-    vcheck[i][10] = vplot[10][i]       #forza attrito per convergenza sullo scudo in kN
-    vcheck[i][11] = vplot[11][i]       #thrust totale richiesto in kN (fronte+attrito+backup)
-    vcheck[i][12] = vplot[12][i]       #thrust disponibile per vincere attrito in kN
-    vcheck[i][13] = vplot[13][i]       #produzione in m/gg (con 340 gg lavorativi anno)
-"""
+    #verifico che il segmento ricada entro le progressive del tracciato corrente alnCurr
+    pkMinSegm=min(p.inizio, p.fine)
+    pkMaxSegm=max(p.inizio, p.fine)
+    
+    segmToAnalize = pkMinSegm<=pkMaxCurr and pkMaxSegm>=pkMinCurr
+    
+    if segmToAnalize:
+        tbmsect = TBMSegment(p, tbm)
+        
+        # aggiorno indici produzione. l'impatto medio dovra' poi essere diviso per la lunghezza del tracciato
+        pCur=tbmsect.P0.probability
+        iCur=tbmsect.P0.impact
+        P0.updateIndex(pCur, iCur, p.length)
 
+        pCur=tbmsect.P1.probability
+        iCur=tbmsect.P1.impact
+        P1.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.P3.probability
+        iCur=tbmsect.P3.impact
+        P3.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.P5.probability
+        iCur=tbmsect.P5.impact
+        P5.updateIndex(pCur, iCur, p.length)
+        
+        # aggiorno indici geotecnici
+        pCur=tbmsect.G1.probability
+        iCur=tbmsect.G1.impact
+        G1.updateIndex(pCur, iCur, p.length)
+        
+        pCur=tbmsect.G2.probability
+        iCur=tbmsect.G2.impact
+        G2.updateIndex(pCur, iCur, p.length)
+        
+        pCur=tbmsect.G5.probability
+        iCur=tbmsect.G5.impact
+        G5.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G6.probability
+        iCur=tbmsect.G6.impact
+        G6.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G7.probability
+        iCur=tbmsect.G7.impact
+        G7.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G8.probability
+        iCur=tbmsect.G8.impact
+        G8.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G11.probability
+        iCur=tbmsect.G11.impact
+        G11.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G12.probability
+        iCur=tbmsect.G12.impact
+        G12.updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.G13.probability
+        iCur=tbmsect.G13.impact
+        G13.updateIndex(pCur, iCur, p.length)
+
+    """
+        vplot[0][i] = tbmsect.pkCe2Gl(p.fine)
+        vplot[1][i] = p.co
+        vplot[2][i] = tbmsect.TunnelClosureAtShieldEnd*100. #in cm
+        vplot[3][i] = tbmsect.rockBurst.Val
+        vplot[4][i] = tbmsect.frontStability.Ns
+        vplot[5][i] = tbmsect.frontStability.lambdae
+        vplot[6][i] = tbmsect.penetrationRate*1000. #in mm/giro
+        vplot[7][i] = tbmsect.penetrationRateReduction*1000. #in mm/giro
+        vplot[8][i] = tbmsect.contactThrust
+        vplot[9][i] = tbmsect.torque
+        vplot[10][i] = tbmsect.frictionForce
+        vplot[11][i] = tbmsect.requiredThrustForce
+        vplot[12][i] = tbmsect.availableThrust
+        vplot[13][i] = tbmsect.dailyAdvanceRate
+        
+        vcheck[i][0] = vplot[0][i]          #progressive GL
+        vcheck[i][1] = vplot[1][i]          #copertura
+        vcheck[i][2] = vplot[2][i]          #tunnel closure a fine scudo in cm
+        vcheck[i][3] = tbmsect.HoekBrown.Mr          #mb res
+        vcheck[i][4] = tbmsect.HoekBrown.Sr          #s res   
+        vcheck[i][5] = tbmsect.HoekBrown.Ar          #a res
+        vcheck[i][6] = tbmsect.HoekBrown.SigmaC          #
+        vcheck[i][7] = tbmsect.HoekBrown.SigmaCr          #a res
+        vcheck[i][8] = tbmsect.UrPi_HB(0.)
+        vcheck[i][3] = vplot[3][i]          #valore coefficiente per rockburst
+        vcheck[i][4] = vplot[4][i]          #valore Panet Ns    
+        vcheck[i][5] = vplot[5][i]          #valore Panet lambdae
+        vcheck[i][6] = vplot[6][i]          #penetration rate in mm/giro
+        vcheck[i][7] = vplot[7][i]          #riduzione della penetration rate in mm/giro
+        vcheck[i][8] = vplot[8][i]          #thrust sul fronte in kN    
+        vcheck[i][9] = vplot[9][i]          #torque sul fronte in kNm
+        vcheck[i][10] = vplot[10][i]       #forza attrito per convergenza sullo scudo in kN
+        vcheck[i][11] = vplot[11][i]       #thrust totale richiesto in kN (fronte+attrito+backup)
+        vcheck[i][12] = vplot[12][i]       #thrust disponibile per vincere attrito in kN
+        vcheck[i][13] = vplot[13][i]       #produzione in m/gg (con 340 gg lavorativi anno)
+    """
+    
+    # accedo ai valori tramite le properties definite con BbtParameterEval in bbtnamedtuples.py
+    #print p.fine, p.sci, p.sti, p.k0_min, p.k0_max  
+    i += 1
+conn.close()
+
+# aggiorno i valori medi degli indici e la loro applicazione percentuale sulla tratta in esame
+P0.convertDaysToImpactAndFinalizeIndex(alnCurr.length)
+P1.convertDaysToImpactAndFinalizeIndex(alnCurr.length)
+P3.convertDaysToImpactAndFinalizeIndex(alnCurr.length)
+P5.convertDaysToImpactAndFinalizeIndex(alnCurr.length)
+
+G1.finalizeIndex(alnCurr.length)
+G2.finalizeIndex(alnCurr.length)
+G5.finalizeIndex(alnCurr.length)
+G6.finalizeIndex(alnCurr.length)
+G7.finalizeIndex(alnCurr.length)
+G8.finalizeIndex(alnCurr.length)
+G11.finalizeIndex(alnCurr.length)
+G12.finalizeIndex(alnCurr.length)
+G13.finalizeIndex(alnCurr.length)
+
+#stampo a video i risultati
+G1.printOut()
+G2.printOut()
+G5.printOut()
+G6.printOut()
+G7.printOut()
+G8.printOut()
+G11.printOut()
+G12.printOut()
+G13.printOut()
+
+P0.printOut()
+P1.printOut()
+P2.printOut()
+P3.printOut()
+P4.printOut()
+P5.printOut()
+
+V1.printOut()
+V2.printOut()
+V3.printOut()
+V4.printOut()
+V5.printOut()
+V6.printOut()
+
+
+
+"""
 # interventi particolari (stabilization measure
 sm = (\
         StabilizationMeasure(24372, 27217, 'Tipo 1', 12),\
@@ -157,9 +363,9 @@ ax11s.set_ylim(0.0, max(vplot[1])*1.5)
 ax11s.set_ylabel('Copertura')
 
 ax11.plot(vplot[0], vplot[2], label='Panet a fine scudo')
-ax11.plot((min(vplot[0]), max(vplot[0])), (100.*tbm.OverExcavation, 100.*tbm.OverExcavation), label='Sovrascavo', linewidth=2)
+ax11.plot((min(vplot[0]), max(vplot[0])), (100.*tbm.gap, 100.*tbm.gap), label='Sovrascavo', linewidth=2)
 ax11.set_ylabel('Chiusura cavo [cm]')
-ax11.set_ylim(0.0, tbm.OverExcavation*1000.0)
+ax11.set_ylim(0.0, tbm.gap*300.0)
 ax11.legend(loc=1)
 
 ax12 = fig1.add_subplot(3, 1, 2)
@@ -234,10 +440,10 @@ ax32s = ax32.twinx()
 ax32s.plot(vplot[0], vplot[1], label='Copertura', color='brown', linewidth=2)
 ax32s.set_ylim(0.0, max(vplot[1])*1.5)
 ax32.plot(vplot[0], vplot[10], label='Friction on shield')
-ax32.plot(vplot[0], vplot[12], label='Available thrust to win friction', linewidth=2)
+ax32.plot(vplot[0], vplot[12], label='Available contact thrust', linewidth=2)
 ax32.set_ylabel('Thrust kN')
+ax32.set_ylim(0.0, tbm.installedAuxiliaryThrustForce*1.2)
 ax32.legend(loc=1)
-
 
 #figura 4
 fig4 = plt.figure()
@@ -274,7 +480,6 @@ with open('confronto.csv', 'wb') as f:
     writer = csv.writer(f,delimiter=",")
     writer.writerows(vcheck)
 
-"""
 plot(vplot[0], vplot[1], label='Panet_1995')
 plot(vplot[0], vplot[2], label='Vlachopoulos_2009')
 plot((min(vplot[0]), max(vplot[0])), (0.1, 0.1), label='Sovrascavo')
