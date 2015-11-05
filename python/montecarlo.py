@@ -12,8 +12,7 @@ from bbtnamedtuples import *
 bbt_parameter_func = []
 
 ########## funzione che prende i parametri, calcolo il resto sulla base di RBM e TunnelSegment e restituisce la relativa lista di valori
-def evaluate_parameters(bbt_parameters, iter_no):
-    tbm = TBM('DS', 300., 6.42, 6.62, .1, 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
+def evaluate_parameters(tbm, bbt_parameters, iter_no):
     dimarray = len(bbt_parameters)
     varnum = 30
     vplot = zeros(shape=(varnum, dimarray), dtype=float)
@@ -123,12 +122,18 @@ for bbt_parameter in bbt_parameters:
 
 print("########## Eseguo calcolo sulla base di TunnelSegment")
 #N = 1024*4
-N = 10
+
+N = 60
 point = N / 100
 increment = N / 20
 time0 = timeit.default_timer()
+inc = 0.0
 for k in range(N):
-    bbt_evalparameters = evaluate_parameters(bbt_parameters,k)
+    # TBM nuova ogni 10 simulazioni
+    if k % 20 == 0:
+        tbm = TBM('DS', 300., 6.42, 6.62, .1*(1.0 + inc), 38., 19.*.0254/2., .020, .1, 5.,  315., 11970., 35626., 42223., 4375., 6343., 4000., 0.15, 'P')
+        inc = inc + 1.0
+    bbt_evalparameters = evaluate_parameters(tbm,bbt_parameters,k)
     elapsed = timeit.default_timer() - time0
     insert_bbtparameterseval(sDBPath,bbt_evalparameters,k)
 

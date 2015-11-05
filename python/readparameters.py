@@ -31,18 +31,41 @@ for bbt_parametereval in bbtresults:
     i += 1
 
 
-
-cur.execute("select BBtParameterEval.fine, BBtParameterEval.dailyAdvanceRate ,  BBtParameterEval.he, BBtParameterEval.hp , BBtParameterEval.iteration_no , BBtParameterEval.sigma from BBtParameterEval  order by BBtParameterEval.iteration_no, BBtParameterEval.fine")
+sSql = """select BBtParameterEval.fine, BBtParameterEval.iteration_no, BBtParameterEval.frictionForce
+from BBtParameterEval where BBtParameterEval.frictionForce > 0.0 order by BBtParameterEval.iteration_no ,BBtParameterEval.fine
+ """
+cur.execute(sSql)
 bbtresults = cur.fetchall()
 # recupero tutti i parametri e li metto in una lista
-N = len(bbtresults)/10
+N = len(bbtresults)
+ff1i = []
+ff2i = []
+ff3i = []
+i=0
+for bbt_parametereval in bbtresults:
+    iteration_no = bbt_parametereval[1]
+    if iteration_no < 10 and iteration_no >= 0 :
+        ff1i.append( float(bbt_parametereval[2]) )
+    elif iteration_no < 20 and iteration_no >= 10 :
+        ff2i.append( float(bbt_parametereval[2]) )
+    elif iteration_no < 30 and iteration_no >= 20 :
+        ff3i.append( float(bbt_parametereval[2]) )
+    i += 1
+
+print "%d-%d-%d" % (len(ff1i),len(ff2i),len(ff3i))
+
+cur.execute("select BBtParameterEval.fine, BBtParameterEval.dailyAdvanceRate ,  BBtParameterEval.he, BBtParameterEval.hp , BBtParameterEval.iteration_no , BBtParameterEval.frictionForce from BBtParameterEval  order by BBtParameterEval.iteration_no, BBtParameterEval.fine")
+bbtresults = cur.fetchall()
+# recupero tutti i parametri e li metto in una lista
+M = 30 # No di iterazioni
+N = len(bbtresults)/M # No di segmenti
 pi = zeros(shape=(N,), dtype=float)
 he = zeros(shape=(N,), dtype=float)
 hp = zeros(shape=(N,), dtype=float)
 ti = zeros(shape=(N,), dtype=float)
-m_rmr = zeros(shape=(N,10), dtype=float)
-tti = zeros(shape=(N,10), dtype=float)
-xti = zeros(shape=(N,10), dtype=float)
+m_rmr = zeros(shape=(N,M), dtype=float)
+tti = zeros(shape=(N,M), dtype=float)
+xti = zeros(shape=(N,M), dtype=float)
 i = 0
 pj = 0
 prev = 0.0
@@ -76,22 +99,56 @@ for i in range(N):
     aa[i] = avg
 
 asymmetric_error = [lowe, highe]
-subplot(211)
+subplot(231)
+"""
 title("Avanzamento")
 plot(pi,he, linewidth=1)
 plot(pi,hp, linewidth=1)
+plot(pi,m_rmr/1000, linewidth=1)
 errorbar(pi,aa, yerr=asymmetric_error)
 
-
 axis([max(pi)*1.1,min(pi)*0.9,0,max(he)+1])
+"""
 
-subplot(212)
-title("Tempo di completamento")
-hist(bi,bins=50)
-bi_mean = np.nanmean(bi)
-bi_std = np.nanstd(bi)
+title("No Eventi per Friction Force con sovrascavo 0,1")
+
+n, bins, patches = hist(ff1i,bins=20)
+bi_mean = np.nanmean(ff1i)
+bi_std = np.nanstd(ff1i)
 
 axvline(bi_mean,linewidth=4, color='g',label='media')
-bi_min = min(bi)
-bi_max = max(bi)
+axvline(bi_mean-bi_std, color='y')
+axvline(bi_mean+bi_std, color='y')
+
+subplot(232)
+
+title("No Eventi per Friction Force con sovrascavo 0,2")
+
+n, bins, patches = hist(ff2i,bins=20)
+bi_mean = np.nanmean(ff2i)
+bi_std = np.nanstd(ff2i)
+
+axvline(bi_mean,linewidth=4, color='g',label='media')
+axvline(bi_mean-bi_std, color='y')
+axvline(bi_mean+bi_std, color='y')
+
+subplot(233)
+title("No Eventi per Friction Force con sovrascavo 0,3")
+n, bins, patches = hist(ff3i,bins=20)
+bi_mean = np.nanmean(ff3i)
+bi_std = np.nanstd(ff3i)
+
+axvline(bi_mean,linewidth=4, color='g',label='media')
+axvline(bi_mean-bi_std, color='y')
+axvline(bi_mean+bi_std, color='y')
+
+subplot(234)
+title("Totale No Eventi suddivisi per Sovrascavo ")
+x = [0.1,0.2,0.3]
+nev = [len(ff1i),len(ff2i),len(ff3i)]
+bar(x,nev,  width=0.01)
 show()
+
+print(sum(ff1i)/len(ff1i))
+print(sum(ff2i)/len(ff2i))
+print(sum(ff3i)/len(ff3i))

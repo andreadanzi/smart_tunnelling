@@ -1,5 +1,5 @@
 import math
-from pylab import * 
+from pylab import *
 from tbmconfig import *
 
 def probabilityAftes2012(percent):
@@ -23,7 +23,7 @@ def probabilityAftes2012(percent):
         y0=4.
         slope=1./(0.5-.2)
         x=percent-0.2
-    else: 
+    else:
         y0=5.
         slope=1./(2.-0.5)
         x=percent-0.5
@@ -82,7 +82,7 @@ def derivative(f, x, nu, a, so, h):
 
 def pcrit(x, nu, a, so):
     return nu*x**a+2.*x-2.*so     # just a function to show it works
-    
+
 def U(rho, u, uP, c1, c2):
     return c1/rho*uP-c1/(rho**2)*u+c2
 
@@ -124,13 +124,13 @@ class InSituCondition:
             self.Gsi = max(5., gsi)
         else:
             self.Gsi = max(5., rmr - 5.0)
-            
+
         if rmr > 0.0:
             self.Rmr = max(5., rmr)
         else:
             self.Rmr = max(5., gsi+5)
         self.SigmaV = gamma*overburden/1000.0 # MPa
-    
+
     def UpdateK0KaKp(self, typ, fi):
         self.Kp = (1.0 + math.sin(math.radians(fi)))/(1.0 - math.sin(math.radians(fi)))
         self.Ka = 1.0 / self.Kp
@@ -154,7 +154,7 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
             print "ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" %(ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv)
             exit(-701)
         self.Sigma3max = (0.47*(self.SigmaCm/sv)**(-0.94))*self.SigmaCm # parametro di Hoek & Brown
-        
+
         # parametri residui
         dr = d # TODO mettere legge
         ucsr = ucs # TODO mettere legge
@@ -177,7 +177,7 @@ class MohrCoulomb:
         self.C = 0. #in KPa
         self.Cr = 0. #in KPa
         self.SigmaCm0 = 0.
-    
+
     # inizializzazione per rocce
     def SetRock(self, hb, ucs):
         self.Fi = math.degrees(math.asin((6.0*hb.A*hb.Mb*(hb.S+hb.Mb*hb.Sigma3max/ucs)**(hb.A-1.0))\
@@ -185,16 +185,16 @@ class MohrCoulomb:
         self.C = (ucs*((1.0+2.0*hb.A)*hb.S+(1.0-hb.A)*hb.Mb*(hb.Sigma3max/ucs))*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0)) \
         		/((1.0+hb.A)*(2.0+hb.A)*math.sqrt(1.0+(6.0*hb.A*hb.Mb*(hb.S+hb.Mb*(hb.Sigma3max/ucs))**(hb.A-1.0))/((1.0+hb.A)*(2.0+hb.A))))*1000.0 #in KPa
         self.SigmaCm0 = 2.0*self.C*math.cos(math.radians(self.Fi))/(1.0-math.sin(math.radians(self.Fi)))/1000.
-        
+
         # parametri residui
         self.Fir = math.degrees(math.asin((6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3maxr/ucs)**(hb.Ar-1.))\
         		/(2.*(1.+hb.Ar)*(2.+hb.Ar)+(6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*hb.Sigma3maxr/ucs)**(hb.Ar-1.)))))
         self.Cr = (ucs*((1.+2.*hb.Ar)*hb.Sr+(1.-hb.Ar)*hb.Mr*(hb.Sigma3maxr/ucs))*(hb.Sr+hb.Mr*(hb.Sigma3maxr/ucs))**(hb.Ar-1.)) \
         		/((1.+hb.Ar)*(2.0+hb.Ar)*math.sqrt(1.+(6.*hb.Ar*hb.Mr*(hb.Sr+hb.Mr*(hb.Sigma3maxr/ucs))**(hb.Ar-1.))/((1.+hb.Ar)*(2.+hb.Ar))))*1000.0 #in KPa
         self.SigmaCm0r = 2.0*self.Cr*math.cos(math.radians(self.Fir))/(1.0-math.sin(math.radians(self.Fir)))/1000.0
-        
+
         self.psi = (self.Fi-self.Fir)/1.5
-    
+
     #inizializzazione per terreni
     def SetSoil(self, fi, c, fir):
         self.Fi = fi
@@ -245,15 +245,15 @@ class rockBursting:
 class frontStability:
     # stabilita' del fronte secondo Panet (Ns e Lambdae)
     def __init__(self, ratio,  sigmaCm, p0, kp):
-        
+
         if ratio < 2.5:
             # criterio non applicabile per basse coperture ratio = copertura/diametro di scavo equivalente
             self.Ns = 0
             self.State = 'Not applicable'
             self.lambdae = 1.5
             self.Class = 'Not applicable'
-            
-        
+
+
         self.Ns = 2.0*p0/sigmaCm
         if self.Ns <1:
             self.State = 'Elastic'
@@ -263,12 +263,12 @@ class frontStability:
             self.State = 'Plastic zone partially interesting tunnel face'
         else:
             self.State = 'Plastic zone entirely interesting tunnel face'
-        
+
         if self.Ns >1:
             self.lambdae = (kp-1.0+2.0/self.Ns)/(kp+1.0)
         else:
             self.lambdae = 0.0
-        
+
         if self.lambdae > 0.6:
             self.Class = 'Stability'
         elif self.lambdae > 0.3:
@@ -308,7 +308,7 @@ class Tamez:
 			self.Class = 'B - short-term stability (admissible settlements)'
 		else:
 			self.Class = 'A - stability'
-			
+
 class TBM:
     def __init__(self, tbmData, LDP_type):
         self.type = tbmData.type # tipo tbm: O, S, DS
@@ -324,16 +324,17 @@ class TBM:
         self.Friction = tbmData.frictionCoefficient # coefficiente di attrito tra ammasso e scudo
         self.BackupDragForce = tbmData.backupDragForce # kN (8000 per la GL, 4000 per il CE
         # penetration rate per ogni decina di rmr: 0, 10, 20, 30.....100
-        self.rop= array((1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925)) # m/h metri di scavo all'ora
+        self.rop= array((1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925,1.61,1.55)) # m/h metri di scavo all'ora
         self.penetrationPerRevolution = self.rop/60./self.rpm  #in m per rivoluzione
         # definisco l'Utilization Factor
         if self.type == 'O':
             self.uf = (0.110166666666667,0.110166666666667,0.159111111111111,0.208055555555556,0.288194444444445,0.368333333333333,0.4335,0.498666666666667,0.498666666666667,0.498666666666667,0.498666666666667)
-        elif self.type =='D':
+        elif self.type =='S':
             self.uf = (0.154166666666667,0.154166666666667,0.189583333333333,0.225,0.285416666666667,0.345833333333333,0.377083333333333,0.408333333333333,0.408333333333333,0.408333333333333,0.408333333333333)
         elif self.type == 'DS':
             self.uf = (0.15,0.15,0.219166666666667,0.288333333333333,0.354722222222222,0.421111111111111,0.442361111111111,0.463611111111111,0.463611111111111,0.463611111111111,0.463611111111111)
         else:
+            print "Error- wrong Utilization factor (%s)" % self.type
             exit(-700)
         # angolo da definire in base alla macchina
         # come suggerito da Rostami et Al. lo faccio variare linearmente da -0.2 a 0.2 in modo inversamente proporzionale allo spessore del cutter
@@ -347,7 +348,7 @@ class TBM:
         self.nominalTorque = tbmData.nominalTorque #in kNm
         self.breakawayTorque = tbmData.breakawayTorque #in kNm
         self.LDP_type = LDP_type # tipo di formulazione per convergenza del cavo: P = Panet, V = Vlachopoulos-Dietrich
-        
+
         self.P2 = P2(self.type)
         self.P4 = P4(self.type)
 
@@ -378,7 +379,7 @@ class TBMSegment:
         excavWidth = tbm.excavationDiam
         excavHeight = tbm.excavationDiam
         refLength = tbm.Slen
-        aunsupported = tbm.Slen 
+        aunsupported = tbm.Slen
         excavType = 'Mech'
         pi = 0.
         if ucs <= 1.0:
@@ -388,20 +389,20 @@ class TBMSegment:
         if excavType == 'Mech':
             self.D = 0.0
         else:
-            self.D = 0.2			
+            self.D = 0.2
         self.HoekBrown = HoekBrown(gamma, ucs, mi, e, self.InSituCondition.Gsi, self.D, self.InSituCondition.SigmaV)
         self.MohrCoulomb = MohrCoulomb()
         self.MohrCoulomb.SetRock(self.HoekBrown, ucs)
-        
-        # print "GSI= %f GSIr= %f " % (self.HoekBrown.gsi, self.HoekBrown.gsir) 
-        
+
+        # print "GSI= %f GSIr= %f " % (self.HoekBrown.gsi, self.HoekBrown.gsir)
+
         self.Excavation = Excavation(excavType, excavArea, excavWidth, excavHeight, refLength, overburden, self.MohrCoulomb.Fi)
         self.InSituCondition.UpdateK0KaKp(self.Excavation.OverburdenType,self.MohrCoulomb.Fi)
         self.rockBurst = rockBursting(ucs, rmr, self.InSituCondition.SigmaV)
         self.Tamez = Tamez('r',overburden, self.Excavation, self.MohrCoulomb, self.InSituCondition, gamma, pi, aunsupported)
         self.frontStability = frontStability(self.InSituCondition.Overburden/(2.0*self.Excavation.Radius), \
                                     self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, self.InSituCondition.Kp) #, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi)))
- 
+
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
         fi = math.radians(self.MohrCoulomb.Fi)
@@ -419,11 +420,11 @@ class TBMSegment:
             self.Rpl = (((self.Pocr-self.Pocp*math.sin(fi))/pi_cr_tan)**(1.0/(self.Nfir-1.)))*R
         else:
             self.Rpl = R
-        
+
         self.Tbm = tbm
         self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
-        
-        # definisco l'eventuale 
+
+        # definisco l'eventuale
         if self.TunnelClosureAtShieldEnd>self.Tbm.gap:
             # definisco il punto di contatto sullo scudo
             self.Xcontact = self.xLim(self.Tbm.gap)
@@ -434,13 +435,13 @@ class TBMSegment:
         else:
             self.frictionForce = 0.0 # in kN
             self.Xcontact = tbm.Slen
-        
+
         #definisco il thrust che rimane per l'avanzamento tolti gli attriti e la convergenza sullo scudo
         if tbm.type == 'DS':
             self.availableThrust = max(0., self.Tbm.installedThrustForce - self.frictionForce)
         else:
             self.availableThrust = max(0., self.Tbm.installedThrustForce - self.frictionForce - self.Tbm.BackupDragForce)
-        
+
         #se non mi rimane thurst devo consolidare o sbloccare la macchina
         ratio = self.availableThrust/self.Tbm.totalContactThrust
         if ratio > .25:
@@ -450,7 +451,7 @@ class TBMSegment:
         else:
             self.cavityStabilityPar = 1.
 
-        
+
         # definisco thrust e torque
         psi = self.Tbm.psi
         ucs = self.Rock.Ucs
@@ -470,7 +471,7 @@ class TBMSegment:
         if self.cavityStabilityPar == 0:
             ftAvailable = min(self.Tbm.Ft,  self.availableThrust/self.Tbm.CutterNo)
         else:
-            ftAvailable = self.Tbm.Ft 
+            ftAvailable = self.Tbm.Ft
         if locFt > ftAvailable:
             locFt = ftAvailable
             locfi=locFt*(1.0+psi)/(1000.0*locP0*self.Tbm.CutterRadius*self.Tbm.CutterThickness)
@@ -479,7 +480,7 @@ class TBMSegment:
             locp = pRid
         else:
             locp = locpBase
-            
+
         locFn = locFt*math.cos(locfi/2.0) # in kN
         locFr = locFt*math.sin(locfi/2.0) # in kN
         self.penetrationRate = locp # m / rotazione
@@ -488,7 +489,7 @@ class TBMSegment:
         self.torque = 0.3*(self.Tbm.excavationDiam+2.0*self.Tbm.gap)*self.Tbm.CutterNo*locFr # in kNm
         self.dailyAdvanceRate = 24.*locuf*locp*self.Tbm.rpm*60.*340./365. # in m/gg con anni di 340 gg
         self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
-        
+
         # tempi di produzione in giorni
         self.t0= self.segmentLength/(24.*locuf*locp*self.Tbm.rpm*60.) #giorni di scavo del segmento
         self.t1= self.segmentLength/(24.*locuf*locpBase*self.Tbm.rpm*60.) #giorni di scavo del segmento
@@ -499,9 +500,9 @@ class TBMSegment:
         self.P1 = P1(self.t1, self.segmentLength) # giorni di produzione richiesto a scavare un metro del segmento in condizioni standard
         self.P3 = P3(self.t3, self.segmentLength) # giorni di extra produzione richiesto a scavare un metro del segmento in rocce dure
         self.P5 = P5(self.Tbm.type, self.cavityStabilityPar)
-        
+
         self.t5 = self.segmentLength*self.P5.impact*self.P5.probability
-        
+
         # indicatori geotecnici
         self.G1 = G1(self.Tbm.type, self.frontStability.lambdae)
         self.G2 = G2(self.Tbm.type, self.cavityStabilityPar)
@@ -512,7 +513,7 @@ class TBMSegment:
         self.G11 = G11(self.Tbm.type, segment.descr, self.cavityStabilityPar)
         self.G12 = G12(self.Tbm.type, segment.descr, self.frontStability.lambdae)
         self.G13 = G13(self.Tbm.type, self.rockBurst.Val)
-   
+
     def UrPi_HB(self, pi):
         #curva caratteristica con parametri di H-B secondo Carranza torres del 2006
         sigma0 = self.InSituCondition.SigmaV
@@ -521,7 +522,7 @@ class TBMSegment:
         psi = math.radians(self.MohrCoulomb.psi)
         ni = self.Rock.Ni
         G = self.Rock.G # riporto il modulo in MPa
-        
+
         mb = self.HoekBrown.Mb
         s = self.HoekBrown.S
         a = self.HoekBrown.A
@@ -546,12 +547,12 @@ class TBMSegment:
         Picr_r = picr/mb_sci_r+s_mb_r
         Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
         G_r = G/mb_sci_r
-        
+
         Kpsi = (1.+math.sin(psi))/(1.-math.sin(psi))
         A1 = -Kpsi
         A2 = 1.-ni-ni*Kpsi
         A3 = ni-(1.-ni)*Kpsi
-        
+
         # condizioni iniziali su ur (ur1) e urP (ur1P)
         rho = 1.
         Rpl_2G_r = Rpl/(2.*G_r)
@@ -600,7 +601,7 @@ class TBMSegment:
                     k2 = h * U(rho+h_2, ur+h_2*urP, urP+h_2*k1, c1_h_2, c2_h_2)
                     k3 = h * U(rho+h_2, ur+h_2*urP+h_2**2*k1, h_2*k2, c1_h_2, c2_h_2)
                     k4 = h * U(rho+h, ur+h*urP+(h**2)/2.*k2, urP+h*k3, c1_h, c2_h)
-                    
+
                     ur += h*(urP+(k1+k2+k3)/6.)
                     urP += (k1+2.*k2+2.*k3+k4)/6.
 
@@ -618,7 +619,7 @@ class TBMSegment:
                 +Rpl_2G_r/4.*(A2-A3)/(1.-A1)*rho*(math.log(rho))**2\
                 +Rpl_2G_r*((A2-A3)/(1.-A1)**2*math.sqrt(Picr_r)-.5*(A2-A1*A3)/(1.-A1)**3)\
                 *(rho**A1-rho+(1.-A1)*rho*math.log(rho))
-            
+
         else:
             ur = (S0_r-Picr_r)/(2.*G_r)*Rpl**2/R
         return ur
@@ -659,7 +660,7 @@ class TBMSegment:
         else:
             urplmax = 0.0
         return max(urplmax, uremax)
-    
+
     def LDP_Panet_1995(self, x):
         # risultato in m
         # x in m
@@ -688,12 +689,12 @@ class TBMSegment:
             return self.LDP_Panet_1995(x)
         else:
             return self.LDP_Vlachopoulos_2009(x)
-    
+
     def TunnelClosure(self, x):
         # risultato in m
         # x in m
         return self.CavityConvergence(x) - self.CavityConvergence(0.0)
-    
+
     def PiUr(self, dur):
         # restituisce il valore di pressione equivalente a una convergenza del cavo pari a dur
         # iol risultato e' in MPa (1 MPa = 1000 kN/m2)
@@ -706,7 +707,7 @@ class TBMSegment:
             if urcur <= ur:
                 return pi
         return pi
-    
+
     def xLim(self, urlim):
         # risultato in m
         # urlim in m
@@ -714,7 +715,7 @@ class TBMSegment:
         while self.TunnelClosure(x)<urlim and x < self.Tbm.Slen:
             x += 0.005 # incremento di 5 mm
         return x
-    
+
     def pkCe2Gl(self, pkCe):
         #semplice conversione tra pk del cunicolo con la pk della galleria di linea (vale per la tratta nord)
         pkGl = 59230.0-pkCe
@@ -977,7 +978,7 @@ class P4:
             exit(1)
 
         self.probability = 1.
-        self.impact = imax 
+        self.impact = imax
 
 class P5:
     def __init__(self, tbmType, par):
@@ -1010,9 +1011,9 @@ class V1:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = .52 
+            imax = .52
         elif tbmType=='DS':
-            imax = .48 
+            imax = .48
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1025,7 +1026,7 @@ class V2:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = .6 
+            imax = .6
         elif tbmType=='DS':
             imax = .4
         else:
@@ -1040,7 +1041,7 @@ class V3:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = .6 
+            imax = .6
         elif tbmType=='DS':
             imax = .4
         else:
@@ -1055,7 +1056,7 @@ class V4:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = .67 
+            imax = .67
         elif tbmType=='DS':
             imax = .33
         else:
@@ -1103,7 +1104,7 @@ class PerformanceIndex:
         self.percentOfApplication=0.
         self.totalImpact=0.
         self.probabilityScore=0.
-        
+
     def updateIndex(self, pCur, iCur, length):
         if pCur >0.:
             if self.minImpact>0.:
@@ -1111,9 +1112,9 @@ class PerformanceIndex:
             else:
                 self.minImpact=iCur
             self.maxImpact=max(self.maxImpact, iCur)
-            self.avgImpact+=length*pCur*iCur
-            self.appliedLength+=length*pCur
-            
+            self.avgImpact += length*pCur*iCur
+            self.appliedLength += length*pCur
+
     def convertDaysToImpactAndFinalizeIndex(self, refLength):
         days = self.avgImpact
         self.avgImpact = impactOfProductionDaysAftes2012(days)
@@ -1122,14 +1123,14 @@ class PerformanceIndex:
         self.percentOfApplication=self.appliedLength/refLength
         self.probabilityScore = probabilityAftes2012(self.percentOfApplication)
         self.totalImpact=self.avgImpact*self.probabilityScore
-        
+
     def finalizeIndex(self, refLength):
         if self.appliedLength >0.:
             self.avgImpact/=self.appliedLength
         self.percentOfApplication=self.appliedLength/refLength
         self.probabilityScore = probabilityAftes2012(self.percentOfApplication)
         self.totalImpact=self.avgImpact*self.probabilityScore
-        
+
     def printOut(self):
         print '%s: min impact=%f; max impact=%f; avg impact=%f; applied length=%f; percent of application=%f; probability score=%f; total impact=%f' \
             % (self.definition, self.minImpact, self.maxImpact, self.avgImpact, self.appliedLength, self.percentOfApplication, self.probabilityScore, self.totalImpact)
@@ -1141,4 +1142,3 @@ class InfoAlignment:
         self.pkStart=pkStart
         self.pkEnd=pkEnd
         self.length=max(pkStart, pkEnd)-min(pkStart, pkEnd)
-    

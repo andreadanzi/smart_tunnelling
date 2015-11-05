@@ -1,6 +1,20 @@
 import sqlite3, os
 from bbtnamedtuples import *
 
+
+def get_bbtparameterseval(sDBPath):
+    conn = sqlite3.connect(sDBPath)
+    conn.row_factory = bbtparametereval_factory
+    cur = conn.cursor()
+    print "start querying database  "
+    bbtresults = cur.execute("SELECT insertdate,iteration_no,fine,he,hp,co,gamma,sigma,mi,ei,cai,gsi,rmr,pkgl,closure,rockburst,front_stability_ns,front_stability_lambda,penetrationRate,penetrationRateReduction,contactThrust,torque,frictionForce,requiredThrustForce,availableThrust,dailyAdvanceRate,profilo_id,geoitem_id,title,sigma_ti,k0 FROM BbtParameterEval ORDER BY iteration_no, profilo_id")
+    bbt_bbtparameterseval = []
+    for bbt_parametereval in bbtresults:
+        bbt_bbtparameterseval.append(bbt_parametereval)
+    conn.close()
+    return bbt_bbtparameterseval
+
+
 def get_bbtparameters(sDBPath):
     conn = sqlite3.connect(sDBPath)
     conn.row_factory = bbtparameter_factory

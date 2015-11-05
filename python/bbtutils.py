@@ -122,6 +122,21 @@ def get_my_norm_rvs_min_max(vmin,vmax,name=''):
     return retVal
 
 
+def get_my_norm_min_max(vmin,vmax,name=''):
+    if vmin==-1 or vmax==-1: return CNorm(0.0)
+    mean , std = get_sigma_95(vmin,vmax)
+    if mean == -1: return mean
+    lower = vmin
+    upper = vmax
+    if lower < 0:
+        # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+        lower = mean - std
+        upper = mean + std
+    a, b = (lower - mean) / std, (upper - mean) / std
+    myNorm = truncnorm(a, b, loc=mean, scale=std)
+    return myNorm
+
+
 # distribuzione binomiale (tempo di ritorno) di eventi ogni l metri che causano ritardo di N giorni, dove N = il doppio del massimo tra i tempi
 def evento_eccezionale(l,ecc):
     ret = binom(l,ecc)
