@@ -29,7 +29,95 @@ def probabilityAftes2012(percent):
         x=percent-0.5
     return y0+slope*x
 
+def impactOnDelay(tDays):
+    days=max(0., tDays)
+    if days==0.:
+        y0=0.
+        slope=0.
+        x=0
+    elif days<7.:
+        y0=1.
+        slope=1./7.
+        x=days
+    elif days<30.:
+        y0=2.
+        slope=1./(30.-7.)
+        x=days-7.
+    elif days<90.:
+        y0=3.
+        slope=1./(90.-30.)
+        x=days-30.
+    elif days<270.:
+        y0=4.
+        slope=1./(270.-90.)
+        x=days-90.
+    else:
+        y0=5.
+        slope=0
+        x=0.
+    impact=y0+slope*x
+    return impact
+
+def impactOnCost(cost, costRef):
+    if costRef<.0000000001:
+        print 'Error: reference cost is almost zero'
+        exit(-1)
+    ratio = cost/costRef
+    if ratio<=0.:
+        y0=1.
+        slope=0.
+        x=ratio
+    elif ratio>0. and ratio <=.05:
+        y0=1.
+        slope=1./(.05)
+        x=ratio
+    elif ratio>.05 and ratio <=.1:
+        y0=2.
+        slope=1./(.1-.05)
+        x=ratio-.05
+    elif ratio>.1 and ratio <=.5:
+        y0=3.
+        slope=1./(.5-.1)
+        x=ratio-.1
+    else:
+        y0=4
+        slope=0.
+        x=0.
+    impact=y0+slope*x
+    return impact
+    
+def impactOnProduction(production, productionRef):
+    if productionRef<.0000000001:
+        print 'Error: reference production is zero'
+        exit(-1)
+    ratio = production/productionRef
+    if ratio>=1.:
+        y0=0.
+        slope=0.
+        x=ratio
+    elif ratio<1. and ratio >=.5:
+        y0=2.
+        slope=-1./(1.-.5)
+        x=ratio-.5
+    elif ratio<.5 and ratio >=.1:
+        y0=3.
+        slope=-1./(.5-.1)
+        x=ratio-.1
+    elif ratio<.1 and ratio >=.05:
+        y0=4.
+        slope=-1./(.1-.05)
+        x=ratio-.05
+    else:
+        y0=4
+        slope=0.
+        x=0.
+    impact=y0+slope*x
+    return impact
+
+
+#obsoleta
 def impactOfProductionDaysAftes2012(days):
+    #devo pesare il tempo rispetto a un riferimento
     if days<7.:
         y0=1.
         slope=0.
@@ -55,6 +143,7 @@ def impactOfProductionDaysAftes2012(days):
         slope=1./(2430.-810.)
         x=days-810.
     return y0+slope*x
+
 
 def tempoInterventiSpeciali(tbmType, length): #obsoleta
     #restituisce tempo in ore
@@ -324,17 +413,31 @@ class TBM:
         self.Friction = tbmData.frictionCoefficient # coefficiente di attrito tra ammasso e scudo
         self.BackupDragForce = tbmData.backupDragForce # kN (8000 per la GL, 4000 per il CE
         # penetration rate per ogni decina di rmr: 0, 10, 20, 30.....100
-        self.rop= array((1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925)) # m/h metri di scavo all'ora
+        self.rop= array((1.2904525, 1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925, 1.7217925)) # m/h metri di scavo all'ora
         self.penetrationPerRevolution = self.rop/60./self.rpm  #in m per rivoluzione
         # definisco l'Utilization Factor
-        if self.type == 'O':
-            self.uf = (0.110166666666667,0.110166666666667,0.159111111111111,0.208055555555556,0.288194444444445,0.368333333333333,0.4335,0.498666666666667,0.498666666666667,0.498666666666667,0.498666666666667)
-        elif self.type =='D':
-            self.uf = (0.154166666666667,0.154166666666667,0.189583333333333,0.225,0.285416666666667,0.345833333333333,0.377083333333333,0.408333333333333,0.408333333333333,0.408333333333333,0.408333333333333)
+        uf0=array((0.110166666666667, 0.110166666666667,0.159111111111111,0.208055555555556,0.288194444444445,0.368333333333333,0.4335, \
+                    0.498666666666667, 0.498666666666667,0.498666666666667,0.498666666666667))
+        ufS=array((0.154166666666667,0.154166666666667,0.189583333333333,0.225,0.285416666666667,0.345833333333333, \
+                    0.377083333333333,0.408333333333333,0.408333333333333,0.408333333333333,0.408333333333333))
+        ufDS=array((0.15,0.15,0.219166666666667,0.288333333333333,0.354722222222222,0.421111111111111,0.442361111111111, \
+                    0.463611111111111,0.463611111111111,0.463611111111111,0.463611111111111))
+        if self.type == 'O': # per ogni decina di rmr: 0, 10, 20, 30.....100
+            self.uf = uf0
+        elif self.type =='S':
+            self.uf = ufS
         elif self.type == 'DS':
-            self.uf = (0.15,0.15,0.219166666666667,0.288333333333333,0.354722222222222,0.421111111111111,0.442361111111111,0.463611111111111,0.463611111111111,0.463611111111111,0.463611111111111)
+            self.uf = ufDS
         else:
+            print 'Errore: tipo TBM inesistente. Impossibile definire UF'
             exit(-700)
+        # definisco la massima produzione giornaliera in metri possibile (serve per dare un peso alla produzione)
+        productionMax = 0.
+        for iii in range(0, 10):
+            irop = self.rop[iii]
+            iuf = max(uf0[iii], ufS[iii], ufDS[iii])
+            productionMax = max(productionMax, 24.*irop*iuf)
+        self.maxProduction = productionMax    
         # angolo da definire in base alla macchina
         # come suggerito da Rostami et Al. lo faccio variare linearmente da -0.2 a 0.2 in modo inversamente proporzionale allo spessore del cutter
         tInf = 0.013 # 13 mm
@@ -348,11 +451,13 @@ class TBM:
         self.breakawayTorque = tbmData.breakawayTorque #in kNm
         self.LDP_type = LDP_type # tipo di formulazione per convergenza del cavo: P = Panet, V = Vlachopoulos-Dietrich
         
-        self.P2 = P2(self.type)
-        self.P4 = P4(self.type)
+        # a questo livello possosolo inizializzare P2 (tempi di montaggio e smontaggio) e P6 (posa rivestimento) perche' potro' valutare il suo impatto
+        # pesandolo sulla tempo minimo di produzine che ho a livello di main
+        self.P2 = P2(self.type) 
+        self.P6 = P6() 
 
         self.V1 = V1(self.type)
-        self.V2 = V2(self.type)
+        self.V2 = V2(self.type, self.excavationDiam)
         self.V3 = V3(self.type)
         self.V4 = V4(self.type)
         self.V5 = V5(self.type)
@@ -475,7 +580,7 @@ class TBMSegment:
             locFt = ftAvailable
             locfi=locFt*(1.0+psi)/(1000.0*locP0*self.Tbm.CutterRadius*self.Tbm.CutterThickness)
             pRid = self.Tbm.CutterRadius*(1.-math.cos(locfi))
-            pRateReduction = locpBase-pRid
+            pRateReduction = max(0., locpBase-pRid)
             locp = pRid
         else:
             locp = locpBase
@@ -486,29 +591,37 @@ class TBMSegment:
         self.penetrationRateReduction = pRateReduction
         self.contactThrust = self.Tbm.CutterNo*locFn # in kN
         self.torque = 0.3*(self.Tbm.excavationDiam+2.0*self.Tbm.gap)*self.Tbm.CutterNo*locFr # in kNm
-        self.dailyAdvanceRate = 24.*locuf*locp*self.Tbm.rpm*60.*340./365. # in m/gg con anni di 340 gg
+        self.dailyAdvanceRate = 24.*locuf*locp*self.Tbm.rpm*60. # in m/gg con anni di 365 gg
         self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
+        
+        # considerazioni sulla produzione
+        productionMax = self.Tbm.maxProduction
+        productionBase = 24.*locuf*locpBase*self.Tbm.rpm*60. # produzione teorica (in m/gg) a meno dei rallentamenti per rocce dure
+        impactP1 = impactOnProduction(productionBase, productionMax)
+        impactP3 = impactOnProduction(self.dailyAdvanceRate, productionBase)
+        
+
+        # indicatore di produzione
+        #self.P0 = P0(self.t0, self.segmentLength) # giorni di produzione richiesto a scavare un metro del segmento
+        self.P1 = P1(impactP1) # impatto sulla produzione
+        self.P3 = P3(impactP3) # impatto del rallentamento per rocce dure
+        self.P4 = P4(self.Tbm.type, 1., productionBase,  segment.length)
+        self.P5 = P5(self.Tbm.type, self.cavityStabilityPar, productionBase,  segment.length)
         
         # tempi di produzione in giorni
         self.t0= self.segmentLength/(24.*locuf*locp*self.Tbm.rpm*60.) #giorni di scavo del segmento
         self.t1= self.segmentLength/(24.*locuf*locpBase*self.Tbm.rpm*60.) #giorni di scavo del segmento
         self.t3 = self.t0-self.t1 # extra tempo in giorni causato dalle rocce dure
-
-        # indicatore di produzione
-        self.P0 = P0(self.t0, self.segmentLength) # giorni di produzione richiesto a scavare un metro del segmento
-        self.P1 = P1(self.t1, self.segmentLength) # giorni di produzione richiesto a scavare un metro del segmento in condizioni standard
-        self.P3 = P3(self.t3, self.segmentLength) # giorni di extra produzione richiesto a scavare un metro del segmento in rocce dure
-        self.P5 = P5(self.Tbm.type, self.cavityStabilityPar)
-        
-        self.t5 = self.segmentLength*self.P5.impact*self.P5.probability
+        self.t4 = self.P4.duration
+        self.t5 = self.P5.duration
         
         # indicatori geotecnici
         self.G1 = G1(self.Tbm.type, self.frontStability.lambdae)
         self.G2 = G2(self.Tbm.type, self.cavityStabilityPar)
         self.G5 = G5(self.Tbm.type, segment.descr, self.frontStability.lambdae)
-        self.G6 = G6(self.Tbm.type, 0.)
-        self.G7 = G7(self.Tbm.type, 0.)
-        self.G8 = G8(self.Tbm.type, 0.)
+        self.G6 = G6(self.Tbm.type)
+        self.G7 = G7(self.Tbm.type)
+        self.G8 = G8(self.Tbm.type)
         self.G11 = G11(self.Tbm.type, segment.descr, self.cavityStabilityPar)
         self.G12 = G12(self.Tbm.type, segment.descr, self.frontStability.lambdae)
         self.G13 = G13(self.Tbm.type, self.rockBurst.Val)
@@ -731,7 +844,7 @@ class G1:
     def __init__(self, tbmType, lambdae):
         self.definition='Front stability'
         if tbmType=='O':
-            imax = 0.
+            imax = 2.5 # todo verificare valore
         elif tbmType=='S':
             imax = 2.25
         elif tbmType=='DS':
@@ -751,7 +864,7 @@ class G2:
     def __init__(self, tbmType, cavityStabilityPar):
         self.definition='Cavity stability'
         if tbmType=='O':
-            imax = 0.
+            imax = 1.
         elif tbmType=='S':
             imax = 1.5
         elif tbmType=='DS':
@@ -771,7 +884,7 @@ class G5:
     def __init__(self, tbmType, mat, lambdae):
         self.definition='Spalling - cavity'
         if tbmType=='O':
-            imax = 0.
+            imax = 2.5
         elif tbmType=='S':
             imax = 1
         elif tbmType=='DS':
@@ -795,30 +908,26 @@ class G5:
             self.impact = 0.
 
 class G6:
-    def __init__(self, tbmType, par):
+    def __init__(self, tbmType):
         self.definition='Cavities'
         if tbmType=='O':
-            imax = 0.
+            imax = 3.25
         elif tbmType=='S':
-            imax = 2.
-        elif tbmType=='DS':
             imax = 1.5
+        elif tbmType=='DS':
+            imax = 1.75
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if par>0.:
-            self.probability = 1.
-            self.impact = imax*par
-        else:
-            self.probability = 0.
-            self.impact = 0.
+        self.probability = 1.
+        self.impact = imax
 
 class G7:
-    def __init__(self, tbmType, par):
+    def __init__(self, tbmType):
         self.definition='Water overflow'
         if tbmType=='O':
-            imax = 0.
+            imax = 1.75
         elif tbmType=='S':
             imax = 1.
         elif tbmType=='DS':
@@ -827,32 +936,24 @@ class G7:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if par>0.:
-            self.probability = 1.
-            self.impact = imax*par
-        else:
-            self.probability = 0.
-            self.impact = 0.
+        self.probability = 1.
+        self.impact = imax
 
 class G8:
-    def __init__(self, tbmType, par):
+    def __init__(self, tbmType):
         self.definition='Gas overflow'
         if tbmType=='O':
-            imax = 0.
+            imax = 2.25
         elif tbmType=='S':
-            imax = 2.
+            imax = 2.25
         elif tbmType=='DS':
-            imax = 2.
+            imax = 2.25
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if par>0.:
-            self.probability = 1.
-            self.impact = imax*par
-        else:
-            self.probability = 0.
-            self.impact = 0.
+        self.probability = 1.
+        self.impact = imax
 
 
 class G11:
@@ -883,7 +984,7 @@ class G12:
     def __init__(self, tbmType, mat, lambdae):
         self.definition='Spalling - front'
         if tbmType=='O':
-            imax = 0.
+            imax = 2.25
         elif tbmType=='S':
             imax = 1.
         elif tbmType=='DS':
@@ -907,7 +1008,7 @@ class G13:
     def __init__(self, tbmType, rockBurstingPar):
         self.definition='Rockburst'
         if tbmType=='O':
-            imax = 0.
+            imax = 2.75
         elif tbmType=='S':
             imax = 1.5
         elif tbmType=='DS':
@@ -932,75 +1033,130 @@ class P0: #tempo di scavo effettivo
         self.probability = 1.
         self.impact = par/length
 
-class P1: #tempo di scavo in condizioni standard
-    def __init__(self, par,  length):
+class P1: #tempo di scavo in condizioni standard si applica sempre
+    def __init__(self, par):
         self.probability = 1.
-        self.impact = par/length
+        self.impact = par
 
 class P2: #tempo di montaggio e smontaggio lo si puo' associare direttamente alla tbm e lo spalmo su tutto il tracciato
     def __init__(self, tbmType):
         self.definition='Assembly and disassembly'
+        # imax definito come il tempo in giorni di montaggio/smontaggio/spostamento
         if tbmType=='O':
-            imax = 0.
+            imax = 7.*30.
         elif tbmType=='S':
-            imax = 216. # giorni di montaggio, smontaggio e trasporto
+            imax = 8.2*30. 
         elif tbmType=='DS':
-            imax = 225 # percentuale del tempo rispetto allo scavo
+            imax = 9.*30. 
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
-
-        self.probability = 1.
-        self.impact = imax
+        self.duration = imax
+        self.impact=0.
+        self.probability=0.
+    
+    def defineImpact(self, tRef):
+        #calcolo l'impatto come produzione pesata sul tempo minimo di produzione possibile
+        # la produzione e' inversamente proporzionale al tempo di produzine
+        refProd = 1./tRef
+        newProd = 1./(self.duration+tRef)
+        impact = impactOnProduction(newProd, refProd)
+        if impact>0.:
+            self.probability = 1.
+            self.impact = impact
+        else:
+            self.probability = 0.
+            self.impact = 0.
 
 
 class P3: #tempo extra in giorni per scavo in rocce dure
-    def __init__(self, par,  length):
+    def __init__(self, par):
         if par > 0.:
             self.probability = 1.
-            self.impact = par/length
+            self.impact = par
         else:
             self.probability = 0.
             self.impact = 0.
 
 class P4:
-    def __init__(self, tbmType):
+    def __init__(self, tbmType,  par, refProductivity, length ):
         self.definition='Preparatory works for borehole in advance'
         if tbmType=='O':
-            imax = 0.
+            imax = .5/24. #ore al giorno spese per le prospezioni
         elif tbmType=='S':
-            imax = 291 # tempo in giorni
+            imax = .5/24. #ore al giorno spese per le prospezioni
         elif tbmType=='DS':
-            imax = 291 # percentuale del tempo rispetto allo scavo
+            imax = .5/24. #ore al giorno spese per le prospezioni
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        self.probability = 1.
-        self.impact = imax 
-
-class P5:
-    def __init__(self, tbmType, par):
-        # considera un incremento dei tempi per eseguire i consolidamenti.
-        # il tempo richiesto per i consolidamenti e' gia' contato nell'UF
-        # considerate le ipotesi di TC servono 4.5 ore per ogni m di apprestament di consolidamento
-        self.definition='Preparatory works for consolidation'
-        if tbmType=='O':
-            imax = 0.
-        elif tbmType=='S':
-            imax = 4.5/24. # giorni per metro di apprestamento
-        elif tbmType=='DS':
-            imax = 4.5/24. # ore per metro di apprestamento
-        else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
-
-        if par>0.:
+        newProductivity = refProductivity/(1.+imax)
+        self.duration = length/(1./newProductivity-1./refProductivity) # impatto in giorni sulla produzione di quel segmento
+        impact = impactOnProduction(newProductivity, refProductivity)
+        
+        if par>0. and impact>0.:
             self.probability = 1.
-            self.impact = imax # impatto in ore per la tratta di lunghezza length
+            self.impact = impact # impatto in ore per la tratta di lunghezza length
         else:
             self.probability = 0.
             self.impact = 0.
+
+
+
+class P5: 
+    def __init__(self, tbmType, par, refProductivity,  length):
+        # considera un incremento dei tempi per eseguire i consolidamenti.
+        # il tempo richiesto per i consolidamenti e' gia' contato nell'UF
+        # considerate le ipotesi di TC servono 4.5 ore per ogni m di apprestamento di consolidamento
+        self.definition='Preparatory works for consolidation'
+        if tbmType=='O':
+            imax = 4.5/24.
+        elif tbmType=='S':
+            imax = 4.5/24. # giorni per metro di apprestamento
+        elif tbmType=='DS':
+            imax = 4.5/24. # giorni per metro di apprestamento
+        else:
+            print 'Errore tipo di tbm inesistente!'
+            exit(1)
+        imax*=length # tempo richiesto in giorni per consolidare tutta la lunghezza del segmento
+        self.duration = imax # impatto in giorni per la produzione di quel segmento
+        newProductivity = refProductivity/(1.+imax)
+        impact = impactOnProduction(newProductivity, refProductivity)
+
+        if par>0. and impact>0.:
+            self.probability = 1.
+            self.impact = impact # impatto in ore per la tratta di lunghezza length
+        else:
+            self.probability = 0.
+            self.impact = 0.
+
+class P6: #realizzaqzione del rivestimento . Si applica solo a tbm aperta direzione sud
+    def __init__(self):
+        self.definition='Lining execution'
+        self.impact=0.
+        self.probability=0.
+        self.duration=0.
+    
+    def defineImpact(self, tRef, tbmType, alnKey):
+        #calcolo l'impatto come produzione pesata sul tempo minimo di produzione possibile
+        # la produzione e' inversamente proporzionale al tempo di produzine
+        # imax definito come il tempo in giorni per l'esecuzione
+        if alnKey=='CE' and tbmType=='O':
+            imax = 11.2*30.
+        else:
+            imax=0.
+        self.duration = imax
+        refProd = 1./tRef
+        newProd = 1./(self.duration+tRef)
+        impact = impactOnProduction(newProd, refProd)
+        if impact>0.:
+            self.probability = 1.
+            self.impact = impact
+        else:
+            self.probability = 0.
+            self.impact = 0.
+
 
 # i parametri vari si applicano genericamente alla tbm e sono indipendenti dai punti del tracciato
 class V1:
@@ -1008,41 +1164,53 @@ class V1:
         self.definition='HSE'
         self.probability=1.
         if tbmType=='O':
-            imax = 0.
+            imax = 2.5
         elif tbmType=='S':
-            imax = .52 
+            imax = 1.25 
         elif tbmType=='DS':
-            imax = .48 
+            imax = 1.5 
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
         self.impact=imax
 
 class V2:
-    def __init__(self, tbmType):
+    def __init__(self, tbmType, excavDiam):
+        # definisco il costo base in proporzione al diametro (1 mln al metro) in mln
         self.definition='Cost'
-        self.probability=1.
+        self.probability=0.
         if tbmType=='O':
-            imax = 0.
+            imax = 1.15 # mln euro al metro di diametro
         elif tbmType=='S':
-            imax = .6 
+            imax = 1.37 # mln euro al metro di diametro
         elif tbmType=='DS':
-            imax = .4
+            imax = 1.8 # mln euro al metro di diametro
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
-        self.impact=imax
+        self.cost=imax*excavDiam
+        self.impact=0.
+
+    def defineImpact(self, costRef):
+        impact = impactOnCost(self.cost, costRef)
+        if impact>0.:
+            self.probability = 1.
+            self.impact = impact
+        else:
+            self.probability = 0.
+            self.impact = 0.
+
 
 class V3:
     def __init__(self, tbmType):
         self.definition='Prospection tools'
         self.probability=1.
         if tbmType=='O':
-            imax = 0.
+            imax = 1.
         elif tbmType=='S':
-            imax = .6 
+            imax = 1.25 
         elif tbmType=='DS':
-            imax = .4
+            imax = 1.5
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1053,11 +1221,11 @@ class V4:
         self.definition='Alignment'
         self.probability=1.
         if tbmType=='O':
-            imax = 0.
+            imax = 1.
         elif tbmType=='S':
-            imax = .67 
+            imax = 2. 
         elif tbmType=='DS':
-            imax = .33
+            imax = 1.5
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1070,9 +1238,9 @@ class V5:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = .24
+            imax = 2.
         elif tbmType=='DS':
-            imax = .76
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1083,11 +1251,11 @@ class V6:
         self.definition='TBM complexity'
         self.probability=1.
         if tbmType=='O':
-            imax = 0.
+            imax = 1.
         elif tbmType=='S':
-            imax = .6
+            imax = 1.5
         elif tbmType=='DS':
-            imax = .4
+            imax = 2.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
