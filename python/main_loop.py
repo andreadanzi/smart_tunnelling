@@ -51,30 +51,32 @@ alnAll.append(aln)
 aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD)
 alnAll.append(aln)
 
-iIterationNo = 0
+
 kpiTbmList = []
-for alnCurr in alnAll:
-    print alnCurr.description
-    # leggo tutte le tbm
-    for tbmKey in tbms:
-        tbmData = tbms[tbmKey]
-        if alnCurr.tbmKey in tbmData.alignmentCode:
-            tbm = TBM(tbmData, 'V')
-            kpiTbm = KpiTbm4Tunnel(alnCurr.description,iIterationNo)
-            kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
-            matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
-            print "\t for %s the number of segments is %d from %f to %f" % (tbmKey, len(matches_params),matches_params[0].fine,matches_params[-1].fine)
-            for bbt_parameter in matches_params:
-                bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[int(bbt_parameter.fine)])
-                try:
-                    tbmsect = TBMSegment(bbtparameter4seg, tbm)
-                    kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
-                except:
-                    print bbt_parameter
-                    print bbtparameter4seg
-                    exit(-1)
-            kpiTbm.updateKPI(alnCurr)
-            kpiTbmList.append(kpiTbm)
+for iIterationNo in range(10):
+    # Per tutti i Tunnel
+    for alnCurr in alnAll:
+        # Per tutte le tbm
+        for tbmKey in tbms:
+            tbmData = tbms[tbmKey]
+            # Se la TBM e' conforme al TUnnell
+            if alnCurr.tbmKey in tbmData.alignmentCode:
+                tbm = TBM(tbmData, 'V')
+                kpiTbm = KpiTbm4Tunnel(alnCurr.description,iIterationNo)
+                kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
+                # cerco i segmenti che rientrano tra inizio e fine del Tunnell
+                matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
+                for bbt_parameter in matches_params:
+                    bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[int(bbt_parameter.fine)])
+                    try:
+                        tbmsect = TBMSegment(bbtparameter4seg, tbm)
+                        kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
+                    except:
+                        print bbt_parameter
+                        print bbtparameter4seg
+                        exit(-1)
+                kpiTbm.updateKPI(alnCurr)
+                kpiTbmList.append(kpiTbm)
 
 for kpiTbm in kpiTbmList:
     lst = kpiTbm.saveBbtTbmKpis(sDBPath)
