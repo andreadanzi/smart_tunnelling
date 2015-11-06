@@ -35,7 +35,7 @@ if not os.path.isfile(sProfilo_XLS):
 geosec_index = defaultdict(list)
 ########### BbtReliability - Acquisisco affidabilita modello GEO
 book = xlrd.open_workbook(sGeoReliability_XLS)
-xl_sheet = book.sheet_by_name(u'ce')
+xl_sheet = book.sheet_by_name(u'val')
 headrow = xl_sheet.row(3)  # header
 row = xl_sheet.row(4)  # first row
 num_cols = xl_sheet.ncols
@@ -53,7 +53,7 @@ insert_bbtreliability(sDBPath,reliability_list)
 
 ########### BbtGeoitem - Acquisisco caratteristiche GEO da tavola
 book = xlrd.open_workbook(sCE_XLS)
-xl_sheet = book.sheet_by_name(u'geoce')
+xl_sheet = book.sheet_by_name(u'geo')
 headrow = xl_sheet.row(2)  # header
 row = xl_sheet.row(3)  # first row
 num_cols = xl_sheet.ncols
@@ -65,7 +65,7 @@ for row_idx in range(3, xl_sheet.nrows):
         rowvalues.append(cell_obj.value)
     geoseg = BbtGeoitem(*rowvalues)
     geoseg_list.append(geoseg)
-    reliab_match = [rel for rel in reliability_list if rel.inizio < geoseg.fine <= rel.fine]
+    reliab_match = [rel for rel in reliability_list if rel.inizio <= geoseg.fine < rel.fine]
     for reli in reliab_match:
         print "reliab %d-%s finisce in %f vicino a Geoseg %f" % (reli.id,reli.gmr_class, reli.fine,geoseg.fine)
     geosec_index[geoseg.fine].append(geoseg)
@@ -149,7 +149,7 @@ insert_profilo(sDBPath,profilo_list)
 ######## BbtParameter rappresenta il segmento unitario con i parametri geologici base valorizzati secondo i dati provenienti dalle tavole geologiche
 geoitems=defaultdict(list)
 for bbtpro in profilo_list:
-    matches = [geoseg for geoseg in geoseg_list if geoseg.inizio <  bbtpro.fine <= geoseg.fine  ]
+    matches = [geoseg for geoseg in geoseg_list if  geoseg.inizio <=  bbtpro.fine < geoseg.fine   ]
     for geoseg in matches:
         bbtprofound = [pro for pro in geoitems[geoseg.fine] if pro.fine == bbtpro.fine]
         if len(bbtprofound) == 0:
