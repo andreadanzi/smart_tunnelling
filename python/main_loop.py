@@ -11,6 +11,8 @@ from collections import namedtuple
 from pprint import pprint
 
 
+now = datetime.datetime.now()
+strnow = now.strftime("%Y%m%d%H%M%S")
 # mi metto nella directory corrente
 path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(path)
@@ -50,10 +52,8 @@ aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD',inizio_GLEST, fin
 alnAll.append(aln)
 aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD)
 alnAll.append(aln)
-
-
 kpiTbmList = []
-for iIterationNo in range(10):
+for iIterationNo in range(2):
     # Per tutti i Tunnel
     for alnCurr in alnAll:
         # Per tutte le tbm
@@ -64,6 +64,7 @@ for iIterationNo in range(10):
                 tbm = TBM(tbmData, 'V')
                 kpiTbm = KpiTbm4Tunnel(alnCurr.description,iIterationNo)
                 kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
+                bbt_evalparameters = []
                 # cerco i segmenti che rientrano tra inizio e fine del Tunnell
                 matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
                 for bbt_parameter in matches_params:
@@ -71,12 +72,35 @@ for iIterationNo in range(10):
                     try:
                         tbmsect = TBMSegment(bbtparameter4seg, tbm)
                         kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
+                        bbt_evalparameters.append((strnow,iIterationNo,alnCurr.description, tbmKey, bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,bbtparameter4seg.gamma,\
+                                                        bbtparameter4seg.sci,bbtparameter4seg.mi,bbtparameter4seg.ei,bbtparameter4seg.cai,bbtparameter4seg.gsi,bbtparameter4seg.rmr,\
+                                                        tbmsect.pkCe2Gl(bbt_parameter.fine),\
+                                                        tbmsect.TunnelClosureAtShieldEnd*100. ,\
+                                                        tbmsect.rockBurst.Val,\
+                                                        tbmsect.frontStability.Ns,\
+                                                        tbmsect.frontStability.lambdae,\
+                                                        tbmsect.penetrationRate*1000. ,\
+                                                        tbmsect.penetrationRateReduction*1000. ,\
+                                                        tbmsect.contactThrust, \
+                                                        tbmsect.torque, \
+                                                        tbmsect.frictionForce, \
+                                                        tbmsect.requiredThrustForce, \
+                                                        tbmsect.availableThrust, \
+                                                        tbmsect.dailyAdvanceRate, \
+                                                        bbt_parameter.profilo_id, \
+                                                        bbt_parameter.geoitem_id, \
+                                                        bbt_parameter.title, \
+                                                        bbtparameter4seg.sti, \
+                                                        bbtparameter4seg.k0, \
+                                                        tbmsect.t0, \
+                                                        tbmsect.t1, \
+                                                        tbmsect.t3, \
+                                                        tbmsect.t4, \
+                                                        tbmsect.t5 ) )
                     except:
                         print bbt_parameter
                         print bbtparameter4seg
                         exit(-1)
                 kpiTbm.updateKPI(alnCurr)
-                kpiTbmList.append(kpiTbm)
-
-for kpiTbm in kpiTbmList:
-    lst = kpiTbm.saveBbtTbmKpis(sDBPath)
+                kpiTbm.saveBbtTbmKpis(sDBPath)
+                insert_bbtparameterseval(sDBPath,bbt_evalparameters,iIterationNo)

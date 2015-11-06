@@ -64,7 +64,7 @@ def insert_bbtreliability(sDBPath, reliability_list):
     conn.close()
 
 
-def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
+def insert_bbtparameterseval_old(sDBPath, bbt_evalparameters, iteration_no=0):
     conn = sqlite3.connect(sDBPath)
     c = conn.cursor()
     c.execute("delete from BbtParameterEval WHERE iteration_no = %d" % iteration_no)
@@ -98,3 +98,74 @@ def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
         ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
     conn.commit()
     conn.close()
+
+def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    isFirst=True
+    for bbtpar in bbt_evalparameters:
+        if isFirst:
+            c.execute("delete from BbtParameterEval WHERE iteration_no = %d AND tunnelName ='%s' AND tbmName='%s'" % (bbtpar[1],bbtpar[2],bbtpar[3]))
+            isFirst=False
+        c.execute("insert into BbtParameterEval (           insertdate,\
+                                                            iteration_no, \
+                                                            tunnelName,\
+                                                            tbmName,\
+                                                            fine,\
+                                                            he,\
+                                                            hp,\
+                                                            co,\
+                                                            gamma,\
+                                                            sigma,\
+                                                            mi,\
+                                                            ei,\
+                                                            cai,\
+                                                            gsi,\
+                                                            rmr,\
+                                                            pkgl,\
+                                                            closure,\
+                                                            rockburst,\
+                                                            front_stability_ns,\
+                                                            front_stability_lambda,\
+                                                            penetrationRate,\
+                                                            penetrationRateReduction,\
+                                                            contactThrust,\
+                                                            torque,\
+                                                            frictionForce,\
+                                                            requiredThrustForce,\
+                                                            availableThrust,\
+                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0,t0,t1,t3,t4,t5 \
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
+    conn.commit()
+    conn.close()
+
+
+
+def insert_one_bbtparameterseval(cur, bbtpar):
+    cur.execute("insert into BbtParameterEval (           insertdate,\
+                                                        iteration_no, \
+                                                        fine,\
+                                                        he,\
+                                                        hp,\
+                                                        co,\
+                                                        gamma,\
+                                                        sigma,\
+                                                        mi,\
+                                                        ei,\
+                                                        cai,\
+                                                        gsi,\
+                                                        rmr,\
+                                                        pkgl,\
+                                                        closure,\
+                                                        rockburst,\
+                                                        front_stability_ns,\
+                                                        front_stability_lambda,\
+                                                        penetrationRate,\
+                                                        penetrationRateReduction,\
+                                                        contactThrust,\
+                                                        torque,\
+                                                        frictionForce,\
+                                                        requiredThrustForce,\
+                                                        availableThrust,\
+                                                        dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0 \
+    ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
