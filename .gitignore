@@ -3,3 +3,5 @@ python/confronto.csv
 python/parameters_eval.csv
 *.bkp
 db/bbt_mules_2-3.db.orig
+python/results.csv
+python/.~lock.results.csv#

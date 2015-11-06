@@ -11,17 +11,18 @@ class KpiTbm4Tunnel:
     iterationNo = 0
 
     def __init__(self,sTunnelName, iIterationNo):
+        self.kpis= {}
         self.tunnelName = sTunnelName
         self.iterationNo = iIterationNo
         # inizializzo i performance index
         #indicatori di produzione (restituiscono un tempo in ore)
         # vanno sommati segmento a segmento
-        self.kpis['P0'] = PerformanceIndex('Produzione effettiva') #
         self.kpis['P1'] = PerformanceIndex('Produzione in condizioni standard') #
         self.kpis['P2'] = PerformanceIndex('Montaggio e smontaggio TBM') #
         self.kpis['P3'] = PerformanceIndex('Avanzamento in rocce dure') #
         self.kpis['P4'] = PerformanceIndex('Preparazione prospezioni')
         self.kpis['P5'] = PerformanceIndex('Preparazione consolidamenti')
+        self.kpis['P6'] = PerformanceIndex('Posa rivestimento')
 
         #indicatori geotecnici (restituiscono un parametro adimensionale che considera tempi, costi e impatti
         # vanno sommati segmento a segmento
@@ -44,48 +45,52 @@ class KpiTbm4Tunnel:
         self.kpis['V5'] = PerformanceIndex('Integrita\' conci')
         self.kpis['V6'] = PerformanceIndex('Complessita\' TBM')
 
-    def setKPI4TBM(self,tbmName, tbm):
+    def setKPI4TBM(self,alnCurr,tbmName, tbm, projectRefCost):
         self.tbmName = tbmName
+        #definisco impatto montaggio e smontaggio
+        tProductionMin =alnCurr.length/tbm.maxProduction # tempo minimo di produzione dato applicando la produzione massima a tutta la tratta
+        tbm.P2.defineImpact(tProductionMin)
+        tbm.P6.defineImpact(tProductionMin, tbm.type,  alnCurr.tbmKey)
+
         pCur=1.
 
         iCur=tbm.P2.impact
         self.kpis['P2'].updateIndex(pCur, iCur, 1.)
-        self.kpis['P2'].convertDaysToImpactAndFinalizeIndex(1.)
+        self.kpis['P2'].finalizeIndex(1.)
 
-        iCur=tbm.P4.impact
-        self.kpis['P4'].updateIndex(pCur, iCur, 1.)
-        self.kpis['P4'].convertDaysToImpactAndFinalizeIndex(1.)
+        iCur=tbm.P6.impact
+        self.kpis['P6'].updateIndex(pCur, iCur, 1.)
+        self.kpis['P6'].finalizeIndex(1.)
 
         iCur=tbm.V1.impact
-        self.kpis['V1'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V1'].finalizeIndex(1.)
+        self.kpis['V1'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V1'].finalizeIndex(alnCurr.length)
 
+        tbm.V2.defineImpact(projectRefCost)
         iCur=tbm.V2.impact
         self.kpis['V2'].updateIndex(pCur, iCur, 1.)
         self.kpis['V2'].finalizeIndex(1.)
 
         iCur=tbm.V3.impact
-        self.kpis['V3'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V3'].finalizeIndex(1.)
+        self.kpis['V3'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V3'].finalizeIndex(alnCurr.length)
 
         iCur=tbm.V4.impact
-        self.kpis['V4'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V4'].finalizeIndex(1.)
+        self.kpis['V4'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V4'].finalizeIndex(alnCurr.length)
 
         iCur=tbm.V5.impact
-        self.kpis['V5'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V5'].finalizeIndex(1.)
+        self.kpis['V5'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V5'].finalizeIndex(alnCurr.length)
 
         iCur=tbm.V6.impact
-        self.kpis['V6'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V6'].finalizeIndex(1.)
+        self.kpis['V6'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V6'].finalizeIndex(alnCurr.length)
 
-    def setKPI4SEG(self,tbmsect, p):
+
+
+    def setKPI4SEG(self,alnCurr, tbmsect, p):
         # aggiorno indici produzione. l'impatto medio dovra' poi essere diviso per la lunghezza del tracciato
-        pCur=tbmsect.P0.probability
-        iCur=tbmsect.P0.impact
-        self.kpis['P0'].updateIndex(pCur, iCur, p.length)
-
         pCur=tbmsect.P1.probability
         iCur=tbmsect.P1.impact
         self.kpis['P1'].updateIndex(pCur, iCur, p.length)
@@ -93,6 +98,10 @@ class KpiTbm4Tunnel:
         pCur=tbmsect.P3.probability
         iCur=tbmsect.P3.impact
         self.kpis['P3'].updateIndex(pCur, iCur, p.length)
+
+        pCur=tbmsect.P4.probability
+        iCur=tbmsect.P4.impact
+        self.kpis['P4'].updateIndex(pCur, iCur, p.length)
 
         pCur=tbmsect.P5.probability
         iCur=tbmsect.P5.impact
@@ -113,15 +122,39 @@ class KpiTbm4Tunnel:
 
         pCur=tbmsect.G6.probability
         iCur=tbmsect.G6.impact
-        self.kpis['G6'].updateIndex(pCur, iCur, p.length)
+        #scalo probabilita' in base al tracciato
+        prob=0.
+        if alnCurr.tbmKey =='CE':
+            prob=.2 # classe 4 aftes
+        elif alnCurr.tbmKey =='GLNORD':
+            prob=.005 #classe 1 aftes perche' noto da cunicolo
+        elif alnCurr.tbmKey =='GLSUD':
+            prob=.005 #classe 1 aftes perche' noto da cunicolo
+        self.kpis['G6'].updateIndex(pCur, iCur, prob*p.length)
 
         pCur=tbmsect.G7.probability
         iCur=tbmsect.G7.impact
-        self.kpis['G7'].updateIndex(pCur, iCur, p.length)
+        #scalo probabilita' in base al tracciato
+        prob=0.
+        if alnCurr.tbmKey =='CE':
+            prob=.05 # classe 3 aftes
+        elif alnCurr.tbmKey =='GLNORD':
+            prob=.005 # drenato dal cunicolo
+        elif alnCurr.tbmKey =='GLSUD':
+            prob=.005 # drenato dal cunicolo
+        self.kpis['G7'].updateIndex(pCur, iCur, prob*p.length)
 
         pCur=tbmsect.G8.probability
         iCur=tbmsect.G8.impact
-        self.kpis['G8'].updateIndex(pCur, iCur, p.length)
+        #scalo probabilita' in base al tracciato
+        prob=0.
+        if alnCurr.tbmKey =='CE':
+            prob=.02
+        elif alnCurr.tbmKey =='GLNORD':
+            prob=.005
+        elif alnCurr.tbmKey =='GLSUD':
+            prob=0.
+        self.kpis['G8'].updateIndex(pCur, iCur, prob*p.length)
 
         pCur=tbmsect.G11.probability
         iCur=tbmsect.G11.impact
@@ -136,10 +169,10 @@ class KpiTbm4Tunnel:
         self.kpis['G13'].updateIndex(pCur, iCur, p.length)
 
     def updateKPI(self, alnCurr):
-        self.kpis['P0'].convertDaysToImpactAndFinalizeIndex(alnCurr.length)
-        self.kpis['P1'].convertDaysToImpactAndFinalizeIndex(alnCurr.length)
-        self.kpis['P3'].convertDaysToImpactAndFinalizeIndex(alnCurr.length)
-        self.kpis['P5'].convertDaysToImpactAndFinalizeIndex(alnCurr.length)
+        self.kpis['P1'].finalizeIndex(alnCurr.length)
+        self.kpis['P3'].finalizeIndex(alnCurr.length)
+        self.kpis['P4'].finalizeIndex(alnCurr.length)
+        self.kpis['P5'].finalizeIndex(alnCurr.length)
 
         self.kpis['G1'].finalizeIndex(alnCurr.length)
         self.kpis['G2'].finalizeIndex(alnCurr.length)

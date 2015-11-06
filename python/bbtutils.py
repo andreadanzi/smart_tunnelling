@@ -100,7 +100,14 @@ def get_my_norm(mean,std,name=''):
             # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
             lower = mean - std
             upper = mean + std
+    if name=='rmr' or name=='gsi':
+        if upper > 100:
+            upper = 100
+        if lower < 5:
+            lower = 5
     a, b = (lower - mean) / std, (upper - mean) / std
+
+
     myNorm = truncnorm(a, b, loc=mean, scale=std)
     return myNorm
 

@@ -27,53 +27,52 @@ if len(bbt_parameters) == 0:
     exit(2)
 
 # lista delle funzioni random per ogni profilo
-normfunc_dicts = []
+normfunc_dicts = {}
 for bbt_parameter in bbt_parameters:
     normfunc_dict = build_normfunc_dict(bbt_parameter)
-    normfunc_dicts.append(normfunc_dict)
+    normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
 
-#differenza tra CE e GLNORD
-deltaCEGLN = 59488
-#inizializzo le info sui tracciati
+#inizializzo le info sui tracciati dai file di configurazione
+inizio_GLEST = bbtConfig.getfloat('Import','inizio_GLEST')
+fine_GLEST = bbtConfig.getfloat('Import','fine_GLEST')
+inizio_GLSUD = bbtConfig.getfloat('Import','inizio_GLSUD')
+fine_GLSUD = bbtConfig.getfloat('Import','fine_GLSUD')
+inizio_CE = bbtConfig.getfloat('Import','inizio_CE')
+fine_CE = bbtConfig.getfloat('Import','fine_CE')
+#differenza tra CE e GLEST in modo tale che GLNORD = delta_GLEST_CE - CE
+delta_GLEST_CE =  bbtConfig.getfloat('Import','delta_GLEST_CE')
+projectRefCost =  bbtConfig.getfloat('Import','project_ref_cost') # mln di euro
+
 alnAll = []
-aln=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217.)
+aln=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', delta_GLEST_CE - fine_CE, delta_GLEST_CE - inizio_CE )
 alnAll.append(aln)
-aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', deltaCEGLN-32088.0, deltaCEGLN-44191.75)
+aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD',inizio_GLEST, fine_GLEST)
 alnAll.append(aln)
-aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 54015.)
-#alnAll.append(aln)
+aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD)
+alnAll.append(aln)
 
 iIterationNo = 0
-# va modificato in BbtParameterEval che ha solo fine e non la lunghezza
-length = 10.0
 kpiTbmList = []
 for alnCurr in alnAll:
-    # mi tengo gli estremi
-    pkMinCurr = min(alnCurr.pkStart, alnCurr.pkEnd)
-    pkMaxCurr = max(alnCurr.pkStart, alnCurr.pkEnd)
+    print alnCurr.description
     # leggo tutte le tbm
     for tbmKey in tbms:
         tbmData = tbms[tbmKey]
         if alnCurr.tbmKey in tbmData.alignmentCode:
             tbm = TBM(tbmData, 'V')
             kpiTbm = KpiTbm4Tunnel(alnCurr.description,iIterationNo)
-            kpiTbm.setKPI4TBM(tbmKey,tbm)
-            p_i = 0
-            for bbt_parameter in bbt_parameters:
-                bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[p_i])
-                pkMinSegm = min(bbtparameter4seg.inizio, bbtparameter4seg.fine)
-                pkMaxSegm = max(bbtparameter4seg.inizio, bbtparameter4seg.fine)
-                # shift di progressive, mettere criterio di scelta
-                segmToAnalize = pkMinSegm <= pkMaxCurr and pkMaxSegm >= pkMinCurr
-                if segmToAnalize:
-                    try:
-                        tbmsect = TBMSegment(bbtparameter4seg, tbm)
-                        kpiTbm.setKPI4SEG(tbmsect,bbtparameter4seg)
-                    except:
-                        print bbtparameter4seg.fine
-                        print bbtparameter4seg.rmr
-                        exit(-1)
-                p_i += 1
+            kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
+            matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
+            print "\t for %s the number of segments is %d from %f to %f" % (tbmKey, len(matches_params),matches_params[0].fine,matches_params[-1].fine)
+            for bbt_parameter in matches_params:
+                bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[int(bbt_parameter.fine)])
+                try:
+                    tbmsect = TBMSegment(bbtparameter4seg, tbm)
+                    kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
+                except:
+                    print bbt_parameter
+                    print bbtparameter4seg
+                    exit(-1)
             kpiTbm.updateKPI(alnCurr)
             kpiTbmList.append(kpiTbm)
 
