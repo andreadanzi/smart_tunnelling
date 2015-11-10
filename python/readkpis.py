@@ -13,10 +13,10 @@ from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
 # These are the colors that will be used in the plot
-main_colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c',
-                  '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5',
-                  '#8c564b', '#c49c94', '#e377c2', '#f7b6d2', '#7f7f7f',
-                  '#c7c7c7', '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
+main_colors = ['#1f77b4',  '#ff7f0e', '#2ca02c',
+                  '#d62728',  '#9467bd',
+                  '#8c564b',  '#e377c2', '#7f7f7f',
+                  '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
 
 def radar_factory(num_vars, frame='circle'):
     """Create a radar chart with `num_vars` axes.
@@ -324,12 +324,13 @@ for tun in tunnelArray:
             tbmSigma = np.std(tbmData)
             if tbmSigma > 0:
                 all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
             y = mlab.normpdf(bins, tbmMean, tbmSigma)
             plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
             plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
             plt.ylabel("Probabilita'")
             plt.axvline(tbmMean, color='r', linewidth=2)
+            ax.yaxis.grid(True)
             ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
             outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
             plt.close(fig)
@@ -355,7 +356,6 @@ for tun in tunnelArray:
                 if idx==indMax:
                     vp.set_edgecolor('red')
                     vp.set_linewidth(2)
-                    vp.set_alpha(0.8)
                 idx +=1
             ax.set_title("%s, comparazione %s " % (tun,bbtKpi[0]))
             plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
@@ -409,7 +409,7 @@ for tun in tunnelArray:
         tbmSigma = np.std(tbmData)
         if tbmSigma > 0:
             all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-        n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+        n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
         y = mlab.normpdf(bins, tbmMean, tbmSigma)
         plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
         plt.xlabel("Valore medio %f" %  tbmMean)
@@ -440,7 +440,6 @@ for tun in tunnelArray:
             if idx==indMax:
                 vp.set_edgecolor('red')
                 vp.set_linewidth(2)
-                vp.set_alpha(0.8)
             idx +=1
         ax.set_title("%s, comparazione TBM" % tun)
         plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
@@ -490,7 +489,7 @@ for tun in tunnelArray:
         for bbtTbm in bbtTBMresults:
             fig = plt.figure(figsize=(10, 6), dpi=75)
             ax = fig.add_subplot(111)
-            sSql = """SELECT  BbtTbmKpi.totalImpact
+            sSql = """SELECT  BbtTbmKpi.totalImpact, BbtTbmKpi.avgImpact, BbtTbmKpi.probabilityScore
                     FROM
                     bbtTbmKpi
                     WHERE
@@ -502,13 +501,17 @@ for tun in tunnelArray:
             bbtImpResults = cur.fetchall()
             resNo = len(bbtImpResults)
             tbmData = []
+            avgImpacts = []
+            probabilityScores = []
             for bbtImp in bbtImpResults:
                 tbmData.append( bbtImp[0])
+                avgImpacts.append( bbtImp[1])
+                probabilityScores.append( bbtImp[2])
             tbmMean = np.mean(tbmData)
             tbmSigma = np.std(tbmData)
             if tbmSigma > 0:
                 all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
             y = mlab.normpdf(bins, tbmMean, tbmSigma)
             plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
             plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
@@ -539,7 +542,6 @@ for tun in tunnelArray:
                 if idx==indMax:
                     vp.set_edgecolor('red')
                     vp.set_linewidth(2)
-                    vp.set_alpha(0.8)
                 idx +=1
             ax.set_title("%s, comparazione %s (%s)" % (tun,bbtKpi[1],bbtKpi[0]))
             plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
