@@ -1,5 +1,6 @@
 import sqlite3, os, csv
 from bbtutils import *
+import matplotlib.mlab as mlab
 from bbtnamedtuples import *
 from collections import defaultdict
 from sets import Set
@@ -159,6 +160,11 @@ def radar_data(kpiArray,tunnelArray,cur):
 
     return data
 
+def outputFigure(sDiagramsFolderPath, sFilename):
+    imagefname=os.path.join(sDiagramsFolderPath,sFilename)
+    if os.path.exists(imagefname):
+        os.remove(imagefname)
+    plt.savefig(imagefname,format='png', bbox_inches='tight', pad_inches=0)
 
 # mi metto nella directory corrente
 path = os.path.dirname(os.path.realpath(__file__))
@@ -171,6 +177,9 @@ if not os.path.isfile(sDBPath):
     print "Errore! File %s inesistente!" % sDBPath
     exit(1)
 
+########### Outupt Folder
+sDiagramsFolder = bbtConfig.get('Diagrams','folder')
+sDiagramsFolderPath = os.path.join(os.path.abspath('..'), sDiagramsFolder)
 # mi connetto al database
 conn = sqlite3.connect(sDBPath)
 # definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
@@ -214,8 +223,8 @@ kpiVArray = ['V1','V2','V3','V4','V5','V6']
 kpiVdata = radar_data(kpiVArray,tunnelArray,cur)
 plotArray.append(kpiVdata)
 conn.close()
-
-fig = plt.figure(figsize=(9, 9))
+print "##################### RADAR"
+fig = plt.figure(figsize=(20, 12), dpi=200)
 fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
 pltIndex = 1
 inx = 0
@@ -253,4 +262,293 @@ for pltItem in plotArray:
 plt.figtext(0.5, 0.965, 'Valutazione TBM su 3 gallerie BBT Mules 2 - 3',
             ha='center', color='black', weight='bold', size='large')
 
-plt.show()
+outputFigure(sDiagramsFolderPath,"radar_bbt_2015.png")
+plt.close(fig)
+
+
+print "##################### Sintesi G,P,V"
+
+num_bins = 20
+# mi connetto al database
+conn = sqlite3.connect(sDBPath)
+# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
+cur = conn.cursor()
+for tun in tunnelArray:
+    print "#### %s" % tun
+    # Legget tutte le TBM di quel tunnel
+    sSql = """SELECT  SUBSTR(BbtTbmKpi.kpiKey,1,1)  as kpiKey , count(*)
+            FROM
+            bbtTbmKpi
+            WHERE
+            bbtTbmKpi.tunnelName = '"""+tun+"""'
+			GROUP BY SUBSTR(BbtTbmKpi.kpiKey,1,1)"""
+    cur.execute(sSql)
+    bbtKpiresults = cur.fetchall()
+    kpiNo = len(bbtKpiresults)
+    kpiKeyList = defaultdict(list)
+    currentKpi = ""
+    currentTbm = ""
+    for bbtKpi in bbtKpiresults:
+        sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
+                FROM
+                bbtTbmKpi
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tun+"""'
+                AND BbtTbmKpi.kpiKey LIKE '"""+ bbtKpi[0]+"""%'
+    			GROUP BY BbtTbmKpi.tbmName
+                ORDER BY BbtTbmKpi.tbmName """
+        cur.execute(sSql)
+        bbtTBMresults = cur.fetchall()
+        tbmNo = len(bbtTBMresults)
+        all_data = []
+
+        for bbtTbm in bbtTBMresults:
+            fig = plt.figure(figsize=(10, 6), dpi=75)
+            ax = fig.add_subplot(111)
+            sSql = """SELECT  sum(BbtTbmKpi.totalImpact), BbtTbmKpi.iterationNo
+                    FROM
+                    bbtTbmKpi
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    AND BbtTbmKpi.kpiKey like '"""+ bbtKpi[0]+"""%'
+                    AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
+                    GROUP BY BbtTbmKpi.iterationNo
+                    ORDER BY BbtTbmKpi.iterationNo """
+            cur.execute(sSql)
+            bbtImpResults = cur.fetchall()
+            resNo = len(bbtImpResults)
+            tbmData = []
+            for bbtImp in bbtImpResults:
+                tbmData.append( bbtImp[0])
+            tbmMean = np.mean(tbmData)
+            tbmSigma = np.std(tbmData)
+            if tbmSigma > 0:
+                all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+            y = mlab.normpdf(bins, tbmMean, tbmSigma)
+            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+            plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
+            plt.ylabel("Probabilita'")
+            plt.axvline(tbmMean, color='r', linewidth=2)
+            ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
+            plt.close(fig)
+        fig = plt.figure(figsize=(10, 6), dpi=75)
+        ax = fig.add_subplot(111)
+        ax.yaxis.grid(True)
+        tbmNames = map(lambda y:y[0],all_data)
+        tbmMeans = map(lambda y:y[1],all_data)
+        tbmSigmas = map(lambda y:y[2],all_data)
+        tbmDatas = map(lambda y:y[3],all_data)
+        ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
+        ax.set_xlabel('TBMs')
+        ax.set_ylabel(bbtKpi[0])
+        # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
+        try:
+            violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
+            idx = 0
+            indMax = np.argmax(tbmMeans)
+            for vp in violin_parts['bodies']:
+                vp.set_facecolor(tbmColors[tbmNames[idx]])
+                vp.set_edgecolor(tbmColors[tbmNames[idx]])
+                vp.set_alpha(0.4)
+                if idx==indMax:
+                    vp.set_edgecolor('red')
+                    vp.set_linewidth(2)
+                    vp.set_alpha(0.8)
+                idx +=1
+            ax.set_title("%s, comparazione %s " % (tun,bbtKpi[0]))
+            plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_violin.png" % (tun.replace (" ", "_") , bbtKpi[0]))
+        except Exception as e:
+            print e
+            print "violin plot failed for  %s %s " % (bbtKpi[0], tun)
+        plt.close(fig)
+conn.close()
+
+
+print "##################### Totali G+P+V"
+
+num_bins = 20
+# mi connetto al database
+conn = sqlite3.connect(sDBPath)
+# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
+cur = conn.cursor()
+for tun in tunnelArray:
+    print "#### %s" % tun
+    sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
+            FROM
+            bbtTbmKpi
+            WHERE
+            bbtTbmKpi.tunnelName = '"""+tun+"""'
+			GROUP BY BbtTbmKpi.tbmName
+            ORDER BY BbtTbmKpi.tbmName """
+    cur.execute(sSql)
+    bbtTBMresults = cur.fetchall()
+    tbmNo = len(bbtTBMresults)
+    all_data = []
+
+    for bbtTbm in bbtTBMresults:
+        fig = plt.figure(figsize=(10, 6), dpi=75)
+        ax = fig.add_subplot(111)
+        sSql = """SELECT  sum(BbtTbmKpi.totalImpact), BbtTbmKpi.iterationNo
+                FROM
+                bbtTbmKpi
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tun+"""'
+                AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
+                GROUP BY BbtTbmKpi.iterationNo
+                ORDER BY BbtTbmKpi.iterationNo """
+        cur.execute(sSql)
+        bbtImpResults = cur.fetchall()
+        resNo = len(bbtImpResults)
+        tbmData = []
+        for bbtImp in bbtImpResults:
+            tbmData.append( bbtImp[0])
+        tbmMean = np.mean(tbmData)
+        tbmSigma = np.std(tbmData)
+        if tbmSigma > 0:
+            all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+        n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+        y = mlab.normpdf(bins, tbmMean, tbmSigma)
+        plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+        plt.xlabel("Valore medio %f" %  tbmMean)
+        plt.ylabel("Probabilita'")
+        plt.axvline(tbmMean, color='r', linewidth=2)
+        ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
+        outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.png" % (tun.replace(" ", "_") , bbtTbm[0]))
+        plt.close(fig)
+    fig = plt.figure(figsize=(10, 6), dpi=75)
+    ax = fig.add_subplot(111)
+    ax.yaxis.grid(True)
+    tbmNames = map(lambda y:y[0],all_data)
+    tbmMeans = map(lambda y:y[1],all_data)
+    tbmSigmas = map(lambda y:y[2],all_data)
+    tbmDatas = map(lambda y:y[3],all_data)
+    ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
+    ax.set_xlabel('TBMs')
+    ax.set_ylabel('Indicatore')
+    # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
+    try:
+        violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
+        idx = 0
+        indMax = np.argmax(tbmMeans)
+        for vp in violin_parts['bodies']:
+            vp.set_facecolor(tbmColors[tbmNames[idx]])
+            vp.set_edgecolor(tbmColors[tbmNames[idx]])
+            vp.set_alpha(0.4)
+            if idx==indMax:
+                vp.set_edgecolor('red')
+                vp.set_linewidth(2)
+                vp.set_alpha(0.8)
+            idx +=1
+        ax.set_title("%s, comparazione TBM" % tun)
+        plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
+        outputFigure(sDiagramsFolderPath,"bbt_%s_violin.png" % tun.replace (" ", "_") )
+    except Exception as e:
+        print e
+        print "violin plot failed for %s " %  tun
+    plt.close(fig)
+conn.close()
+
+print "##################### Dettagli"
+num_bins = 20
+# mi connetto al database
+conn = sqlite3.connect(sDBPath)
+# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
+cur = conn.cursor()
+for tun in tunnelArray:
+    print "#### %s" % tun
+    # Legget tutte le TBM di quel tunnel
+    sSql = """SELECT  BbtTbmKpi.kpiKey,BbtTbmKpi.kpiDescr, count(*)
+            FROM
+            bbtTbmKpi
+            WHERE
+            bbtTbmKpi.tunnelName = '"""+tun+"""' AND BbtTbmKpi.totalImpact > 0.0
+			GROUP BY BbtTbmKpi.kpiKey
+            ORDER BY BbtTbmKpi.kpiKey"""
+    cur.execute(sSql)
+    bbtKpiresults = cur.fetchall()
+    kpiNo = len(bbtKpiresults)
+    kpiKeyList = defaultdict(list)
+    currentKpi = ""
+    currentTbm = ""
+    for bbtKpi in bbtKpiresults:
+        sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
+                FROM
+                bbtTbmKpi
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tun+"""'
+                AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""'
+    			GROUP BY BbtTbmKpi.tbmName
+                ORDER BY BbtTbmKpi.tbmName """
+        cur.execute(sSql)
+        bbtTBMresults = cur.fetchall()
+        tbmNo = len(bbtTBMresults)
+        all_data = []
+
+        for bbtTbm in bbtTBMresults:
+            fig = plt.figure(figsize=(10, 6), dpi=75)
+            ax = fig.add_subplot(111)
+            sSql = """SELECT  BbtTbmKpi.totalImpact
+                    FROM
+                    bbtTbmKpi
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""'
+                    AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
+                    ORDER BY BbtTbmKpi.iterationNo """
+            cur.execute(sSql)
+            bbtImpResults = cur.fetchall()
+            resNo = len(bbtImpResults)
+            tbmData = []
+            for bbtImp in bbtImpResults:
+                tbmData.append( bbtImp[0])
+            tbmMean = np.mean(tbmData)
+            tbmSigma = np.std(tbmData)
+            if tbmSigma > 0:
+                all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, facecolor=tbmColors[bbtTbm[0]], alpha=0.5)
+            y = mlab.normpdf(bins, tbmMean, tbmSigma)
+            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+            plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
+            plt.ylabel("Probabilita'")
+            plt.axvline(tbmMean, color='r', linewidth=2)
+            ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.png" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
+            plt.close(fig)
+        fig = plt.figure(figsize=(10, 6), dpi=75)
+        ax = fig.add_subplot(111)
+        ax.yaxis.grid(True)
+        tbmNames = map(lambda y:y[0],all_data)
+        tbmMeans = map(lambda y:y[1],all_data)
+        tbmSigmas = map(lambda y:y[2],all_data)
+        tbmDatas = map(lambda y:y[3],all_data)
+        ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
+        ax.set_xlabel('TBMs')
+        ax.set_ylabel(bbtKpi[1])
+        # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
+        try:
+            violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
+            idx = 0
+            indMax = np.argmax(tbmMeans)
+            for vp in violin_parts['bodies']:
+                vp.set_facecolor(tbmColors[tbmNames[idx]])
+                vp.set_edgecolor(tbmColors[tbmNames[idx]])
+                vp.set_alpha(0.4)
+                if idx==indMax:
+                    vp.set_edgecolor('red')
+                    vp.set_linewidth(2)
+                    vp.set_alpha(0.8)
+                idx +=1
+            ax.set_title("%s, comparazione %s (%s)" % (tun,bbtKpi[1],bbtKpi[0]))
+            plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_violin.png" % (tun.replace (" ", "_") , bbtKpi[0] ))
+        except Exception as e:
+            print e
+            print "violin plot failed for  %s %s " % (bbtKpi[0], tun)
+        plt.close(fig)
+conn.close()
+
+
+print "#################### fineee"
