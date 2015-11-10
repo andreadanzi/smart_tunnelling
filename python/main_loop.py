@@ -53,7 +53,7 @@ alnAll.append(aln)
 aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD)
 alnAll.append(aln)
 kpiTbmList = []
-for iIterationNo in range(2):
+for iIterationNo in range(500):
     # Per tutti i Tunnel
     for alnCurr in alnAll:
         # Per tutte le tbm

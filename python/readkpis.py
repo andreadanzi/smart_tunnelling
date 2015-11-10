@@ -4,13 +4,18 @@ from bbtnamedtuples import *
 from collections import defaultdict
 from sets import Set
 import numpy as np
-
+from pprint import pprint
 import matplotlib.pyplot as plt
 from matplotlib.path import Path
 from matplotlib.spines import Spine
 from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
+# These are the colors that will be used in the plot
+main_colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c',
+                  '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5',
+                  '#8c564b', '#c49c94', '#e377c2', '#f7b6d2', '#7f7f7f',
+                  '#c7c7c7', '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
 
 def radar_factory(num_vars, frame='circle'):
     """Create a radar chart with `num_vars` axes.
@@ -106,25 +111,42 @@ def unit_poly_verts(theta):
     return verts
 
 
-def radar_data(kpiArray,cur):
-    sGL_Nord = 'Galleria di linea direzione Nord'
-    sGL_Sud = 'Galleria di linea direzione Sud'
-    sCE_Nord = 'Cunicolo esplorativo direzione Nord'
-    tunnelArray = [sGL_Nord,sGL_Sud,sCE_Nord]
-    tunnelGroups = defaultdict(list)
+def radar_data(kpiArray,tunnelArray,cur):
+    data = []
+    data.append(kpiArray)
+    # Raggruppa per ogni tunnel gli Indicatori
     sKpis = "','".join(kpiArray)
     for tn in tunnelArray:
         tbmGroups = defaultdict(list)
-        sSql = """select
+        kpiArr = []
+        sSql = """SELECT
             bbtTbmKpi.kpiKey,
-            bbtTbmKpi.tbmName,
-            avg(bbtTbmKpi.totalImpact) +2 as val
-            from
+            avg(bbtTbmKpi.totalImpact) as val
+            FROM
 
             bbtTbmKpi
             WHERE
             bbtTbmKpi.tunnelName = '"""+tn+"""'
             AND bbtTbmKpi.kpiKey in ('"""+sKpis+"""')
+            group by
+            bbtTbmKpi.kpiKey
+            having val > 0
+            order by bbtTbmKpi.kpiKey"""
+        cur.execute(sSql)
+        bbtresults = cur.fetchall()
+        for bbtr in bbtresults:
+            kpiArr.append(bbtr[0])
+        sHavingKpis = "','".join(kpiArr)
+        sSql = """SELECT
+            bbtTbmKpi.kpiKey,
+            bbtTbmKpi.tbmName,
+            avg(bbtTbmKpi.totalImpact) as val
+            FROM
+
+            bbtTbmKpi
+            WHERE
+            bbtTbmKpi.tunnelName = '"""+tn+"""'
+            AND bbtTbmKpi.kpiKey in ('"""+sHavingKpis+"""')
             group by
             bbtTbmKpi.kpiKey,
             bbtTbmKpi.tbmName
@@ -132,17 +154,9 @@ def radar_data(kpiArray,cur):
         cur.execute(sSql)
         bbtresults = cur.fetchall()
         for bbtr in bbtresults:
-            tbmGroups[bbtr[1]].append(float(bbtr[2]))
-        tunnelGroups[tn].append(tbmGroups)
-    ceNord=[]
-    glNord=[]
-    glSud=[]
-    data = [
-            kpiArray,
-        (sCE_Nord, tunnelGroups[sCE_Nord]),
-        (sGL_Nord, tunnelGroups[sGL_Nord]),
-        (sGL_Sud, tunnelGroups[sGL_Sud])
-    ]
+            tbmGroups[bbtr[1]].append((float(bbtr[2]),bbtr[0]))
+        data.append((tn,tbmGroups))
+
     return data
 
 
@@ -162,64 +176,81 @@ conn = sqlite3.connect(sDBPath)
 # definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
 cur = conn.cursor()
 print "start querying database  "
+
+# Legge tutti i Tunnell
+sSql = """SELECT distinct
+        bbtTbmKpi.tunnelName
+        FROM
+        bbtTbmKpi
+        ORDER BY bbtTbmKpi.tunnelName"""
+cur.execute(sSql)
+bbtresults = cur.fetchall()
+tunnelArray = []
+for bbtr in bbtresults:
+    tunnelArray.append(bbtr[0])
+# Legget tutte le TBM
+sSql = """SELECT distinct
+        bbtTbmKpi.tbmName
+        FROM
+        bbtTbmKpi
+        ORDER BY bbtTbmKpi.tbmName"""
+cur.execute(sSql)
+bbtresults = cur.fetchall()
+tbmColors = {}
+for bbtr in bbtresults:
+    tbmColors[bbtr[0]] = main_colors.pop(0)
+
 plotArray = []
 print "#### P kpis"
 kpiPArray = ['P1','P2','P3','P4','P5','P6']
-kpiPdata = radar_data(kpiPArray,cur)
+kpiPdata = radar_data(kpiPArray,tunnelArray,cur)
 plotArray.append(kpiPdata)
 print "#### G kpis"
 kpiGArray = ['G1','G2','G5','G6','G7','G8','G11','G12','G13']
-kpiGdata = radar_data(kpiGArray,cur)
+kpiGdata = radar_data(kpiGArray,tunnelArray,cur)
 plotArray.append(kpiGdata)
 print "#### V kpis"
 kpiVArray = ['V1','V2','V3','V4','V5','V6']
-kpiVdata = radar_data(kpiVArray,cur)
+kpiVdata = radar_data(kpiVArray,tunnelArray,cur)
 plotArray.append(kpiVdata)
 conn.close()
-
-# These are the colors that will be used in the plot
-colors = ['#1f77b4', '#aec7e8', '#ff7f0e', '#ffbb78', '#2ca02c',
-                  '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5',
-                  '#8c564b', '#c49c94', '#e377c2', '#f7b6d2', '#7f7f7f',
-                  '#c7c7c7', '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
-
 
 fig = plt.figure(figsize=(9, 9))
 fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
 pltIndex = 1
 inx = 0
-labelsList = []
 for pltItem in plotArray:
     spoke_labels = pltItem.pop(0)
-    theta = radar_factory(len(spoke_labels), frame='polygon')
-    for n, (title, case_data) in enumerate(pltItem):
+    for n, (title, key_list) in enumerate(pltItem):
         plot_data = []
-        dataLen = 0
-        for key_list in case_data:
-            for tmb in key_list:
-                labelsList.append(tmb)
-                dataLen = len(key_list[tmb])
-                plot_data.append(key_list[tmb])
+        color_data = []
+        tbm_name = []
+        pkeys = []
+        for tmb in key_list:
+            pkeys = map(lambda y:y[1],key_list[tmb])
+            plot_data.append(key_list[tmb])
+            color_data.append(tbmColors[tmb])
+            tbm_name.append(tmb)
+        theta = radar_factory(len(pkeys), frame='polygon')
         ax = fig.add_subplot(3, 3, pltIndex, projection='radar')
-        plt.xticks(theta,spoke_labels)
-        #plt.rgrids([2,4, 6, 8, 10,12])
+        plt.xticks(theta,pkeys)
+        for d, color in zip(plot_data, color_data):
+            pd = map(lambda y:y[0],d)
+            pk = map(lambda y:y[1],d)
+            ax.plot(theta , pd, color=color, linewidth=1.3)
+            ax.fill(theta, pd, facecolor=color, alpha=0.15)
+
         if pltIndex in range(4):
-            ax.set_title(title, weight='bold', size='medium', position=(0.5, 1.1), horizontalalignment='center', verticalalignment='center')
-        for d, color in zip(plot_data, colors):
-            ax.plot(theta , d, color=color)
-            ax.fill(theta, d, facecolor=color, alpha=0.15)
+            ax.set_title(title, weight='bold', size='medium', position=(0.1, 1.1), horizontalalignment='center', verticalalignment='center')
+            plt.subplot(3, 3, pltIndex)
+            legend = plt.legend(tbm_name, loc=(-0.7, 0.4), labelspacing=0.1, title="Codici TBM")
+            plt.setp(legend.get_texts(), fontsize='small')
+        ax.set_varlabels(pkeys)
+
         pltIndex += 1
 
 
-    ax.set_varlabels(spoke_labels)
-# add legend relative to top-left plot
-plt.subplot(3, 3, 1)
-labels=set(labelsList)
-print labels
-
-legend = plt.legend(labels, loc=(0.9, .95), labelspacing=0.1)
-plt.setp(legend.get_texts(), fontsize='small')
-plt.figtext(0.5, 0.965, '5-Factor Solution Profiles Across Four Scenarios',
+plt.figtext(0.5, 0.965, 'Valutazione TBM su 3 gallerie BBT Mules 2 - 3',
             ha='center', color='black', weight='bold', size='large')
 
 plt.show()
