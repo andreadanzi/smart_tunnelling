@@ -591,14 +591,15 @@ class TBMSegment:
         self.penetrationRateReduction = pRateReduction
         self.contactThrust = self.Tbm.CutterNo*locFn # in kN
         self.torque = 0.3*(self.Tbm.excavationDiam+2.0*self.Tbm.gap)*self.Tbm.CutterNo*locFr # in kNm
-        self.dailyAdvanceRate = 24.*locuf*locp*self.Tbm.rpm*60. # in m/gg con anni di 365 gg
+        dar = 24.*locuf*locp*self.Tbm.rpm*60. # in m/gg con anni di 365 gg
+         
         self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
         
         # considerazioni sulla produzione
         productionMax = self.Tbm.maxProduction
         productionBase = 24.*locuf*locpBase*self.Tbm.rpm*60. # produzione teorica (in m/gg) a meno dei rallentamenti per rocce dure
         impactP1 = impactOnProduction(productionBase, productionMax)
-        impactP3 = impactOnProduction(self.dailyAdvanceRate, productionBase)
+        impactP3 = impactOnProduction(dar, productionBase)
         
 
         # indicatore di produzione
@@ -614,6 +615,9 @@ class TBMSegment:
         self.t3 = self.t0-self.t1 # extra tempo in giorni causato dalle rocce dure
         self.t4 = self.P4.duration
         self.t5 = self.P5.duration
+        
+        # ora che ho tutti i tempi ridetermino il dayly advance rate come segment length / (t1+t3+t4+t5)
+        self.dailyAdvanceRate = self.segmentLength/(self.t1+self.t3+self.t4+self.t5)
         
         # indicatori geotecnici
         self.G1 = G1(self.Tbm.type, self.frontStability.lambdae)
@@ -1092,7 +1096,7 @@ class P4:
             exit(1)
 
         newProductivity = refProductivity/(1.+imax)
-        self.duration = length/(1./newProductivity-1./refProductivity) # impatto in giorni sulla produzione di quel segmento
+        self.duration = length/(newProductivity-refProductivity) # impatto in giorni sulla produzione di quel segmento
         impact = impactOnProduction(newProductivity, refProductivity)
         
         if par>0. and impact>0.:
@@ -1120,16 +1124,17 @@ class P5:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
         imax*=length # tempo richiesto in giorni per consolidare tutta la lunghezza del segmento
-        self.duration = imax # impatto in giorni per la produzione di quel segmento
         newProductivity = refProductivity/(1.+imax)
         impact = impactOnProduction(newProductivity, refProductivity)
 
         if par>0. and impact>0.:
             self.probability = 1.
             self.impact = impact # impatto in ore per la tratta di lunghezza length
+            self.duration = imax # impatto in giorni per la produzione di quel segmento
         else:
             self.probability = 0.
             self.impact = 0.
+            self.duration = 0.
 
 class P6: #realizzaqzione del rivestimento . Si applica solo a tbm aperta direzione sud
     def __init__(self):
