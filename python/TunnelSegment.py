@@ -365,6 +365,26 @@ class frontStability:
         else:
             self.Class = 'Instability'
 
+class Breakaway:
+    #definisco l'altezza di materiale di frana secondo tamez per terreni
+    def __init__(self, overburden, excav, mc, gamma, nu, t):
+        # nu e' opening Ratio della cutterhead
+        f = min(mc.SigmaCm0 * 1000.0 / 100.0, mc.C/(mc.SigmaCm0*1000.0)+math.tan(math.radians(mc.Fi))) #fattore di Protodyakonov
+        h1 = min(max(1.7*excav.Width, excav.B1/2.0/f), overburden)
+        si = gamma*(h1+excav.Radius) # in KPa
+        D = excav.Radius*2.
+        fiRi = 0.5 # fattore di riduzione dell'attrito per valutare il coefficiente di attrito dei vari casi
+        u1 = math.tan(fiRi*math.radians(mc.Fi)) # coefficiente di attrito del materiale al fronte
+        u2 = u1 # coefficiente di attrito del materiale su bordo della testa di scavo
+        u3 = u1    
+        u5 = u1
+        # Varie componenti del torque in kNm
+        self.T1 = math.pi*D**3/12.*si*u1*(1-nu) 
+        self.T2 = math.pi*D**2/2.*si*u2*t
+        self.T3 = math.pi*D**3/12.*si*u3*(1-nu)
+        self.T5 = math.pi*D**3/12.*0.35*si*u5*nu
+        self.torque = self.T1+self.T2+self.T3+self.T5
+
 class Tamez:
 	# stabilita' del fronte secondo Tamez
 	def __init__(self, materialtype, overburden, excav, mc, insitu, gamma, pi, aunsupported):
@@ -412,6 +432,9 @@ class TBM:
         self.CutterSpacing = tbmData.cutterSpacing #Cutter spacing
         self.Friction = tbmData.frictionCoefficient # coefficiente di attrito tra ammasso e scudo
         self.BackupDragForce = tbmData.backupDragForce # kN (8000 per la GL, 4000 per il CE
+        self.openingRatio = tbmData.openingRatio
+        self.cutterheadThickness = tbmData.cutterheadThickness
+
         # penetration rate per ogni decina di rmr: 0, 10, 20, 30.....100
         self.rop= array((1.2904525, 1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925, 1.7217925)) # m/h metri di scavo all'ora
         self.penetrationPerRevolution = self.rop/60./self.rpm  #in m per rivoluzione
@@ -506,6 +529,13 @@ class TBMSegment:
         self.Tamez = Tamez('r',overburden, self.Excavation, self.MohrCoulomb, self.InSituCondition, gamma, pi, aunsupported)
         self.frontStability = frontStability(self.InSituCondition.Overburden/(2.0*self.Excavation.Radius), \
                                     self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, self.InSituCondition.Kp) #, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi)))
+        # definisco il breakawayTorque
+        if self.frontStability.lambdae > 0.3:
+            self.breakawayTorque = 0.
+        else:
+            bat = Breakaway(overburden, self.Excavation, self.MohrCoulomb, gamma, tbm.openingRatio, tbm.cutterheadThickness)
+            self.breakawayTorque = bat.torque
+#            print 'Breakaway torque = %f' % (self.breakawayTorque)
 
         R = self.Excavation.Radius # in m
         ni = self.Rock.Ni
@@ -591,8 +621,9 @@ class TBMSegment:
         self.penetrationRateReduction = pRateReduction
         self.contactThrust = self.Tbm.CutterNo*locFn # in kN
         self.torque = 0.3*(self.Tbm.excavationDiam+2.0*self.Tbm.gap)*self.Tbm.CutterNo*locFr # in kNm
+        self.availableBreakawayTorque = self.Tbm.breakawayTorque - self.torque
+        self.torque+=self.breakawayTorque
         dar = 24.*locuf*locp*self.Tbm.rpm*60. # in m/gg con anni di 365 gg
-
         self.requiredThrustForce = self.Tbm.BackupDragForce+self.contactThrust+self.frictionForce
 
         # considerazioni sulla produzione
@@ -620,7 +651,7 @@ class TBMSegment:
         self.dailyAdvanceRate = self.segmentLength/(self.t1+self.t3+self.t4+self.t5)
 
         # indicatori geotecnici
-        self.G1 = G1(self.Tbm.type, self.frontStability.lambdae)
+        self.G1 = G1(self.Tbm.type, self.frontStability.lambdae, self.availableBreakawayTorque)
         self.G2 = G2(self.Tbm.type, self.cavityStabilityPar)
         self.G5 = G5(self.Tbm.type, segment.descr, self.frontStability.lambdae)
         self.G6 = G6(self.Tbm.type)
@@ -845,7 +876,7 @@ class StabilizationMeasure:
         self.len = len
 
 class G1:
-    def __init__(self, tbmType, lambdae):
+    def __init__(self, tbmType, lambdae, availableTorque):
         self.definition='Front stability'
         if tbmType=='O':
             imax = 2.5 # todo verificare valore
@@ -857,7 +888,7 @@ class G1:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if lambdae<0.3:
+        if lambdae<0.3 and availableTorque<0.:
             self.probability = 1.
             self.impact = imax
         else:

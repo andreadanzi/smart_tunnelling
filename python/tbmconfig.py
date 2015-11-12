@@ -24,6 +24,8 @@ class TBMConfig:
     breakawayTorque=0.
     backupDragForce=0.
     frictionCoefficient=0.
+    openingRatio=0.
+    cutterheadThickness=0.8 # in metri lo spessore della testa di scavo
 
 tbms={}
 
@@ -51,6 +53,7 @@ tbm1.backupDragForce=6000.
 tbm1.frictionCoefficient=0.15
 tbm1.nominalThrustForce=tbm1.totalContactThrust+2.*tbm1.backupDragForce
 tbm1.auxiliaryThrustForce=1.1*tbm1.nominalThrustForce
+tbm1.openingRatio=0.1
 tbms[tbm1.name] = tbm1
 
 #TBM 2
@@ -77,6 +80,7 @@ tbm2.backupDragForce=8000.
 tbm2.frictionCoefficient=0.15
 tbm2.nominalThrustForce=tbm2.totalContactThrust+2.*tbm2.backupDragForce
 tbm2.auxiliaryThrustForce=1.1*tbm2.nominalThrustForce
+tbm2.openingRatio=0.1
 tbms[tbm2.name] = tbm2
 
 #TBM 3
@@ -103,6 +107,7 @@ tbm3.backupDragForce=4000.
 tbm3.frictionCoefficient=0.15
 tbm3.nominalThrustForce=tbm3.totalContactThrust+2.*tbm3.backupDragForce
 tbm3.auxiliaryThrustForce=1.1*tbm3.nominalThrustForce
+tbm3.openingRatio=0.1
 tbms[tbm3.name] = tbm3
 
 #TBM 4
@@ -129,6 +134,7 @@ tbm4.backupDragForce=6000.
 tbm4.frictionCoefficient=0.15
 tbm4.nominalThrustForce=27489.
 tbm4.auxiliaryThrustForce=tbm4.nominalThrustForce
+tbm4.openingRatio=0.1
 tbms[tbm4.name] = tbm4
 
 #TBM 5
@@ -155,6 +161,7 @@ tbm5.backupDragForce=8000.
 tbm5.frictionCoefficient=0.15
 tbm5.nominalThrustForce=106965.
 tbm5.auxiliaryThrustForce=tbm5.nominalThrustForce
+tbm5.openingRatio=0.1
 tbms[tbm5.name] = tbm5
 
 #TBM 6
@@ -181,6 +188,7 @@ tbm6.backupDragForce=8000.
 tbm6.frictionCoefficient=0.15
 tbm6.nominalThrustForce=79168.
 tbm6.auxiliaryThrustForce=106965.
+tbm6.openingRatio=0.1
 tbms[tbm6.name] = tbm6
 
 #TBM 7
@@ -207,6 +215,7 @@ tbm7.backupDragForce=4000.
 tbm7.frictionCoefficient=0.15
 tbm7.nominalThrustForce=35626.
 tbm7.auxiliaryThrustForce=35626.
+tbm7.openingRatio=0.1
 tbms[tbm7.name] = tbm7
 
 #TBM 8
@@ -233,6 +242,7 @@ tbm8.backupDragForce=4000.
 tbm8.frictionCoefficient=0.15
 tbm8.nominalThrustForce=35626.
 tbm8.auxiliaryThrustForce=42223.
+tbm8.openingRatio=0.1
 tbms[tbm8.name] = tbm8
 
 #TBM 9
@@ -259,6 +269,7 @@ tbm9.backupDragForce=6000.
 tbm9.frictionCoefficient=0.15
 tbm9.nominalThrustForce=22640.
 tbm9.auxiliaryThrustForce=tbm9.nominalThrustForce
+tbm9.openingRatio=0.1
 tbms[tbm9.name] = tbm9
 
 #TBM 10
@@ -285,6 +296,7 @@ tbm10.backupDragForce=8000.
 tbm10.frictionCoefficient=0.15
 tbm10.nominalThrustForce=69305.
 tbm10.auxiliaryThrustForce=116952.
+tbm10.openingRatio=0.1
 tbms[tbm10.name] = tbm10
 
 #TBM 11
@@ -311,4 +323,5 @@ tbm11.backupDragForce=4000.
 tbm11.frictionCoefficient=0.15
 tbm11.nominalThrustForce=61965.
 tbm11.auxiliaryThrustForce=61965.
+tbm11.openingRatio=0.1
 tbms[tbm11.name] = tbm11
