@@ -613,7 +613,7 @@ class TBMSegment:
         self.t0= self.segmentLength/(24.*locuf*locp*self.Tbm.rpm*60.) #giorni di scavo del segmento
         self.t1= self.segmentLength/(24.*locuf*locpBase*self.Tbm.rpm*60.) #giorni di scavo del segmento
         self.t3 = self.t0-self.t1 # extra tempo in giorni causato dalle rocce dure
-        self.tf4 = self.P4.duration
+        self.t4 = self.P4.duration
         self.t5 = self.P5.duration
 
         # ora che ho tutti i tempi ridetermino il dayly advance rate come segment length / (t1+t3+t4+t5)
@@ -1094,9 +1094,9 @@ class P4:
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
-
+        # danzi.tn@20151112 duration modificata
         newProductivity = refProductivity/(1.+imax)
-        self.duration = length/(refProductivity - newProductivity) # impatto in giorni sulla produzione di quel segmento
+        self.duration = length*(1/newProductivity-1/refProductivity) # impatto in giorni sulla produzione di quel segmento
         impact = impactOnProduction(newProductivity, refProductivity)
 
         if par>0. and impact>0.:
@@ -1105,7 +1105,6 @@ class P4:
         else:
             self.probability = 0.
             self.impact = 0.
-
 
 
 class P5:
