@@ -301,7 +301,12 @@ class Excavation:
         self.Height = height					#altezza della sezione di scavo
         self.Length = length					#lunghezza di riferimento per il segmento di scavo (per il calcolo della convergenza in quel punto)
         self.Radius = math.sqrt(area/math.pi)	#raggio di scavo equivalente (se policentrica riconduce la sezione di scavo circolare)
-        self.B1 = width+2.0*height*math.tan(math.radians(45.0-fi/2.0)) # Terzaghi silo width
+        if abs(self.Height-2.*self.Radius)<0.01:
+            # sono nel caso di scavo meccanizzato allora usiamo meta' altezza per il silo
+            self.B1 = width+2.0*self.Radius*math.tan(math.radians(45.0-fi/2.0)) # Terzaghi silo width
+        else:
+            self.B1 = width+2.0*height*math.tan(math.radians(45.0-fi/2.0)) # Terzaghi silo width
+
         #overburdenType: s = shallow, d = deep
         if typ == 'Mech':
             if overburden < 2.5*2.0*self.Radius:
@@ -427,6 +432,7 @@ class TBM:
         self.excavationDiam = tbmData.excavationDiameter    #shield maximum diameter
 
         self.gap = tbmData.overcut + (tbmData.frontShieldDiameter-tbmData.tailShieldDiameter)/2. #gap in m
+        self.gap1 = tbmData.overcut #gap in m del primo scudo (per le DS)
         self.CutterNo = tbmData.cutterCount # numebr of cutters
         self.CutterRadius = tbmData.cutterSize/2.  #Cutter radius
         self.CutterThickness = tbmData.cutterThickness #Cutterthickness
@@ -435,6 +441,7 @@ class TBM:
         self.BackupDragForce = tbmData.backupDragForce # kN (8000 per la GL, 4000 per il CE
         self.openingRatio = tbmData.openingRatio
         self.cutterheadThickness = tbmData.cutterheadThickness
+        self.Slen1 =tbmData.frontShieldLength
 
         # penetration rate per ogni decina di rmr: 0, 10, 20, 30.....100
         self.rop= array((1.2904525, 1.2904525,1.540995,1.7915375,1.97058,2.1246225,2.187465,2.2253075,1.97355,1.7217925, 1.7217925)) # m/h metri di scavo all'ora
@@ -558,6 +565,8 @@ class TBMSegment:
 
         self.Tbm = tbm
         self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
+        if self.Tbm.
+        self.TunnelClosureAtShieldEnd1 = self.TunnelClosure(self.Tbm.Slen1) # delta convergenza alla fine del primo scudo
 
         # definisco l'eventuale
         if self.TunnelClosureAtShieldEnd>self.Tbm.gap:
@@ -900,18 +909,13 @@ class G1:
             self.impact = 0.
 
 class G2:
-    def __init__(self, tbmType, cavityStabilityPar):
+    def __init__(self, tbmType, cavityStabilityPar, whichShield):
         self.definition='Cavity stability'
-        if tbmType=='O':
-            imax = 1.
-        elif tbmType=='S':
-            imax = 1.5
-        elif tbmType=='DS':
-            imax = 2.5
+        if whichShield = 'Front':
+            imax = 2.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
-
+            imax = 1.
+            
         if cavityStabilityPar>0.:
             self.probability = 1.
             self.impact = imax*cavityStabilityPar
@@ -927,7 +931,7 @@ class G5:
         elif tbmType=='S':
             imax = 1
         elif tbmType=='DS':
-            imax = 2
+            imax = 1.25
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1001,19 +1005,19 @@ class G11:
         if tbmType=='O':
             imax = 0.
         elif tbmType=='S':
-            imax = 1.5
+            imax = 1.
         elif tbmType=='DS':
-            imax = 2.5
+            imax = 1.0
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
+                self.probability = 0.
 
         if '-R-' in mat:
             if cavityStabilityPar>0.:
                 self.probability = 1.
                 self.impact = imax*cavityStabilityPar
             else:
-                self.probability = 0.
                 self.impact = 0.
         else:
             self.probability = 0.
@@ -1045,6 +1049,7 @@ class G12:
 
 class G13:
     def __init__(self, tbmType, rockBurstingPar):
+        # todo collegare alla copia di breakaway
         self.definition='Rockburst'
         if tbmType=='O':
             imax = 2.75
@@ -1216,6 +1221,9 @@ class V1:
 class V2:
     def __init__(self, tbmType, excavDiam):
         # definisco il costo base in proporzione al diametro (1 mln al metro) in mln
+        # DS sui 26 mln / 16mln
+        # S sui 24 mln /14.5 mln
+        # O sui 15
         self.definition='Cost'
         self.probability=0.
         if tbmType=='O':
@@ -1241,7 +1249,8 @@ class V2:
 
 
 class V3:
-    def __init__(self, tbmType):
+    def __init__(self, tbmType, tbmManifacturer):
+        # servira' avvantaggiare rbs perche' meglio dotata
         self.definition='Prospection tools'
         self.probability=1.
         if tbmType=='O':
@@ -1292,9 +1301,9 @@ class V6:
         if tbmType=='O':
             imax = 1.
         elif tbmType=='S':
-            imax = 1.5
+            imax = 1.25
         elif tbmType=='DS':
-            imax = 2.
+            imax = 1.5
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
