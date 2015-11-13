@@ -92,28 +92,40 @@ def get_my_norm_func(mean,std,name=''):
         print "input %f and %f for %s" % (mean,std,name)
     return myNorm
 
-def get_my_norm(mean,std,name=''):
-    if mean==-1 or std==0: return CNorm(mean)
-    lower = mean - 3*std
-    upper = mean + 3*std
-    if lower <= 0:
-        # print "1 - lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
-        lower = mean - 2*std
-        upper = mean + 2*std
+#danzi.tn@20151113 funzione statistica sulla base del numero di iterazioni
+def get_my_norm(mean,std,name='',nIter=1000):
+    # se la media inesistente o stDev nulla o poche iterazioni, restituisco sempre un valore costante pari alla media
+    if mean==-1 or std==0 or nIter<2:
+        return CNorm(mean)
+    # nel caso di 2 o 3 iterazioni, restituisco un valore discreto
+    elif nIter < 4:
+        hixk = [mean-std,mean,mean+std]
+        #la distribuzione delle tre opzioni
+        hipk = (0.2,0.6,0.2)
+        #Custom made discrete distribution for Human Factor - da chiamare con hi[hcustm.rvs()] restituisce S N o F sulla base della distribuzione
+        myNorm = rv_discrete(name='bbt_%s' % name, values=(hixk, hipk))
+        return myNorm
+    else:
+        lower = mean - 3*std
+        upper = mean + 3*std
         if lower <= 0:
-            # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
-            lower = mean - std
-            upper = mean + std
-    if name=='rmr' or name=='gsi':
-        if upper > 100:
-            upper = 100
-        if lower < 5:
-            lower = 5
-    a, b = (lower - mean) / std, (upper - mean) / std
+            # print "1 - lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+            lower = mean - 2*std
+            upper = mean + 2*std
+            if lower <= 0:
+                # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+                lower = mean - std
+                upper = mean + std
+        if name=='rmr' or name=='gsi':
+            if upper > 100:
+                upper = 100
+            if lower < 5:
+                lower = 5
+        a, b = (lower - mean) / std, (upper - mean) / std
 
 
-    myNorm = truncnorm(a, b, loc=mean, scale=std)
-    return myNorm
+        myNorm = truncnorm(a, b, loc=mean, scale=std)
+        return myNorm
 
 def get_my_norm_rvs_min_max(vmin,vmax,name=''):
     mean , std = get_sigma_95(vmin,vmax)
@@ -132,20 +144,31 @@ def get_my_norm_rvs_min_max(vmin,vmax,name=''):
         retVal = mean - std
     return retVal
 
-
-def get_my_norm_min_max(vmin,vmax,name=''):
-    if vmin==-1 or vmax==-1: return CNorm(0.0)
-    mean , std = get_sigma_95(vmin,vmax)
-    if mean == -1: return mean
-    lower = vmin
-    upper = vmax
-    if lower < 0:
-        # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
-        lower = mean - std
-        upper = mean + std
-    a, b = (lower - mean) / std, (upper - mean) / std
-    myNorm = truncnorm(a, b, loc=mean, scale=std)
-    return myNorm
+#danzi.tn@20151113 funzione statistica sulla base del numero di iterazioni
+def get_my_norm_min_max(vmin,vmax,name='',nIter=1000):
+    if vmin==-1 or vmax==-1:
+        return CNorm(0.0)
+    elif nIter<2:
+        return CNorm((vmin+vmax)/2.0)
+    elif nIter < 4:
+        hixk = [vmin,(vmin+vmax)/2.0,vmax]
+        #la distribuzione delle tre opzioni
+        hipk = (0.2,0.6,0.2)
+        #Custom made discrete distribution for Human Factor - da chiamare con hi[hcustm.rvs()] restituisce S N o F sulla base della distribuzione
+        myNorm = rv_discrete(name='bbt_%s' % name, values=(hixk, hipk))
+        return myNorm
+    else:
+        mean , std = get_sigma_95(vmin,vmax)
+        if mean == -1: return mean
+        lower = vmin
+        upper = vmax
+        if lower < 0:
+            # print "2 -lower = %f < 0 for %s with input %f and %f" % (lower,name,mean,std)
+            lower = mean - std
+            upper = mean + std
+        a, b = (lower - mean) / std, (upper - mean) / std
+        myNorm = truncnorm(a, b, loc=mean, scale=std)
+        return myNorm
 
 
 # distribuzione binomiale (tempo di ritorno) di eventi ogni l metri che causano ritardo di N giorni, dove N = il doppio del massimo tra i tempi
@@ -180,3 +203,11 @@ def geo_ritardo_eventi_straordinari(l,rmr):
     ecc = tnorm.rvs()
     print "ecc %f" % ecc
     return evento_eccezionale(l,ecc)
+
+
+
+def outputFigure(sDiagramsFolderPath, sFilename):
+    imagefname=os.path.join(sDiagramsFolderPath,sFilename)
+    if os.path.exists(imagefname):
+        os.remove(imagefname)
+    plt.savefig(imagefname,format='png', bbox_inches='tight', pad_inches=0)

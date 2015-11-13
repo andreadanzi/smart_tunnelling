@@ -13,10 +13,6 @@ from matplotlib.projections.polar import PolarAxes
 from matplotlib.projections import register_projection
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
 # These are the colors that will be used in the plot
-main_colors = ['#1f77b4',  '#ff7f0e', '#2ca02c',
-                  '#d62728',  '#9467bd',
-                  '#8c564b',  '#e377c2', '#7f7f7f',
-                  '#bcbd22', '#dbdb8d', '#17becf', '#9edae5']
 
 def radar_factory(num_vars, frame='circle'):
     """Create a radar chart with `num_vars` axes.
@@ -160,11 +156,6 @@ def radar_data(kpiArray,tunnelArray,cur):
 
     return data
 
-def outputFigure(sDiagramsFolderPath, sFilename):
-    imagefname=os.path.join(sDiagramsFolderPath,sFilename)
-    if os.path.exists(imagefname):
-        os.remove(imagefname)
-    plt.savefig(imagefname,format='png', bbox_inches='tight', pad_inches=0)
 
 # mi metto nella directory corrente
 path = os.path.dirname(os.path.realpath(__file__))
@@ -330,6 +321,7 @@ for tun in tunnelArray:
             plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
             plt.ylabel("Probabilita'")
             plt.axvline(tbmMean, color='r', linewidth=2)
+
             ax.yaxis.grid(True)
             ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
             outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))

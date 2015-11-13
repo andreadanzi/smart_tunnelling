@@ -8,3 +8,6 @@ python/.~lock.results.csv#
 db/bbt_mules_2-3 - Copia.db
 *.png
 python/kpis.log
+*.db-journal
+*.csv
+*.xls

@@ -77,3 +77,34 @@ bbtcls = BbtClassReliability('C','Scarsa',2.5,5,200,100)
 bbtClassReliabilityList.append(bbtcls)
 bbtcls = BbtClassReliability('D','Non affidabile',0,2.5,400,200)
 bbtClassReliabilityList.append(bbtcls)
+
+
+parmDict = {
+    'iteration_no': ("Numero Iterazioni", "N",0,0),\
+    'fine':("Progressiva", "m",0,0),\
+    'he':("Quota", "m",0,0),\
+    'hp':("Quota di progetto", "m",0,0),\
+    'co':("Copertura", "m",0,0),\
+    'gamma':("Peso di volume", "kN/mc",0,0),\
+    'sigma':("Resistenza a compressione", "GPa",0,0),\
+    'mi':("Parametro dell'inviluppo di rottura", "-",0,0),\
+    'ei':("Modulo di deformazione", "GPa",0,0),\
+    'cai':("Indice di Abrasivita'", "-",0,0),\
+    'gsi':("GSI", "-",0,0),\
+    'rmr':("RMR", "-",0,0),\
+    'pkgl':("Progressiva", "m",0,0),\
+    'closure':("Convergenza al fronte", "cm",0,40),\
+    'rockburst':("Rockburst", "-",0,0.6),\
+    'front_stability_ns':("xxx", "GPa",0,1.2),\
+    'front_stability_lambda':("Metodo di Panet (Lambda E)", "-",0,3.2),\
+    'penetrationRate':("xxx", "GPa",0,0),\
+    'penetrationRateReduction':("xxx", "GPa",0,0),\
+    'contactThrust':("xxx", "GPa",0,0),\
+    'torque':("xxx", "GPa",0,0),\
+    'frictionForce':("xxx", "GPa",0,0),\
+    'requiredThrustForce':("xxx", "GPa",0,0),\
+    'availableThrust':("xxx", "GPa",0,0),\
+    'dailyAdvanceRate':("Avanzamento giornaliero", "m/die",0,0),
+    'sigma_ti':("Resistenza a trazione", "GPa",0,0),
+    'k0':("K0", "-",0,0)
+}

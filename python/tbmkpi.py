@@ -228,30 +228,30 @@ class KpiTbm4Tunnel:
             print '%s;%s;%d;%s;%s;%f;%f;%f;%f;%f;%f;%f' \
                 % (self.tunnelName, self.tbmName,self.iterationNo,key, _kpi.definition, _kpi.minImpact, _kpi.maxImpact, _kpi.avgImpact, _kpi.appliedLength, _kpi.percentOfApplication, _kpi.probabilityScore, _kpi.totalImpact)
 
-def build_normfunc_dict(bbt_parameter):
-    gamma = get_my_norm(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma')
-    sci = get_my_norm(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma')
-    mi = get_my_norm(bbt_parameter.mi_med,bbt_parameter.mi_stdev,'mi')
-    ei = get_my_norm(bbt_parameter.ei_med,bbt_parameter.ei_stdev,'ei')
-    cai = get_my_norm(bbt_parameter.cai_med,bbt_parameter.cai_stdev,'cai')
-    gsi = get_my_norm(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev,'gsi')
+def build_normfunc_dict(bbt_parameter,nIter=1000):
+    gamma = get_my_norm(bbt_parameter.g_med,bbt_parameter.g_stddev,'gamma',nIter)
+    sci = get_my_norm(bbt_parameter.sigma_ci_avg,bbt_parameter.sigma_ci_stdev,'sigma',nIter)
+    mi = get_my_norm(bbt_parameter.mi_med,bbt_parameter.mi_stdev,'mi',nIter)
+    ei = get_my_norm(bbt_parameter.ei_med,bbt_parameter.ei_stdev,'ei',nIter)
+    cai = get_my_norm(bbt_parameter.cai_med,bbt_parameter.cai_stdev,'cai',nIter)
+    gsi = get_my_norm(bbt_parameter.gsi_med,bbt_parameter.gsi_stdev,'gsi',nIter)
     rmr =  get_my_norm(bbt_parameter.rmr_med,bbt_parameter.rmr_stdev,'rmr')
-    sti = get_my_norm_min_max(bbt_parameter.sigma_ti_min,bbt_parameter.sigma_ti_max,'sigma_ti')
-    k0 = get_my_norm_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0')
+    sti = get_my_norm_min_max(bbt_parameter.sigma_ti_min,bbt_parameter.sigma_ti_max,'sigma_ti',nIter)
+    k0 = get_my_norm_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0',nIter)
     return {'gamma':gamma,'sci':sci,'mi':mi,'ei':ei,'cai':cai,'gsi':gsi,'rmr':rmr,'sti':sti,'k0':k0}
 
-def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict, nIter):
+def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict):
     length = abs(bbt_parameter.fine - bbt_parameter.inizio)
-    if nIter > 1:
-        gamma = normfunc_dict['gamma'].rvs()
-        sci = normfunc_dict['sci'].rvs()
-        mi = normfunc_dict['mi'].rvs()
-        ei = normfunc_dict['ei'].rvs()
-        cai = normfunc_dict['cai'].rvs()
-        gsi = normfunc_dict['gsi'].rvs()
-        rmr =  normfunc_dict['rmr'].rvs()
-        sti = normfunc_dict['sti'].rvs()
-        k0 = normfunc_dict['k0'].rvs()
+    gamma = normfunc_dict['gamma'].rvs()
+    sci = normfunc_dict['sci'].rvs()
+    mi = normfunc_dict['mi'].rvs()
+    ei = normfunc_dict['ei'].rvs()
+    cai = normfunc_dict['cai'].rvs()
+    gsi = normfunc_dict['gsi'].rvs()
+    rmr =  normfunc_dict['rmr'].rvs()
+    sti = normfunc_dict['sti'].rvs()
+    k0 = normfunc_dict['k0'].rvs()
+    """
     else:
         gamma = bbt_parameter.g_med
         sci = bbt_parameter.sigma_ci_avg
@@ -262,5 +262,6 @@ def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict, nIte
         rmr =  bbt_parameter.rmr_med
         sti = (bbt_parameter.sigma_ti_max + bbt_parameter.sigma_ti_min)/2
         k0 = (bbt_parameter.k0_max+ bbt_parameter.k0_min)/2
+    """
     bbtparameter4seg = BbtParameter4Seg(bbt_parameter.inizio,bbt_parameter.fine,length,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameter.profilo_id ,bbt_parameter.geoitem_id, bbt_parameter.title, sti, k0, bbt_parameter.k0_min, bbt_parameter.k0_max )
     return bbtparameter4seg
