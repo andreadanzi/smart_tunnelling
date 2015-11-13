@@ -1,7 +1,25 @@
 from TunnelSegment import PerformanceIndex
 from bbtutils import *
 from bbtnamedtuples import *
+from scipy.stats import triang
 import sqlite3, os
+
+#danzi.tn@20151113 distribuzione triangolare per friction on Shield e on Cutter Head
+class FrictionCoeff:
+
+    def __init__(self,minVal,avgVal,maxVal):
+        self.minVal = minVal
+        self.avgVal = avgVal
+        self.maxVal = maxVal
+        self.c = (avgVal-minVal)/(maxVal-minVal)
+        self.loc = minVal
+        self.scale = maxVal-minVal
+        self.triangFunc = triang(self.c, loc=self.loc,scale=self.scale)
+
+    def rvs(self):
+        return self.triangFunc.rvs()
+
+
 
 class KpiTbm4Tunnel:
     kpis = {}
@@ -222,16 +240,27 @@ def build_normfunc_dict(bbt_parameter):
     k0 = get_my_norm_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0')
     return {'gamma':gamma,'sci':sci,'mi':mi,'ei':ei,'cai':cai,'gsi':gsi,'rmr':rmr,'sti':sti,'k0':k0}
 
-def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict):
+def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict, nIter):
     length = abs(bbt_parameter.fine - bbt_parameter.inizio)
-    gamma = normfunc_dict['gamma'].rvs()
-    sci = normfunc_dict['sci'].rvs()
-    mi = normfunc_dict['mi'].rvs()
-    ei = normfunc_dict['ei'].rvs()
-    cai = normfunc_dict['cai'].rvs()
-    gsi = normfunc_dict['gsi'].rvs()
-    rmr =  normfunc_dict['rmr'].rvs()
-    sti = normfunc_dict['sti'].rvs()
-    k0 = normfunc_dict['k0'].rvs()
+    if nIter > 1:
+        gamma = normfunc_dict['gamma'].rvs()
+        sci = normfunc_dict['sci'].rvs()
+        mi = normfunc_dict['mi'].rvs()
+        ei = normfunc_dict['ei'].rvs()
+        cai = normfunc_dict['cai'].rvs()
+        gsi = normfunc_dict['gsi'].rvs()
+        rmr =  normfunc_dict['rmr'].rvs()
+        sti = normfunc_dict['sti'].rvs()
+        k0 = normfunc_dict['k0'].rvs()
+    else:
+        gamma = bbt_parameter.g_med
+        sci = bbt_parameter.sigma_ci_avg
+        mi = bbt_parameter.mi_med
+        ei = bbt_parameter.ei_med
+        cai = bbt_parameter.cai_med
+        gsi = bbt_parameter.gsi_med
+        rmr =  bbt_parameter.rmr_med
+        sti = (bbt_parameter.sigma_ti_max + bbt_parameter.sigma_ti_min)/2
+        k0 = (bbt_parameter.k0_max+ bbt_parameter.k0_min)/2
     bbtparameter4seg = BbtParameter4Seg(bbt_parameter.inizio,bbt_parameter.fine,length,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameter.profilo_id ,bbt_parameter.geoitem_id, bbt_parameter.title, sti, k0, bbt_parameter.k0_min, bbt_parameter.k0_max )
     return bbtparameter4seg
