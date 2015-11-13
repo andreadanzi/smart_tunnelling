@@ -1,6 +1,7 @@
 import math
 from pylab import *
 from tbmconfig import *
+from numpy import np
 
 def probabilityAftes2012(percent):
     if percent <0.005:
@@ -376,10 +377,10 @@ class Breakaway:
         fiRi = 0.5 # fattore di riduzione dell'attrito per valutare il coefficiente di attrito dei vari casi
         u1 = math.tan(fiRi*math.radians(mc.Fi)) # coefficiente di attrito del materiale al fronte
         u2 = u1 # coefficiente di attrito del materiale su bordo della testa di scavo
-        u3 = u1    
+        u3 = u1
         u5 = u1
         # Varie componenti del torque in kNm
-        self.T1 = math.pi*D**3/12.*si*u1*(1-nu) 
+        self.T1 = math.pi*D**3/12.*si*u1*(1-nu)
         self.T2 = math.pi*D**2/2.*si*u2*t
         self.T3 = math.pi*D**3/12.*si*u3*(1-nu)
         self.T5 = math.pi*D**3/12.*0.35*si*u5*nu
@@ -692,7 +693,10 @@ class TBMSegment:
         S0_r = sigma0/mb_sci_r+s_mb_r
         Pi_r = pi/mb_sci_r+s_mb_r
         Picr_r = picr/mb_sci_r+s_mb_r
-        Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
+        #danzi.tn@20151113 utilizzo np.power per elevamento a potenza
+        #Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
+        _esp = (np.power(Picr_r,1.-a_r)-np.power(Pi_r,1.-a_r))/((1.-a_r)*nu_r)
+        Rpl = R*np.exp(_esp)
         G_r = G/mb_sci_r
 
         Kpsi = (1.+math.sin(psi))/(1.-math.sin(psi))
