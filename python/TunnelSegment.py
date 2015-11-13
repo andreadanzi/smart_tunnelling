@@ -1,7 +1,7 @@
 import math
 from pylab import *
 from tbmconfig import *
-from numpy import np
+import numpy as np
 
 def probabilityAftes2012(percent):
     if percent <0.005:
