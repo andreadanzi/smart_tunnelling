@@ -3,43 +3,59 @@ import sys, getopt
 from tbmconfig import tbms
 from bbtutils import *
 from bbtnamedtuples import *
+from readkpis import *
 
 import numpy as np
 import matplotlib.pyplot as plt
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
 # danzi.tn@20151114 completamento lettura nuovi parametri e TBM
+# danzi.tn@20151114 integrazione KPI in readparameters
 def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
     sTbmCode = ""
+    bShowRadar = False
+    bShowKPI = False
+    bShowAllKpi = False
+    bShowDetailKPI = False
     for k in parmDict:
         sParm += "\t%s - %s\r\n" % (k,parmDict[k][0])
     sParm += "\n t,tbmcode  in \n"
     for k in tbms:
         sParm += "\t%s - Produttore %s di tipo %s per tunnel %s\r\n" % (k,tbms[k].manifacturer, tbms[k].type, tbms[k].alignmentCode)
+    sParm += "\n\t-r => generazione diagramma Radar per tutte le TBM\n"
+    sParm += "\n\t-k => generazione diagrammi KPI G, P e V\n"
+    sParm += "\n\t-a => generazione diagrammi KPI G + P + V\n"
+    sParm += "\n\t-d => generazione diagrammi KPI di Dettaglio\n"
     try:
-        opts, args = getopt.getopt(argv,"hp:t:",["parameter=","tbmcode="])
+        opts, args = getopt.getopt(argv,"hp:t:rkad",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi"])
     except getopt.GetoptError:
-        print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
         sys.exit(2)
     if len(opts) < 1:
-        print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
+            print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
             sys.exit()
         elif opt in ("-p", "--iparameter"):
             sParameterToShow = arg
         elif opt in ("-t", "--tbmcode"):
             sTbmCode = arg
-    print 'sParameterToShow is ', sParameterToShow
-    print 'sTbmCode is ', sTbmCode
+        elif opt in ("-r", "--radar"):
+            bShowRadar = True
+        elif opt in ("-k", "--kpi"):
+            bShowKPI = True
+        elif opt  in ("-a", "--allkpi"):
+            bShowAllKpi = True
+        elif opt in ("-d", "--detailkpi"):
+            bShowDetailKPI = True
     if sParameterToShow not in parmDict:
-        print "Wrong parameter %s!\nreadparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % (sParameterToShow,sParm)
+        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % (sParameterToShow,sParm)
         sys.exit(2)
     if len(sTbmCode) >0 and sTbmCode not in tbms:
-        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % (sTbmCode,sParm)
+        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rka]\r\n where\r\n %s" % (sTbmCode,sParm)
         sys.exit(2)
     # mi metto nella directory corrente
     path = os.path.dirname(os.path.realpath(__file__))
@@ -83,19 +99,27 @@ def main(argv):
             bbtTbmKpi.tbmName
             FROM
             bbtTbmKpi"""
+    cur.execute(sSql)
+    bbtresults = cur.fetchall()
+    # associare un colore diverso ad ogni TBM
+    tbmColors = {}
+    for bbtr in bbtresults:
+        tbmColors[bbtr[0]] = main_colors.pop(0)
+    # Filtro sulla eventuale TBM passata come parametro
     if len(sTbmCode) > 0:
         sSql = sSql + " WHERE tbmName='%s'" % sTbmCode
     sSql = sSql + " ORDER BY bbtTbmKpi.tbmName"
     cur.execute(sSql)
     bbtresults = cur.fetchall()
     print "Sono presenti %d diverse TBM" % len(bbtresults)
-    tbmColors = {}
+    selectdTbms = {}
     for bbtr in bbtresults:
-        tbmColors[bbtr[0]] = main_colors.pop(0)
+        selectdTbms[bbtr[0]] = bbtr[0]
     bShowlTunnel = False
     for tun in tunnelArray:
+        allTbmData = []
         print "\r\n%s" % tun
-        for tbmKey in tbmColors:
+        for tbmKey in selectdTbms:
             cur.execute("SELECT * FROM BBtParameterEval  WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine")
             bbtresults = cur.fetchall()
             # recupero tutti i parametri e li metto in una lista
@@ -132,7 +156,6 @@ def main(argv):
             if N==0:
                 print "\tPer TBM %s non ci sono dati in %s" % (tbmKey, tun)
             else:
-                print "\tPer TBM %s ci sono %d righe" % (tbmKey, len(outValues))
                 ylimInf = parmDict[sParameterToShow][2]
                 ylimSup = parmDict[sParameterToShow][3]
                 ymainInf = min(he)
@@ -162,6 +185,17 @@ def main(argv):
                     writer = csv.writer(f,delimiter=";")
                     writer.writerow(('fine','he','hp',sParameterToShow  ))
                     writer.writerows(outValues)
+            if bShowKPI:
+                allTbmData += plotKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+            if bShowAllKpi:
+                allTbmData += plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+            if bShowDetailKPI:
+                allTbmData += plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+        if len(allTbmData) > 0:
+            for tbdt in allTbmData:
+                print tbdt
+    if bShowRadar:
+        plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors)
     conn.close()
 
 

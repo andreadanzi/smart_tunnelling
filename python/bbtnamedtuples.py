@@ -119,7 +119,7 @@ parmDict = {
     'pkgl':("Progressiva", "m",0,0),\
     'closure':("Chiusura a fine scudo", "cm",0,40),\
     'ldpVlachBegin':("Convergenza al fronte", "cm",0,0.1),\
-    'ldpVlachEnd':("Convergenza a fine scudo", "cm",0,1),\
+    'ldpVlachEnd':("Convergenza a fine scudo", "cm",0,0.1),\
     'rockburst':("Rockburst", "-",0,0.6),\
     'front_stability_ns':("xxx", "GPa",0,1.2),\
     'front_stability_lambda':("Metodo di Panet (Lambda E)", "-",0,3.2),\

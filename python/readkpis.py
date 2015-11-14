@@ -156,117 +156,60 @@ def radar_data(kpiArray,tunnelArray,cur):
 
     return data
 
+def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors):
+    plotArray = []
+    kpiPArray = ['P1','P2','P3','P4','P5','P6']
+    kpiPdata = radar_data(kpiPArray,tunnelArray,cur)
+    plotArray.append(kpiPdata)
+    kpiGArray = ['G1','G2','G5','G6','G7','G8','G11','G12','G13']
+    kpiGdata = radar_data(kpiGArray,tunnelArray,cur)
+    plotArray.append(kpiGdata)
+    kpiVArray = ['V1','V2','V3','V4','V5','V6']
+    kpiVdata = radar_data(kpiVArray,tunnelArray,cur)
+    plotArray.append(kpiVdata)
+    fig = plt.figure(figsize=(20, 12), dpi=200)
+    fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
+    pltIndex = 1
+    for pltItem in plotArray:
+        spoke_labels = pltItem.pop(0)
+        for n, (title, key_list) in enumerate(pltItem):
+            plot_data = []
+            color_data = []
+            tbm_name = []
+            pkeys = []
+            for tmb in key_list:
+                pkeys = map(lambda y:y[1],key_list[tmb])
+                plot_data.append(key_list[tmb])
+                color_data.append(tbmColors[tmb])
+                tbm_name.append(tmb)
+            theta = radar_factory(len(pkeys), frame='polygon')
+            ax = fig.add_subplot(3, 3, pltIndex, projection='radar')
+            plt.xticks(theta,pkeys)
+            for d, color in zip(plot_data, color_data):
+                pd = map(lambda y:y[0],d)
+                pk = map(lambda y:y[1],d)
+                ax.plot(theta , pd, color=color, linewidth=1.3)
+                ax.fill(theta, pd, facecolor=color, alpha=0.15)
 
-# mi metto nella directory corrente
-path = os.path.dirname(os.path.realpath(__file__))
-os.chdir(path)
+            if pltIndex in range(4):
+                ax.set_title(title, weight='bold', size='medium', position=(0.1, 1.1), horizontalalignment='center', verticalalignment='center')
+                plt.subplot(3, 3, pltIndex)
+                legend = plt.legend(tbm_name, loc=(-0.7, 0.4), labelspacing=0.1, title="Codici TBM")
+                plt.setp(legend.get_texts(), fontsize='small')
+            ax.set_varlabels(pkeys)
 
-########## File vari: DB
-sDBName = bbtConfig.get('Database','dbname')
-sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
-if not os.path.isfile(sDBPath):
-    print "Errore! File %s inesistente!" % sDBPath
-    exit(1)
+            pltIndex += 1
 
-########### Outupt Folder
-sDiagramsFolder = bbtConfig.get('Diagrams','folder')
-sDiagramsFolderPath = os.path.join(os.path.abspath('..'), sDiagramsFolder)
-# mi connetto al database
-conn = sqlite3.connect(sDBPath)
-# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
-cur = conn.cursor()
-print "start querying database  "
-
-# Legge tutti i Tunnell
-sSql = """SELECT distinct
-        bbtTbmKpi.tunnelName
-        FROM
-        bbtTbmKpi
-        ORDER BY bbtTbmKpi.tunnelName"""
-cur.execute(sSql)
-bbtresults = cur.fetchall()
-tunnelArray = []
-for bbtr in bbtresults:
-    tunnelArray.append(bbtr[0])
-# Legget tutte le TBM
-sSql = """SELECT distinct
-        bbtTbmKpi.tbmName
-        FROM
-        bbtTbmKpi
-        ORDER BY bbtTbmKpi.tbmName"""
-cur.execute(sSql)
-bbtresults = cur.fetchall()
-tbmColors = {}
-for bbtr in bbtresults:
-    tbmColors[bbtr[0]] = main_colors.pop(0)
-
-plotArray = []
-print "#### P kpis"
-kpiPArray = ['P1','P2','P3','P4','P5','P6']
-kpiPdata = radar_data(kpiPArray,tunnelArray,cur)
-plotArray.append(kpiPdata)
-print "#### G kpis"
-kpiGArray = ['G1','G2','G5','G6','G7','G8','G11','G12','G13']
-kpiGdata = radar_data(kpiGArray,tunnelArray,cur)
-plotArray.append(kpiGdata)
-print "#### V kpis"
-kpiVArray = ['V1','V2','V3','V4','V5','V6']
-kpiVdata = radar_data(kpiVArray,tunnelArray,cur)
-plotArray.append(kpiVdata)
-conn.close()
-print "##################### RADAR"
-fig = plt.figure(figsize=(20, 12), dpi=200)
-fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
-pltIndex = 1
-inx = 0
-for pltItem in plotArray:
-    spoke_labels = pltItem.pop(0)
-    for n, (title, key_list) in enumerate(pltItem):
-        plot_data = []
-        color_data = []
-        tbm_name = []
-        pkeys = []
-        for tmb in key_list:
-            pkeys = map(lambda y:y[1],key_list[tmb])
-            plot_data.append(key_list[tmb])
-            color_data.append(tbmColors[tmb])
-            tbm_name.append(tmb)
-        theta = radar_factory(len(pkeys), frame='polygon')
-        ax = fig.add_subplot(3, 3, pltIndex, projection='radar')
-        plt.xticks(theta,pkeys)
-        for d, color in zip(plot_data, color_data):
-            pd = map(lambda y:y[0],d)
-            pk = map(lambda y:y[1],d)
-            ax.plot(theta , pd, color=color, linewidth=1.3)
-            ax.fill(theta, pd, facecolor=color, alpha=0.15)
-
-        if pltIndex in range(4):
-            ax.set_title(title, weight='bold', size='medium', position=(0.1, 1.1), horizontalalignment='center', verticalalignment='center')
-            plt.subplot(3, 3, pltIndex)
-            legend = plt.legend(tbm_name, loc=(-0.7, 0.4), labelspacing=0.1, title="Codici TBM")
-            plt.setp(legend.get_texts(), fontsize='small')
-        ax.set_varlabels(pkeys)
-
-        pltIndex += 1
+    plt.figtext(0.5, 0.965, 'Valutazione TBM su 3 gallerie BBT Mules 2 - 3',
+                ha='center', color='black', weight='bold', size='large')
+    outputFigure(sDiagramsFolderPath,"radar_bbt_2015.png")
+    plt.close(fig)
 
 
-plt.figtext(0.5, 0.965, 'Valutazione TBM su 3 gallerie BBT Mules 2 - 3',
-            ha='center', color='black', weight='bold', size='large')
-
-outputFigure(sDiagramsFolderPath,"radar_bbt_2015.png")
-plt.close(fig)
-
-
-print "##################### Sintesi G,P,V"
-
-num_bins = 20
-# mi connetto al database
-conn = sqlite3.connect(sDBPath)
-# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
-cur = conn.cursor()
-for tun in tunnelArray:
-    print "#### %s" % tun
-    # Legget tutte le TBM di quel tunnel
+def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+    num_bins = 20
+    # print "#### %s" % tun
+    # Legget tutti i KPI di quel tunnel
     sSql = """SELECT  SUBSTR(BbtTbmKpi.kpiKey,1,1)  as kpiKey , count(*)
             FROM
             bbtTbmKpi
@@ -279,6 +222,7 @@ for tun in tunnelArray:
     kpiKeyList = defaultdict(list)
     currentKpi = ""
     currentTbm = ""
+    all_data = []
     for bbtKpi in bbtKpiresults:
         sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
                 FROM
@@ -286,13 +230,14 @@ for tun in tunnelArray:
                 WHERE
                 bbtTbmKpi.tunnelName = '"""+tun+"""'
                 AND BbtTbmKpi.kpiKey LIKE '"""+ bbtKpi[0]+"""%'
-    			GROUP BY BbtTbmKpi.tbmName
-                ORDER BY BbtTbmKpi.tbmName """
+    			"""
+        if len(tbmName)>0:
+            sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
+        sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
         cur.execute(sSql)
         bbtTBMresults = cur.fetchall()
         tbmNo = len(bbtTBMresults)
-        all_data = []
-
+        bViolin = False
         for bbtTbm in bbtTBMresults:
             fig = plt.figure(figsize=(10, 6), dpi=75)
             ax = fig.add_subplot(111)
@@ -307,79 +252,50 @@ for tun in tunnelArray:
                     ORDER BY BbtTbmKpi.iterationNo """
             cur.execute(sSql)
             bbtImpResults = cur.fetchall()
-            resNo = len(bbtImpResults)
             tbmData = []
             for bbtImp in bbtImpResults:
                 tbmData.append( bbtImp[0])
             tbmMean = np.mean(tbmData)
-            tbmSigma = np.std(tbmData)
-            if tbmSigma > 0:
-                all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-            y = mlab.normpdf(bins, tbmMean, tbmSigma)
-            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-            plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
-            plt.ylabel("Probabilita'")
-            plt.axvline(tbmMean, color='r', linewidth=2)
+            tbmSigma = 0
+            resNo = len(bbtImpResults)
+            if resNo>2:
+                bViolin = True
+                tbmSigma = np.std(tbmData)
+                n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+                y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
+                plt.ylabel("Probabilita'")
+                plt.axvline(tbmMean, color='r', linewidth=2)
 
-            ax.yaxis.grid(True)
-            ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
-            plt.close(fig)
-        fig = plt.figure(figsize=(10, 6), dpi=75)
-        ax = fig.add_subplot(111)
-        ax.yaxis.grid(True)
-        tbmNames = map(lambda y:y[0],all_data)
-        tbmMeans = map(lambda y:y[1],all_data)
-        tbmSigmas = map(lambda y:y[2],all_data)
-        tbmDatas = map(lambda y:y[3],all_data)
-        ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
-        ax.set_xlabel('TBMs')
-        ax.set_ylabel(bbtKpi[0])
-        # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
-        try:
-            violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
-            idx = 0
-            indMax = np.argmax(tbmMeans)
-            for vp in violin_parts['bodies']:
-                vp.set_facecolor(tbmColors[tbmNames[idx]])
-                vp.set_edgecolor(tbmColors[tbmNames[idx]])
-                vp.set_alpha(0.4)
-                if idx==indMax:
-                    vp.set_edgecolor('red')
-                    vp.set_linewidth(2)
-                idx +=1
-            ax.set_title("%s, comparazione %s " % (tun,bbtKpi[0]))
-            plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_violin.png" % (tun.replace (" ", "_") , bbtKpi[0]))
-        except Exception as e:
-            print e
-            print "violin plot failed for  %s %s " % (bbtKpi[0], tun)
-        plt.close(fig)
-conn.close()
+                ax.yaxis.grid(True)
+                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
+                plt.close(fig)
+            else:
+                x = range(resNo)
+                plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("Iterazioni")
+                plt.ylabel("Totale indicatori di tipo %s=%f" % (bbtKpi[0],tbmMean))
+                ax.yaxis.grid(True)
+                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
+                plt.close(fig)
+            all_data.append(( bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+    return all_data
 
 
-print "##################### Totali G+P+V"
-
-num_bins = 20
-# mi connetto al database
-conn = sqlite3.connect(sDBPath)
-# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
-cur = conn.cursor()
-for tun in tunnelArray:
-    print "#### %s" % tun
-    sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
-            FROM
-            bbtTbmKpi
-            WHERE
-            bbtTbmKpi.tunnelName = '"""+tun+"""'
-			GROUP BY BbtTbmKpi.tbmName
-            ORDER BY BbtTbmKpi.tbmName """
+def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+    # print "#### %s" % tun
+    sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM  bbtTbmKpi   WHERE  bbtTbmKpi.tunnelName = '%s'" % tun
+    if len(tbmName) > 0:
+        sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
+    sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
     cur.execute(sSql)
     bbtTBMresults = cur.fetchall()
     tbmNo = len(bbtTBMresults)
     all_data = []
-
+    bViolin = False
     for bbtTbm in bbtTBMresults:
         fig = plt.figure(figsize=(10, 6), dpi=75)
         ax = fig.add_subplot(111)
@@ -393,64 +309,40 @@ for tun in tunnelArray:
                 ORDER BY BbtTbmKpi.iterationNo """
         cur.execute(sSql)
         bbtImpResults = cur.fetchall()
-        resNo = len(bbtImpResults)
         tbmData = []
         for bbtImp in bbtImpResults:
             tbmData.append( bbtImp[0])
         tbmMean = np.mean(tbmData)
-        tbmSigma = np.std(tbmData)
-        if tbmSigma > 0:
-            all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-        n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-        y = mlab.normpdf(bins, tbmMean, tbmSigma)
-        plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-        plt.xlabel("Valore medio %f" %  tbmMean)
-        plt.ylabel("Probabilita'")
-        plt.axvline(tbmMean, color='r', linewidth=2)
-        ax.yaxis.grid(True)
-        ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
-        outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.png" % (tun.replace(" ", "_") , bbtTbm[0]))
-        plt.close(fig)
-    fig = plt.figure(figsize=(10, 6), dpi=75)
-    ax = fig.add_subplot(111)
-    ax.yaxis.grid(True)
-    tbmNames = map(lambda y:y[0],all_data)
-    tbmMeans = map(lambda y:y[1],all_data)
-    tbmSigmas = map(lambda y:y[2],all_data)
-    tbmDatas = map(lambda y:y[3],all_data)
-    ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
-    ax.set_xlabel('TBMs')
-    ax.set_ylabel('Indicatore')
-    # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
-    try:
-        violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
-        idx = 0
-        indMax = np.argmax(tbmMeans)
-        for vp in violin_parts['bodies']:
-            vp.set_facecolor(tbmColors[tbmNames[idx]])
-            vp.set_edgecolor(tbmColors[tbmNames[idx]])
-            vp.set_alpha(0.4)
-            if idx==indMax:
-                vp.set_edgecolor('red')
-                vp.set_linewidth(2)
-            idx +=1
-        ax.set_title("%s, comparazione TBM" % tun)
-        plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
-        outputFigure(sDiagramsFolderPath,"bbt_%s_violin.png" % tun.replace (" ", "_") )
-    except Exception as e:
-        print e
-        print "violin plot failed for %s " %  tun
-    plt.close(fig)
-conn.close()
+        tbmSigma = 0
+        resNo = len(bbtImpResults)
+        if resNo>2:
+            bViolin = True
+            tbmSigma = np.std(tbmData)
+            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+            y = mlab.normpdf(bins, tbmMean, tbmSigma)
+            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+            plt.xlabel("Valore medio %f" %  tbmMean)
+            plt.ylabel("Probabilita'")
+            plt.axvline(tbmMean, color='r', linewidth=2)
+            ax.yaxis.grid(True)
+            ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.png" % (tun.replace(" ", "_") , bbtTbm[0]))
+            plt.close(fig)
+        else:
+            x = range(resNo)
+            plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+            plt.xlabel("Iterazioni")
+            plt.ylabel("Valore KPI Totale=%f" % tbmMean)
+            ax.yaxis.grid(True)
+            ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
+            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.png" % (tun.replace(" ", "_") , bbtTbm[0]))
+            plt.close(fig)
+        all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+    return all_data
 
-print "##################### Dettagli"
-num_bins = 20
-# mi connetto al database
-conn = sqlite3.connect(sDBPath)
-# definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
-cur = conn.cursor()
-for tun in tunnelArray:
-    print "#### %s" % tun
+def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+    num_bins = 20
+    # print "#### %s" % tun
     # Legget tutte le TBM di quel tunnel
     sSql = """SELECT  BbtTbmKpi.kpiKey,BbtTbmKpi.kpiDescr, count(*)
             FROM
@@ -465,20 +357,16 @@ for tun in tunnelArray:
     kpiKeyList = defaultdict(list)
     currentKpi = ""
     currentTbm = ""
+    all_data = []
     for bbtKpi in bbtKpiresults:
-        sSql = """SELECT  BbtTbmKpi.tbmName, count(*)
-                FROM
-                bbtTbmKpi
-                WHERE
-                bbtTbmKpi.tunnelName = '"""+tun+"""'
-                AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""'
-    			GROUP BY BbtTbmKpi.tbmName
-                ORDER BY BbtTbmKpi.tbmName """
+        sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM bbtTbmKpi WHERE bbtTbmKpi.tunnelName = '%s' AND BbtTbmKpi.kpiKey = '%s'" % (tun, bbtKpi[0])
+        if len(tbmName) > 0:
+            sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
+        sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
         cur.execute(sSql)
         bbtTBMresults = cur.fetchall()
         tbmNo = len(bbtTBMresults)
-        all_data = []
-
+        bViolin = False
         for bbtTbm in bbtTBMresults:
             fig = plt.figure(figsize=(10, 6), dpi=75)
             ax = fig.add_subplot(111)
@@ -492,7 +380,6 @@ for tun in tunnelArray:
                     ORDER BY BbtTbmKpi.iterationNo """
             cur.execute(sSql)
             bbtImpResults = cur.fetchall()
-            resNo = len(bbtImpResults)
             tbmData = []
             avgImpacts = []
             probabilityScores = []
@@ -500,51 +387,30 @@ for tun in tunnelArray:
                 tbmData.append( bbtImp[0])
                 avgImpacts.append( bbtImp[1])
                 probabilityScores.append( bbtImp[2])
+            resNo = len(bbtImpResults)
             tbmMean = np.mean(tbmData)
-            tbmSigma = np.std(tbmData)
-            if tbmSigma > 0:
-                all_data.append((str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
-            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-            y = mlab.normpdf(bins, tbmMean, tbmSigma)
-            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-            plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
-            plt.ylabel("Probabilita'")
-            plt.axvline(tbmMean, color='r', linewidth=2)
-            ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-            ax.yaxis.grid(True)
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.png" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
-            plt.close(fig)
-        fig = plt.figure(figsize=(10, 6), dpi=75)
-        ax = fig.add_subplot(111)
-        ax.yaxis.grid(True)
-        tbmNames = map(lambda y:y[0],all_data)
-        tbmMeans = map(lambda y:y[1],all_data)
-        tbmSigmas = map(lambda y:y[2],all_data)
-        tbmDatas = map(lambda y:y[3],all_data)
-        ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
-        ax.set_xlabel('TBMs')
-        ax.set_ylabel(bbtKpi[1])
-        # scatter([y+1 for y in range(len(tbmDatas)) ], tbmDatas[0])
-        try:
-            violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
-            idx = 0
-            indMax = np.argmax(tbmMeans)
-            for vp in violin_parts['bodies']:
-                vp.set_facecolor(tbmColors[tbmNames[idx]])
-                vp.set_edgecolor(tbmColors[tbmNames[idx]])
-                vp.set_alpha(0.4)
-                if idx==indMax:
-                    vp.set_edgecolor('red')
-                    vp.set_linewidth(2)
-                idx +=1
-            ax.set_title("%s, comparazione %s (%s)" % (tun,bbtKpi[1],bbtKpi[0]))
-            plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_violin.png" % (tun.replace (" ", "_") , bbtKpi[0] ))
-        except Exception as e:
-            print e
-            print "violin plot failed for  %s %s " % (bbtKpi[0], tun)
-        plt.close(fig)
-conn.close()
-
-
-print "#################### fineee"
+            tbmSigma = 0
+            if resNo>2:
+                bViolin = True
+                tbmSigma = np.std(tbmData)
+                n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+                y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
+                plt.ylabel("Probabilita'")
+                plt.axvline(tbmMean, color='r', linewidth=2)
+                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                ax.yaxis.grid(True)
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.png" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
+                plt.close(fig)
+            else:
+                x = range(resNo)
+                plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("Iterazioni")
+                plt.ylabel("Valore KPI %s = %f" % (bbtKpi[1],tbmMean))
+                ax.yaxis.grid(True)
+                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0], bbtKpi[0]))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.png" %  (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
+                plt.close(fig)
+            all_data.append((bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+    return all_data
