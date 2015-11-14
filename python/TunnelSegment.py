@@ -201,7 +201,7 @@ class Rock:
 
 class InSituCondition:
 # caratteristiche dell'ammasso e stato tensionale locale
-    def __init__(self, overburden, groundwaterdepth, gamma, k0min, k0max, gsi, rmr):
+    def __init__(self, overburden, h_2, groundwaterdepth, gamma, k0min, k0max, gsi, rmr):
         self.Overburden = overburden #copertura netta
         self.Groundwaterdepth = groundwaterdepth #copertura netta
         self.K0 = 1.0
@@ -219,7 +219,7 @@ class InSituCondition:
             self.Rmr = max(5., rmr)
         else:
             self.Rmr = max(5., gsi+5)
-        self.SigmaV = gamma*overburden/1000.0 # MPa
+        self.SigmaV = gamma*(overburden+h_2)/1000.0 # MPa
 
     def UpdateK0KaKp(self, typ, fi):
         self.Kp = (1.0 + math.sin(math.radians(fi)))/(1.0 - math.sin(math.radians(fi)))
@@ -520,7 +520,7 @@ class TBMSegment:
         if ucs <= 1.0:
             print "gamma= %f E= %f ucs= %f" % (gamma, e, ucs)
         self.Rock = Rock(gamma, ni, e, ucs,  st)	#importo definizione di Rock
-        self.InSituCondition = InSituCondition(overburden, groundwaterdepth, gamma, k0min, k0max, gsi, rmr)	#importo defizione di stato in situ
+        self.InSituCondition = InSituCondition(overburden, excavHeight/2., groundwaterdepth, gamma, k0min, k0max, gsi, rmr)	#importo defizione di stato in situ
         if excavType == 'Mech':
             self.D = 0.0
         else:
@@ -545,27 +545,28 @@ class TBMSegment:
             self.breakawayTorque = bat.torque
 #            print 'Breakaway torque = %f' % (self.breakawayTorque)
 
-        R = self.Excavation.Radius # in m
-        ni = self.Rock.Ni
-        fi = math.radians(self.MohrCoulomb.Fi)
-        c = self.MohrCoulomb.C / 1000. # MPa
-        fir = math.radians(self.MohrCoulomb.Fir)
-        cr = self.MohrCoulomb.C / 1000. # MPa
-        pi_cr_tan = cr / math.tan(fir)
-        p0 = self.Rock.Gamma * (self.InSituCondition.Overburden+self.Excavation.Height/2.0) / 1000.0 # in MPa
-        self.P_0 = p0
-        self.Pcr = p0 * (1.-math.sin(fi)) - c * math.cos(fi) # in MPa
-        self.Pocp = p0 + c / math.tan(fi)
-        self.Pocr = p0 + cr / math.tan(fir)
-        self.Nfir = (1.+math.sin(fir)) / (1.-math.sin(fir))
-        if self.Pcr < p0:
-            self.Rpl = (((self.Pocr-self.Pocp*math.sin(fi))/pi_cr_tan)**(1.0/(self.Nfir-1.)))*R
-        else:
-            self.Rpl = R
+        #gabriele@20151114 info fuorviante
+#        R = self.Excavation.Radius # in m
+#        ni = self.Rock.Ni
+#        fi = math.radians(self.MohrCoulomb.Fi)
+#        c = self.MohrCoulomb.C / 1000. # MPa
+#        fir = math.radians(self.MohrCoulomb.Fir)
+#        cr = self.MohrCoulomb.C / 1000. # MPa
+#        pi_cr_tan = cr / math.tan(fir)
+#        p0 = self.Rock.Gamma * (self.InSituCondition.Overburden+self.Excavation.Height/2.0) / 1000.0 # in MPa
+#        self.P_0 = p0
+#        self.Pcr = p0 * (1.-math.sin(fi)) - c * math.cos(fi) # in MPa
+#        self.Pocp = p0 + c / math.tan(fi)
+#        self.Pocr = p0 + cr / math.tan(fir)
+#        self.Nfir = (1.+math.sin(fir)) / (1.-math.sin(fir))
+#        if self.Pcr < p0:
+#            self.Rpl = (((self.Pocr-self.Pocp*math.sin(fir))/pi_cr_tan)**(1.0/(self.Nfir-1.)))*R
+#        else:
+#            self.Rpl = R
 
         self.Tbm = tbm
         self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
-        if self.Tbm.
+        #if self.Tbm.
         self.TunnelClosureAtShieldEnd1 = self.TunnelClosure(self.Tbm.Slen1) # delta convergenza alla fine del primo scudo
 
         # definisco l'eventuale
@@ -691,7 +692,7 @@ class TBMSegment:
         x0 =((1.-math.sqrt(1.+16.*S0))/4.)**2
         Picr = solve(pcrit, x0, nu, a, S0, 0.00001)
         picr = (Picr-s_mb)*mb_sci
-
+        self.Picr =picr
         sci_r = self.HoekBrown.ucsr
         mb_r = self.HoekBrown.Mr
         s_r = self.HoekBrown.Sr
@@ -703,9 +704,10 @@ class TBMSegment:
         Pi_r = pi/mb_sci_r+s_mb_r
         Picr_r = picr/mb_sci_r+s_mb_r
         #danzi.tn@20151113 utilizzo np.power per elevamento a potenza
-        #Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
+#        Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
         _esp = (np.power(Picr_r,1.-a_r)-np.power(Pi_r,1.-a_r))/((1.-a_r)*nu_r)
         Rpl = R*np.exp(_esp)
+        self.Rpl = Rpl
         G_r = G/mb_sci_r
 
         Kpsi = (1.+math.sin(psi))/(1.-math.sin(psi))
@@ -782,7 +784,7 @@ class TBMSegment:
 
         else:
             ur = (S0_r-Picr_r)/(2.*G_r)*Rpl**2/R
-        return ur
+        return min(ur, R)
 
     def UrPi(self, pi):
         # ur in m
@@ -858,7 +860,7 @@ class TBMSegment:
     def PiUr(self, dur):
         # restituisce il valore di pressione equivalente a una convergenza del cavo pari a dur
         # iol risultato e' in MPa (1 MPa = 1000 kN/m2)
-        p0 = self.P_0
+        p0 = self.InSituCondition.SigmaV
         ur = self.CavityConvergence(0.0) + dur
         pi = 0.0
         for i in range(0, int(math.floor(p0*200.0))):
@@ -909,12 +911,13 @@ class G1:
             self.impact = 0.
 
 class G2:
-    def __init__(self, tbmType, cavityStabilityPar, whichShield):
-        self.definition='Cavity stability'
-        if whichShield = 'Front':
-            imax = 2.
-        else:
-            imax = 1.
+    def __init__(self, tbmType, cavityStabilityPar): #, whichShield):
+        # self.definition='Cavity stability'
+        imax=1.
+#        if whichShield = 'Front':
+#            imax = 2.
+#        else:
+#            imax = 1.
             
         if cavityStabilityPar>0.:
             self.probability = 1.
@@ -1011,7 +1014,7 @@ class G11:
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
-                self.probability = 0.
+        self.probability = 0.
 
         if '-R-' in mat:
             if cavityStabilityPar>0.:
@@ -1249,7 +1252,7 @@ class V2:
 
 
 class V3:
-    def __init__(self, tbmType, tbmManifacturer):
+    def __init__(self, tbmType): #, tbmManifacturer):
         # servira' avvantaggiare rbs perche' meglio dotata
         self.definition='Prospection tools'
         self.probability=1.
