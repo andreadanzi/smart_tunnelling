@@ -99,6 +99,8 @@ def insert_bbtparameterseval_old(sDBPath, bbt_evalparameters, iteration_no=0):
     conn.commit()
     conn.close()
 
+
+#danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
 def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
     conn = sqlite3.connect(sDBPath)
     c = conn.cursor()
@@ -134,8 +136,27 @@ def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
                                                             frictionForce,\
                                                             requiredThrustForce,\
                                                             availableThrust,\
-                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0,t0,t1,t3,t4,t5 \
-        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
+                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0,t0,t1,t3,t4,t5, \
+                                                            inSituConditionSigmaV,\
+                                                            tunnelRadius,\
+                                                            rockE,\
+                                                            mohrCoulombPsi,\
+                                                            rockUcs,\
+                                                            inSituConditionGsi,\
+                                                            hoekBrownMi,\
+                                                            hoekBrownD,\
+                                                            hoekBrownMb,\
+                                                            hoekBrownS,\
+                                                            hoekBrownA,\
+                                                            hoekBrownMr,\
+                                                            hoekBrownSr,\
+                                                            hoekBrownAr,\
+                                                            urPiHB,\
+                                                            rpl,\
+                                                            picr,\
+                                                            ldpVlachBegin,\
+                                                            ldpVlachEnd\
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
     conn.commit()
     conn.close()
 

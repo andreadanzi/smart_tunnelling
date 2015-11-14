@@ -1,33 +1,46 @@
 import sqlite3, os, csv
 import sys, getopt
+from tbmconfig import tbms
 from bbtutils import *
 from bbtnamedtuples import *
 
 import numpy as np
 import matplotlib.pyplot as plt
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
-
+# danzi.tn@20151114 completamento lettura nuovi parametri e TBM
 def main(argv):
-    sParm = ""
+    sParm = "p,parameter in \n"
     sParameterToShow = ""
+    sTbmCode = ""
     for k in parmDict:
-        sParm += "\t%s\r\n" % k
+        sParm += "\t%s - %s\r\n" % (k,parmDict[k][0])
+    sParm += "\n t,tbmcode  in \n"
+    for k in tbms:
+        sParm += "\t%s - Produttore %s di tipo %s per tunnel %s\r\n" % (k,tbms[k].manifacturer, tbms[k].type, tbms[k].alignmentCode)
     try:
-        opts, args = getopt.getopt(argv,"hp:",["iparameter="])
+        opts, args = getopt.getopt(argv,"hp:t:",["parameter=","tbmcode="])
     except getopt.GetoptError:
-        print "readparameters.py -p <parameter>\r\n where parameter in:\r\n %s" % sParm
+        print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
         sys.exit(2)
     if len(opts) < 1:
-        print "readparameters.py -p <parameter>\r\n where parameter in:\r\n %s" % sParm
+        print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "readparameters.py -p <parameter>\r\n where parameter in:\r\n %s" % sParm
+            print "readparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % sParm
             sys.exit()
         elif opt in ("-p", "--iparameter"):
             sParameterToShow = arg
-    print 'sParameterToShow is "', sParameterToShow
-
+        elif opt in ("-t", "--tbmcode"):
+            sTbmCode = arg
+    print 'sParameterToShow is ', sParameterToShow
+    print 'sTbmCode is ', sTbmCode
+    if sParameterToShow not in parmDict:
+        print "Wrong parameter %s!\nreadparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % (sParameterToShow,sParm)
+        sys.exit(2)
+    if len(sTbmCode) >0 and sTbmCode not in tbms:
+        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode>\r\n where\r\n %s" % (sTbmCode,sParm)
+        sys.exit(2)
     # mi metto nella directory corrente
     path = os.path.dirname(os.path.realpath(__file__))
     os.chdir(path)
@@ -69,8 +82,10 @@ def main(argv):
     sSql = """SELECT distinct
             bbtTbmKpi.tbmName
             FROM
-            bbtTbmKpi
-            ORDER BY bbtTbmKpi.tbmName"""
+            bbtTbmKpi"""
+    if len(sTbmCode) > 0:
+        sSql = sSql + " WHERE tbmName='%s'" % sTbmCode
+    sSql = sSql + " ORDER BY bbtTbmKpi.tbmName"
     cur.execute(sSql)
     bbtresults = cur.fetchall()
     print "Sono presenti %d diverse TBM" % len(bbtresults)

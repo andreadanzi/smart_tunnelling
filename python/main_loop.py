@@ -75,6 +75,7 @@ for iIterationNo in range(nIter):
                     bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[int(bbt_parameter.fine)])
                     tbmsect = TBMSegment(bbtparameter4seg, tbm)
                     kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
+                    #danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
                     bbt_evalparameters.append((strnow,iIterationNo,alnCurr.description, tbmKey, bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,bbtparameter4seg.gamma,\
                                                     bbtparameter4seg.sci,bbtparameter4seg.mi,bbtparameter4seg.ei,bbtparameter4seg.cai,bbtparameter4seg.gsi,bbtparameter4seg.rmr,\
                                                     tbmsect.pkCe2Gl(bbt_parameter.fine),\
@@ -99,8 +100,29 @@ for iIterationNo in range(nIter):
                                                     tbmsect.t1, \
                                                     tbmsect.t3, \
                                                     tbmsect.t4, \
-                                                    tbmsect.t5 ) )
-
+                                                    tbmsect.t5, \
+                                                    tbmsect.InSituCondition.SigmaV, \
+                                                    tbmsect.Excavation.Radius, \
+                                                    tbmsect.Rock.E, \
+                                                    tbmsect.MohrCoulomb.psi, \
+                                                    tbmsect.Rock.Ucs, \
+                                                    tbmsect.InSituCondition.Gsi, \
+                                                    tbmsect.HoekBrown.Mi, \
+                                                    tbmsect.HoekBrown.D, \
+                                                    tbmsect.HoekBrown.Mb, \
+                                                    tbmsect.HoekBrown.S, \
+                                                    tbmsect.HoekBrown.A, \
+                                                    tbmsect.HoekBrown.Mr, \
+                                                    tbmsect.HoekBrown.Sr, \
+                                                    tbmsect.HoekBrown.Ar, \
+                                                    tbmsect.UrPi_HB(0.), \
+                                                    tbmsect.Rpl, \
+                                                    tbmsect.Picr, \
+                                                    tbmsect.LDP_Vlachopoulos_2009(0.), \
+                                                    tbmsect.LDP_Vlachopoulos_2009(tbm.Slen), \
+                                                     ) )
                 kpiTbm.updateKPI(alnCurr)
                 kpiTbm.saveBbtTbmKpis(sDBPath)
                 insert_bbtparameterseval(sDBPath,bbt_evalparameters,iIterationNo)
+
+print "############################# Fine"

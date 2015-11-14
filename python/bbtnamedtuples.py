@@ -5,6 +5,7 @@ BbtGeoitem = namedtuple('BbtGeoitem', ['id','inizio','fine','l','perc','type','g
 BbtProfilo = namedtuple('BbtProfilo',['id','inizio','fine','est','nord','he','hp','co','tipo'])
 BbtParameter =  namedtuple('BbtParameter',['inizio','fine','est','nord','he','hp','co','tipo','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev','profilo_id','geoitem_id','title','sigma_ti_min','sigma_ti_max','k0_min','k0_max'])
 BbtReliability = namedtuple('BbtReliability',['id','inizio','fine','gmr_class','gmr_val','reliability','eval_var'])
+#danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
 BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'iteration_no',\
                                                     'fine',\
@@ -30,7 +31,27 @@ BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'frictionForce',\
                                                     'requiredThrustForce',\
                                                     'availableThrust',\
-                                                    'dailyAdvanceRate','profilo_id','geoitem_id','title','sigma_ti','k0'])
+                                                    'dailyAdvanceRate','profilo_id','geoitem_id','title','sigma_ti','k0','t0','t1','t3','t4','t5',\
+                                                    'inSituConditionSigmaV',\
+                                                    'tunnelRadius',\
+                                                    'rockE',\
+                                                    'mohrCoulombPsi',\
+                                                    'rockUcs',\
+                                                    'inSituConditionGsi',\
+                                                    'hoekBrownMi',\
+                                                    'hoekBrownD',\
+                                                    'hoekBrownMb',\
+                                                    'hoekBrownS',\
+                                                    'hoekBrownA',\
+                                                    'hoekBrownMr',\
+                                                    'hoekBrownSr',\
+                                                    'hoekBrownAr',\
+                                                    'urPiHB',\
+                                                    'rpl',\
+                                                    'picr',\
+                                                    'ldpVlachBegin',\
+                                                    'ldpVlachEnd',\
+                                                    ])
 
 BbtParameter4Seg =  namedtuple('BbtParameter4Seg',['inizio',\
                                                     'fine',\
@@ -92,8 +113,13 @@ parmDict = {
     'cai':("Indice di Abrasivita'", "-",0,0),\
     'gsi':("GSI", "-",0,0),\
     'rmr':("RMR", "-",0,0),\
+    'inSituConditionSigmaV':("In-situ Stress", "MPA",0,0),\
+    'rockE':("Young modulus in MPa", "MPA",0,0),\
+    'rockUcs':("UCS", "MPA",0,0),\
     'pkgl':("Progressiva", "m",0,0),\
-    'closure':("Convergenza al fronte", "cm",0,40),\
+    'closure':("Chiusura a fine scudo", "cm",0,40),\
+    'ldpVlachBegin':("Convergenza al fronte", "cm",0,40),\
+    'ldpVlachEnd':("Convergenza a fine scudo", "cm",0,40),\
     'rockburst':("Rockburst", "-",0,0.6),\
     'front_stability_ns':("xxx", "GPa",0,1.2),\
     'front_stability_lambda':("Metodo di Panet (Lambda E)", "-",0,3.2),\
