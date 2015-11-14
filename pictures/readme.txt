@@ -1,0 +1,1 @@
+cartella di output dove vengono generate le immagini
