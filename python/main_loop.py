@@ -10,6 +10,7 @@ from bbtnamedtuples import *
 from tbmkpi import *
 from collections import namedtuple
 from pprint import pprint
+from tbmkpi import FrictionCoeff
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
 def main_loop(nIter):
     now = datetime.datetime.now()
@@ -46,12 +47,27 @@ def main_loop(nIter):
     delta_GLEST_CE =  bbtConfig.getfloat('Import','delta_GLEST_CE')
     projectRefCost =  bbtConfig.getfloat('Import','project_ref_cost') # mln di euro
 
+    # danzi.tn@20151115 recepimento modifiche su InfoAlignment fatte da Garbriele
+    #LEGGO I PARAMETRI DA FILE DI CONFIGURAZIONE
+    fCShiledMin = bbtConfig.getfloat('Alignment','frictionCShiledMin')
+    fCShiledMode = bbtConfig.getfloat('Alignment','frictionCShiledMode')
+    fCShiledMax = bbtConfig.getfloat('Alignment','frictionCShiledMax')
+    #CREO OGGETTO
+    fcShield = FrictionCoeff(fCShiledMin,fCShiledMode,fCShiledMax)
+
+    #LEGGO I PARAMETRI DA FILE DI CONFIGURAZIONE
+    fCCutterdMin = bbtConfig.getfloat('Alignment','frictionCCutterMin')
+    fCCutterMode = bbtConfig.getfloat('Alignment','frictionCCutterMode')
+    fCCutterMax = bbtConfig.getfloat('Alignment','frictionCCutterMax')
+    #CREO OGGETTO
+    fcCutter =  FrictionCoeff(fCCutterdMin,fCCutterMode,fCCutterMax)
+
     alnAll = []
-    aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD)
+    aln=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', inizio_GLSUD, fine_GLSUD,fCCutterMode, fCShiledMode)
     alnAll.append(aln)
-    aln=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', delta_GLEST_CE - fine_CE, delta_GLEST_CE - inizio_CE )
+    aln=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', delta_GLEST_CE - fine_CE, delta_GLEST_CE - inizio_CE , fCCutterMode, fCShiledMode)
     alnAll.append(aln)
-    aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD',inizio_GLEST, fine_GLEST)
+    aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD',inizio_GLEST, fine_GLEST, fCCutterMode, fCShiledMode)
     alnAll.append(aln)
     kpiTbmList = []
     for iIterationNo in range(nIter):
@@ -73,7 +89,14 @@ def main_loop(nIter):
                     matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
                     for bbt_parameter in matches_params:
                         bbtparameter4seg = build_bbtparameter4seg_from_bbt_parameter(bbt_parameter,normfunc_dicts[int(bbt_parameter.fine)])
-                        tbmsect = TBMSegment(bbtparameter4seg, tbm)
+                        # danzi.tn@20151115 recepimento modifiche su InfoAlignment fatte da Garbriele
+                        if iIterationNo > 2:
+                            alnCurr.frictionCoeff = fcShield.rvs()
+                            alnCurr.fiRi = fcCutter.rvs()
+                        else:
+                            alnCurr.frictionCoeff = fCShiledMode
+                            alnCurr.fiRi = fCCutterMode
+                        tbmsect = TBMSegment(bbtparameter4seg, tbm, alnCurr.fiRi, alnCurr.frictionCoeff)
                         kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
                         #danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
                         bbt_evalparameters.append((strnow,iIterationNo,alnCurr.description, tbmKey, bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,bbtparameter4seg.gamma,\

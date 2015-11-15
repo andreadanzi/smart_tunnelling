@@ -4,7 +4,9 @@ from bbtnamedtuples import *
 from scipy.stats import triang
 import sqlite3, os
 
-#danzi.tn@20151113 distribuzione triangolare per friction on Shield e on Cutter Head
+# danzi.tn@20151113 distribuzione triangolare per friction on Shield e on Cutter Head
+# danzi.tn@20151115 recepimento modifiche gabriele
+
 class FrictionCoeff:
 
     def __init__(self,minVal,avgVal,maxVal):
@@ -73,8 +75,9 @@ class KpiTbm4Tunnel:
         pCur=1.
 
         iCur=tbm.P2.impact
-        self.kpis['P2'].updateIndex(pCur, iCur, 1.)
-        self.kpis['P2'].finalizeIndex(1.)
+        #danzi.tn@20151115 recepimento modifiche gabriele
+        self.kpis['P2'].updateIndex(0.005, iCur,alnCurr.length)
+        self.kpis['P2'].finalizeIndex(alnCurr.length)
 
         iCur=tbm.P6.impact
         self.kpis['P6'].updateIndex(pCur, iCur, 1.)
@@ -86,11 +89,11 @@ class KpiTbm4Tunnel:
 
         tbm.V2.defineImpact(projectRefCost)
         iCur=tbm.V2.impact
-        self.kpis['V2'].updateIndex(pCur, iCur, 1.)
-        self.kpis['V2'].finalizeIndex(1.)
+        self.kpis['V2'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V2'].finalizeIndex( alnCurr.length)
 
         iCur=tbm.V3.impact
-        self.kpis['V3'].updateIndex(0.005, iCur, alnCurr.length)
+        self.kpis['V3'].updateIndex(1.0, iCur, alnCurr.length)
         self.kpis['V3'].finalizeIndex(alnCurr.length)
 
         iCur=tbm.V4.impact
