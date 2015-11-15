@@ -34,17 +34,22 @@ print "start querying database  "
 bbtresults = cur.execute("SELECT title,inizio,fine,abs(fine-inizio) as length,he,hp,co,g_med,sigma_ci_avg,mi_med,ei_med,gsi_med,rmr_med, (sigma_ti_min + sigma_ti_max) / 2 as sigma_ti, k0_min, k0_max FROM bbtparameter ORDER BY fine")
 res=bbtresults.fetchall()
 # recupero tutti i parametri e li metto in una lista
-bbt_parameterseval = []  # servono????
+##bbt_parameterseval = []  # servono????
+
+# gabriele@20151114 friction parametrica
+fiRi = .5
+frictionCoeff = .15
 
 #inizializzo le info sul tracciato
-alnCE=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217.)
-alnGLNORD=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', 44191.75, 32088.)
-alnGLSUD=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 53000.)
+alnCE=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
+alnGLNORD=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', 44191.75, 32088., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
+alnGLSUD=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 53000., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
 
 #loop sui tracciati (ora prendo solo il CE
 alnCurr = alnCE
 pkMinCurr = min(alnCurr.pkStart, alnCurr.pkEnd)
 pkMaxCurr = max(alnCurr.pkStart, alnCurr.pkEnd)
+
 # leggo le tbm
 # ora la prendo secca ma andrebbero prese tutte quelle che in cui (vedi riga commentata sotto
 for tbmName in tbms:
@@ -95,8 +100,8 @@ for tbmName in tbms:
         pCur=1.
 
         iCur=tbm.P2.impact
-        P2.updateIndex(pCur, iCur, 1.)
-        P2.finalizeIndex(1.)
+        P2.updateIndex(0.005, iCur, alnCurr.length) # gabriele@20151115
+        P2.finalizeIndex(alnCurr.length) # gabriele@20151115
 
         iCur=tbm.P6.impact
         P6.updateIndex(pCur, iCur, 1.)
@@ -109,11 +114,12 @@ for tbmName in tbms:
         projectRefCost = 1400. # mln di euro
         tbm.V2.defineImpact(projectRefCost)
         iCur=tbm.V2.impact
-        V2.updateIndex(pCur, iCur, 1.)
-        V2.finalizeIndex(1.)
-
+        V2.updateIndex(0.005, iCur, alnCurr.length) # gabriele@20151115
+        V2.finalizeIndex(alnCurr.length) # gabriele@20151115
+# gabriele@20151115
+# assegno la stessa percentuale della preparazione prospezioni che ee' su tutto il tracciato
         iCur=tbm.V3.impact
-        V3.updateIndex(0.005, iCur, alnCurr.length)
+        V3.updateIndex(1., iCur, alnCurr.length)
         V3.finalizeIndex(alnCurr.length)
 
         iCur=tbm.V4.impact
@@ -144,7 +150,7 @@ for tbmName in tbms:
             segmToAnalize = True #pkMinSegm<=pkMaxCurr and pkMaxSegm>=pkMinCurr
             
             if segmToAnalize:
-                tbmsect = TBMSegment(p, tbm)
+                tbmsect = TBMSegment(p, tbm, alnCurr.fiRi, alnCurr.frictionCoeff) # gabriele@20151114 friction parametrica
                 
                 # aggiorno indici produzione. l'impatto medio dovra' poi essere diviso per la lunghezza del tracciato
         #        pCur=tbmsect.P0.probability
@@ -533,12 +539,11 @@ for tbmName in tbms:
         ax42s.plot(vplot[0], vplot[1], label='Copertura', color='brown', linewidth=2)
         ax42s.set_ylim(0.0, max(vplot[1])*1.5)
 
-#        plt.show()
+        plt.show()
         # esposrto in csv i valori di confronto
         with open('confronto.csv', 'wb') as f:
             writer = csv.writer(f,delimiter=",")
             writer.writerows(vcheck)
-        exit(-1)
 """
 
         plot(vplot[0], vplot[1], label='Panet_1995')

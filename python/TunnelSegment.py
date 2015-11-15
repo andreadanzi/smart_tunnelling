@@ -295,6 +295,7 @@ class MohrCoulomb:
 class Excavation:
     # caratteristiche legate allo scavo
     def __init__(self, typ, area, width, height, length, overburden, fi):
+        # serve passare i valori di post picco di fi
         self.Type = typ 						#Mech
         self.Area = area						#Area della sezione di scavo
         self.Width = width						#ampiezza dello sezione di scavo
@@ -372,15 +373,40 @@ class frontStability:
             self.Class = 'Instability'
 
 class Breakaway:
-    #definisco l'altezza di materiale di frana secondo tamez per terreni
-    def __init__(self, overburden, excav, mc, gamma, nu, t):
+    def __init__(self):
+        self.D=0.
+        self.fir =0.
+        self.si = 0.
+        self.T1 = 0.
+        self.T2 = 0.
+        self.T3 = 0.
+        self.T5 = 0.
+        self.torque = 0.
+    
+    def setupFrontInstability(self, overburden, mc, gamma, D):
         # nu e' opening Ratio della cutterhead
-        f = min(mc.SigmaCm0 * 1000.0 / 100.0, mc.C/(mc.SigmaCm0*1000.0)+math.tan(math.radians(mc.Fi))) #fattore di Protodyakonov
-        h1 = min(max(1.7*excav.Width, excav.B1/2.0/f), overburden)
-        si = gamma*(h1+excav.Radius) # in KPa
-        D = excav.Radius*2.
-        fiRi = 0.5 # fattore di riduzione dell'attrito per valutare il coefficiente di attrito dei vari casi
-        u1 = math.tan(fiRi*math.radians(mc.Fi)) # coefficiente di attrito del materiale al fronte
+        # definisco tutto sulla base dei parametri di post picco del materiale
+        self.D = D
+        self.fir = mc.Fir
+        f = min(mc.SigmaCm0r * 1000.0 / 100.0, mc.Cr/(mc.SigmaCm0r*1000.0)+math.tan(math.radians(mc.Fir))) #fattore di Protodyakonov
+        b1 = D+D*math.tan(math.radians(45.0-mc.Fir/2.0)) # Terzaghi silo width
+        h1 = min(max(1.7*D, b1/2.0/f), overburden)
+        self.si = gamma*(h1+D/2.) # in KPa
+
+    def setupRockburst(self, mc, gamma, D):
+        # definisco tutto sulla base dei parametri di post picco del materiale
+        self.D = D
+        self.fir = mc.Fir
+        self.si = gamma*D/2. # in KPa
+
+    #definisco l'altezza di materiale di frana secondo tamez per terreni
+    def calculate(self, nu, t, fiRi):
+        # nu e' opening Ratio della cutterhead
+        si = self.si
+        D = self.D
+#        D = excav.Radius*2.
+#        fiRi = 0.5 # fattore di riduzione dell'attrito per valutare il coefficiente di attrito dei vari casi
+        u1 = math.tan(fiRi*math.radians(self.fir)) # coefficiente di attrito del materiale al fronte
         u2 = u1 # coefficiente di attrito del materiale su bordo della testa di scavo
         u3 = u1
         u5 = u1
@@ -430,6 +456,11 @@ class TBM:
         self.rpm = tbmData.referenceRpm
         self.Slen = tbmData.shieldLength # shield length
         self.excavationDiam = tbmData.excavationDiameter    #shield maximum diameter
+        self.frontShieldDiameter = tbmData.frontShieldDiameter
+        self.tailShieldDiameter = tbmData.tailShieldDiameter
+        
+        self.dotation = tbmData.dotationForProspection #numero tra 0 e 1 dove 0 e' la meno dotata
+        self.name = tbmData.name
 
         self.gap = tbmData.overcut + (tbmData.frontShieldDiameter-tbmData.tailShieldDiameter)/2. #gap in m
         self.gap1 = tbmData.overcut #gap in m del primo scudo (per le DS)
@@ -437,7 +468,7 @@ class TBM:
         self.CutterRadius = tbmData.cutterSize/2.  #Cutter radius
         self.CutterThickness = tbmData.cutterThickness #Cutterthickness
         self.CutterSpacing = tbmData.cutterSpacing #Cutter spacing
-        self.Friction = tbmData.frictionCoefficient # coefficiente di attrito tra ammasso e scudo
+#        self.Friction = tbmData.frictionCoefficient # coefficiente di attrito tra ammasso e scudo
         self.BackupDragForce = tbmData.backupDragForce # kN (8000 per la GL, 4000 per il CE
         self.openingRatio = tbmData.openingRatio
         self.cutterheadThickness = tbmData.cutterheadThickness
@@ -488,15 +519,15 @@ class TBM:
         self.P6 = P6()
 
         self.V1 = V1(self.type)
-        self.V2 = V2(self.type, self.excavationDiam)
-        self.V3 = V3(self.type)
+        self.V2 = V2(self.type, self.name)
+        self.V3 = V3(self.type, self.dotation)
         self.V4 = V4(self.type)
         self.V5 = V5(self.type)
         self.V6 = V6(self.type)
 
 class TBMSegment:
     # definisco la condizione intrinseca (TODO verificare definizione con Luca o Paolo)
-    def __init__(self, segment, tbm):
+    def __init__(self, segment, tbm, fiRi, frictionCoeff): # gabriele@20151114 friction parametrica
         gamma = segment.gamma
         ni = .2
         e = segment.ei*1000.
@@ -531,19 +562,47 @@ class TBMSegment:
 
         # print "GSI= %f GSIr= %f " % (self.HoekBrown.gsi, self.HoekBrown.gsir)
 
-        self.Excavation = Excavation(excavType, excavArea, excavWidth, excavHeight, refLength, overburden, self.MohrCoulomb.Fi)
+        self.Excavation = Excavation(excavType, excavArea, excavWidth, excavHeight, refLength, overburden, self.MohrCoulomb.Fir)
         self.InSituCondition.UpdateK0KaKp(self.Excavation.OverburdenType,self.MohrCoulomb.Fi)
         self.rockBurst = rockBursting(ucs, rmr, self.InSituCondition.SigmaV)
         self.Tamez = Tamez('r',overburden, self.Excavation, self.MohrCoulomb, self.InSituCondition, gamma, pi, aunsupported)
         self.frontStability = frontStability(self.InSituCondition.Overburden/(2.0*self.Excavation.Radius), \
                                     self.MohrCoulomb.SigmaCm0, self.InSituCondition.SigmaV, self.InSituCondition.Kp) #, 1.0+math.sin(math.radians(self.MohrCoulomb.Fi)))
-        # definisco il breakawayTorque
-        if self.frontStability.lambdae > 0.3:
-            self.breakawayTorque = 0.
+        # definisco il breakawayTorque per l'instabilita' del fronte
+        bat = Breakaway()
+        if self.frontStability.lambdae > 0.6:
+            self.frontStabilityBreakawayTorque = 0.
+        elif self.frontStability.lambdae > 0.3:
+            # tra 0.3 e 0.6 ipotizzo che aumenti progressivamente il diametro di base
+            dEq = self.Excavation.Radius*2.*(0.6-self.frontStability.lambdae)/.3 
+            bat.setupFrontInstability(overburden, self.MohrCoulomb, gamma, dEq)
+            bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
+#            print 'Breakaway torque for front stability mid = %f' % (bat.torque)
         else:
-            bat = Breakaway(overburden, self.Excavation, self.MohrCoulomb, gamma, tbm.openingRatio, tbm.cutterheadThickness)
-            self.breakawayTorque = bat.torque
-#            print 'Breakaway torque = %f' % (self.breakawayTorque)
+            dEq=self.Excavation.Radius*2.
+            bat.setupFrontInstability(overburden, self.MohrCoulomb, gamma, dEq)
+            bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
+#            print 'Breakaway torque for front stability full = %f' % (bat.torque)
+        self.frontStabilityBreakawayTorque = bat.torque
+
+        # definisco il breakawayTorque per il rockburst
+        bat = Breakaway()
+        if self.rockBurst.Val < .2:
+            self.rockburstBreakawayTorque = 0.
+        elif self.rockBurst.Val < .3:
+            # tra 0.3 e 0.6 ipotizzo che aumenti progressivamente il diametro di base
+            dEq = self.Excavation.Radius*2.*(self.rockBurst.Val-0.2)/.1 
+            bat.setupRockburst(self.MohrCoulomb, gamma, dEq)
+            bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
+#            print 'Breakaway torque for rockbursting mid = %f' % (bat.torque)
+        else:
+            dEq=self.Excavation.Radius*2.
+            bat.setupRockburst(self.MohrCoulomb, gamma, dEq)
+            bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
+#            print 'Breakaway torque for rockbursting full = %f' % (bat.torque)
+        self.rockburstBreakawayTorque = bat.torque
+        # definisco il breakawayTorque come il massimo tra quello richiesto per instabilita' del fronte e quello richesto dal rockbursting
+        self.breakawayTorque = max(self.frontStabilityBreakawayTorque, self.rockburstBreakawayTorque)
 
         #gabriele@20151114 info fuorviante
 #        R = self.Excavation.Radius # in m
@@ -565,21 +624,62 @@ class TBMSegment:
 #            self.Rpl = R
 
         self.Tbm = tbm
-        self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
-        #if self.Tbm.
-        self.TunnelClosureAtShieldEnd1 = self.TunnelClosure(self.Tbm.Slen1) # delta convergenza alla fine del primo scudo
 
-        # definisco l'eventuale
-        if self.TunnelClosureAtShieldEnd>self.Tbm.gap:
-            # definisco il punto di contatto sullo scudo
+        self.TunnelClosureAtShieldEnd = self.TunnelClosure(self.Tbm.Slen) # min(self.TunnelClosure(self.Tbm.Slen, 'P'),  R)
+        if self.Tbm.type =='DS':
+            self.TunnelClosureAtShieldEnd1 = self.TunnelClosure(self.Tbm.Slen1) # delta convergenza alla fine del primo scudo
+        else:
+            self.TunnelClosureAtShieldEnd1 = 0.
+
+        # definisco la possibile convergenza sullo scudo
+        # contactType = 0 significa nessun contatto
+        # contactType = 1 significa conatto solo sullo scudo posteriore
+        # contactType = 2 significa contatto solo sullo scudo anteriore
+        # contactType = 3 significa contatto su entrambe gli scudi
+        if self.TunnelClosureAtShieldEnd<=self.Tbm.gap and self.TunnelClosureAtShieldEnd1<=self.Tbm.gap1:
+            self.contactType = 0
+            self.frontFrictionForce = 0.
+            self.tailFrictionForce = 0.
+            self.frictionForce = 0.0 # in kN quella che mi rallenta l'avanzamento
+            self.Xcontact = tbm.Slen
+        elif self.TunnelClosureAtShieldEnd>self.Tbm.gap and self.TunnelClosureAtShieldEnd1<=self.Tbm.gap1:
             self.Xcontact = self.xLim(self.Tbm.gap)
             # integrazione semplificata, assumo la pressione come triangolare
             maxPressure = self.PiUr(self.Tbm.gap) - self.PiUr(self.TunnelClosureAtShieldEnd)
             total = maxPressure*(self.Tbm.Slen-self.Xcontact)/2.0
-            self.frictionForce = total*self.Tbm.excavationDiam*math.pi*self.Tbm.Friction*1000.0 # forza in kN
+            if self.Tbm.type =='DS':
+                self.contactType = 1
+                self.frontFrictionForce = 0.
+                self.tailFrictionForce = total*self.Tbm.tailShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
+                self.frictionForce = 0.
+            else:
+                self.contactType = 2
+                self.frontFrictionForce = total*self.Tbm.tailShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
+                self.tailFrictionForce = 0.
+                self.frictionForce = self.frontFrictionForce
+                
+        elif self.TunnelClosureAtShieldEnd<=self.Tbm.gap and self.TunnelClosureAtShieldEnd1>self.Tbm.gap1:
+            self.contactType = 2
+            self.Xcontact = self.xLim(self.Tbm.gap1)
+            # integrazione semplificata, assumo la pressione come triangolare
+            maxPressure = self.PiUr(self.Tbm.gap1) - self.PiUr(self.TunnelClosureAtShieldEnd1)
+            total = maxPressure*(self.Tbm.Slen1-self.Xcontact)/2.0
+            self.frontFrictionForce = total*self.Tbm.frontShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
+            self.tailFrictionForce = 0.
+            self.frictionForce = self.frontFrictionForce
         else:
-            self.frictionForce = 0.0 # in kN
-            self.Xcontact = tbm.Slen
+            self.contactType = 3
+            # ipotizzo distribuzione triangolare su tutto lo scudo di dietro e calcolo normalmente quella dello scudo davanti
+            self.Xcontact = self.xLim(self.Tbm.gap1)
+            # forza su scudo anteriore
+            maxPressure = self.PiUr(self.Tbm.gap1) - self.PiUr(self.TunnelClosureAtShieldEnd1)
+            total = maxPressure*(self.Tbm.Slen1-self.Xcontact)/2.0
+            self.frontFrictionForce = total*self.Tbm.frontShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
+            #forza su scudo posteriore
+            maxPressure = self.PiUr(self.Tbm.gap) - self.PiUr(self.TunnelClosureAtShieldEnd)
+            total = maxPressure*(self.Tbm.Slen-self.Tbm.Slen1)/2.0
+            self.tailFrictionForce = total*self.Tbm.tailShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
+            self.frictionForce = self.frontFrictionForce
 
         #definisco il thrust che rimane per l'avanzamento tolti gli attriti e la convergenza sullo scudo
         if tbm.type == 'DS':
@@ -595,7 +695,11 @@ class TBMSegment:
             self.cavityStabilityPar = (0.25-ratio)*4. # varia da 0 a 1 passando da ratio = 0.25 a 0
         else:
             self.cavityStabilityPar = 1.
-
+        #considerao anche il blocco dello scudo posteriore
+        if self.Tbm.installedAuxiliaryThrustForce>self.tailFrictionForce:
+            self.tailCavityStabilityPar = 0.
+        else:
+            self.tailCavityStabilityPar = 1.
 
         # definisco thrust e torque
         psi = self.Tbm.psi
@@ -649,7 +753,7 @@ class TBMSegment:
         self.P1 = P1(impactP1) # impatto sulla produzione
         self.P3 = P3(impactP3) # impatto del rallentamento per rocce dure
         self.P4 = P4(self.Tbm.type, 1., productionBase,  segment.length)
-        self.P5 = P5(self.Tbm.type, self.cavityStabilityPar, productionBase,  segment.length)
+        self.P5 = P5(self.Tbm.type, self.cavityStabilityPar, self.frontStability.lambdae, productionBase,  segment.length)
 
         # tempi di produzione in giorni
         self.t0= self.segmentLength/(24.*locuf*locp*self.Tbm.rpm*60.) #giorni di scavo del segmento
@@ -662,15 +766,15 @@ class TBMSegment:
         self.dailyAdvanceRate = self.segmentLength/(self.t1+self.t3+self.t4+self.t5)
 
         # indicatori geotecnici
-        self.G1 = G1(self.Tbm.type, self.frontStability.lambdae, self.availableBreakawayTorque)
-        self.G2 = G2(self.Tbm.type, self.cavityStabilityPar)
+        self.G1 = G1(self.Tbm.type, self.frontStability.lambdae, self.availableBreakawayTorque-self.frontStabilityBreakawayTorque)
+        self.G2 = G2(self.Tbm.type, self.cavityStabilityPar, self.tailCavityStabilityPar, self.contactType)
         self.G5 = G5(self.Tbm.type, segment.descr, self.frontStability.lambdae)
         self.G6 = G6(self.Tbm.type)
         self.G7 = G7(self.Tbm.type)
         self.G8 = G8(self.Tbm.type)
         self.G11 = G11(self.Tbm.type, segment.descr, self.cavityStabilityPar)
-        self.G12 = G12(self.Tbm.type, segment.descr, self.frontStability.lambdae)
-        self.G13 = G13(self.Tbm.type, self.rockBurst.Val)
+        self.G12 = G12(self.Tbm.type, segment.descr, self.frontStability.lambdae, self.availableBreakawayTorque-self.frontStabilityBreakawayTorque)
+        self.G13 = G13(self.Tbm.type, self.rockBurst.Val, self.availableBreakawayTorque-self.rockburstBreakawayTorque)
 
     def UrPi_HB(self, pi):
         #curva caratteristica con parametri di H-B secondo Carranza torres del 2006
@@ -784,7 +888,7 @@ class TBMSegment:
 
         else:
             ur = (S0_r-Picr_r)/(2.*G_r)*Rpl**2/R
-        return min(ur, R)
+        return ur
 
     def UrPi(self, pi):
         # ur in m
@@ -828,7 +932,8 @@ class TBMSegment:
         # x in m
         urmax = self.UrPi_HB(0.0)
         R = self.Excavation.Radius # in m
-        return urmax*(0.25+0.75*(1.0-(0.75/(0.75+x/R))**2)) # convergenza del cavo in m alla distanza x dal fronte
+        urx=urmax*(0.25+0.75*(1.0-(0.75/(0.75+x/R))**2)) # convergenza del cavo in m alla distanza x dal fronte
+        return urx
 
     def LDP_Vlachopoulos_2009(self, x):
         # risultato in m
@@ -903,28 +1008,39 @@ class G1:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if lambdae<0.3 and availableTorque<0.:
+        if lambdae<.6:
+            # tra 0.3 e 0.6 faccio calare linearmente sia la probabilita' che l'impatto
+            self.probability = (.6-lambdae)/.3
+            self.impact = (.6-lambdae)/.3*imax
+        elif lambdae<.3:
             self.probability = 1.
             self.impact = imax
-        else:
+        else:   
             self.probability = 0.
+            self.impact = 0.
+        if availableTorque>=0.:
+            # rimedio con la coppia e quindi annullo l'impatto
             self.impact = 0.
 
 class G2:
-    def __init__(self, tbmType, cavityStabilityPar): #, whichShield):
-        # self.definition='Cavity stability'
-        imax=1.
-#        if whichShield = 'Front':
-#            imax = 2.
-#        else:
-#            imax = 1.
-            
-        if cavityStabilityPar>0.:
+    def __init__(self, tbmType, cavityStabilityPar, tailCavityStabilityPar, contactType): #, whichShield):
+        self.definition='Cavity stability'
+        if contactType==0:
+            imax=0.
+            self.probability = 0.
+            self.impact = 0.
+        elif contactType==1:
+            imax=1.
+            self.probability = 1.
+            self.impact = imax
+        elif contactType==2:
+            imax=2.5
             self.probability = 1.
             self.impact = imax*cavityStabilityPar
         else:
-            self.probability = 0.
-            self.impact = 0.
+            imax=2.75
+            self.probability = 1.
+            self.impact = imax
 
 class G5:
     def __init__(self, tbmType, mat, lambdae):
@@ -1027,7 +1143,7 @@ class G11:
             self.impact = 0.
 
 class G12:
-    def __init__(self, tbmType, mat, lambdae):
+    def __init__(self, tbmType, mat, lambdae, availableTorque):
         self.definition='Spalling - front'
         if tbmType=='O':
             imax = 2.25
@@ -1040,19 +1156,25 @@ class G12:
             exit(1)
 
         if 'KS' in mat:
-            if lambdae >.3:
-                self.probability = 0.
-                self.impact = 0.
-            else:
+            if lambdae<.6:
+                # tra 0.3 e 0.6 faccio calare linearmente sia la probabilita' che l'impatto
+                self.probability = (.6-lambdae)/.3
+                self.impact = (.6-lambdae)/.3*imax
+            elif lambdae<.3:
                 self.probability = 1.
                 self.impact = imax
+            else:   
+                self.probability = 0.
+                self.impact = 0.
+            if availableTorque>0.:
+                # rimedio con la coppia e quindi annullo l'impatto
+                self.impact = 0.
         else:
             self.probability = 0.
             self.impact = 0.
 
 class G13:
-    def __init__(self, tbmType, rockBurstingPar):
-        # todo collegare alla copia di breakaway
+    def __init__(self, tbmType, rockBurstingPar, availableTorque):
         self.definition='Rockburst'
         if tbmType=='O':
             imax = 2.75
@@ -1064,15 +1186,18 @@ class G13:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
 
-        if rockBurstingPar<0.1:
+        if rockBurstingPar<0.2:
             self.probability = 0.
             self.impact = 0.
-        elif rockBurstingPar<0.4:
+        elif rockBurstingPar<0.3:
             self.probability = 1.
-            self.impact = imax*(rockBurstingPar-0.1)/.3
+            self.impact = imax*(rockBurstingPar-0.2)/.1
         else:
             self.probability = 1.
             self.impact = imax
+        if availableTorque>=0.:
+            # rimedio con la coppia e quindi annullo l'impatto
+            self.impact = 0.
 
 # i parametri di produzione possono essere applicati solo alla fine sommando tutti i segmenti
 class P0: #tempo di scavo effettivo
@@ -1151,7 +1276,7 @@ class P4:
 
 
 class P5:
-    def __init__(self, tbmType, par, refProductivity,  length):
+    def __init__(self, tbmType, par, lambdae, refProductivity,  length):
         # considera un incremento dei tempi per eseguire i consolidamenti.
         # il tempo richiesto per i consolidamenti e' gia' contato nell'UF
         # considerate le ipotesi di TC servono 4.5 ore per ogni m di apprestamento di consolidamento
@@ -1170,6 +1295,14 @@ class P5:
         impact = impactOnProduction(newProductivity, refProductivity)
 
         if par>0. and impact>0.:
+            self.probability = 1.
+            self.impact = impact # impatto in ore per la tratta di lunghezza length
+            self.duration = imax # impatto in giorni per la produzione di quel segmento
+        elif lambdae<.6 and lambdae>=.3 and impact>0.:
+            self.probability = 1.
+            self.impact = impact*(.6-lambdae)/.3 # impatto in ore per la tratta di lunghezza length
+            self.duration = imax*(.6-lambdae)/.3 # impatto in giorni per la produzione di quel segmento
+        elif lambdae<.3 and impact>0.:
             self.probability = 1.
             self.impact = impact # impatto in ore per la tratta di lunghezza length
             self.duration = imax # impatto in giorni per la produzione di quel segmento
@@ -1222,23 +1355,33 @@ class V1:
         self.impact=imax
 
 class V2:
-    def __init__(self, tbmType, excavDiam):
+    def __init__(self, tbmType, tbmName):
         # definisco il costo base in proporzione al diametro (1 mln al metro) in mln
         # DS sui 26 mln / 16mln
         # S sui 24 mln /14.5 mln
         # O sui 15
         self.definition='Cost'
         self.probability=0.
-        if tbmType=='O':
-            imax = 1.15 # mln euro al metro di diametro
-        elif tbmType=='S':
-            imax = 1.37 # mln euro al metro di diametro
-        elif tbmType=='DS':
-            imax = 1.8 # mln euro al metro di diametro
+        if 'CE' in tbmName:
+            if tbmType=='O':
+                self.cost = 7. 
+            elif tbmType=='S':
+                self.cost = 14.5 
+            elif tbmType=='DS':
+                self.cost = 16. 
+            else:
+                print 'Errore tipo di tbm inesistente!'
+                exit(1)
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
-        self.cost=imax*excavDiam
+            if tbmType=='O':
+                self.cost = 15. 
+            elif tbmType=='S':
+                self.cost = 24 
+            elif tbmType=='DS':
+                self.cost = 26. 
+            else:
+                print 'Errore tipo di tbm inesistente!'
+                exit(1)
         self.impact=0.
 
     def defineImpact(self, costRef):
@@ -1252,7 +1395,7 @@ class V2:
 
 
 class V3:
-    def __init__(self, tbmType): #, tbmManifacturer):
+    def __init__(self, tbmType, dotation): 
         # servira' avvantaggiare rbs perche' meglio dotata
         self.definition='Prospection tools'
         self.probability=1.
@@ -1265,7 +1408,7 @@ class V3:
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
-        self.impact=imax
+        self.impact=imax*(1.-dotation)
 
 class V4:
     def __init__(self, tbmType):
@@ -1354,9 +1497,13 @@ class PerformanceIndex:
             % (self.definition, self.minImpact, self.maxImpact, self.avgImpact, self.appliedLength, self.percentOfApplication, self.probabilityScore, self.totalImpact)
 
 class InfoAlignment:
-    def __init__(self, descr, tbmKey, pkStart, pkEnd):
+    # gabriele@20151114 friction parametrica
+    def __init__(self, descr, tbmKey, pkStart, pkEnd, fiRi, frictionCoeff):
         self.description=descr
         self.tbmKey=tbmKey
         self.pkStart=pkStart
         self.pkEnd=pkEnd
         self.length=max(pkStart, pkEnd)-min(pkStart, pkEnd)
+        # gabriele@20151114 friction parametrica
+        self.fiRi = fiRi
+        self.frictionCoeff = frictionCoeff

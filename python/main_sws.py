@@ -34,12 +34,17 @@ print "start querying database  "
 bbtresults = cur.execute("SELECT title,inizio,fine,abs(fine-inizio) as length,he,hp,co,g_med,sigma_ci_avg,mi_med,ei_med,gsi_med,rmr_med, (sigma_ti_min + sigma_ti_max) / 2 as sigma_ti, k0_min, k0_max FROM bbtparameter ORDER BY fine")
 res=bbtresults.fetchall()
 # recupero tutti i parametri e li metto in una lista
-bbt_parameterseval = []  # servono????
+#bbt_parameterseval = []  # servono????
+
+# gabriele@20151114 friction parametrica
+fiRi = .5
+frictionCoeff = .15
+
 
 #inizializzo le info sul tracciato
-alnCE=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217.)
-alnGLNORD=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', 44191.75, 32088.)
-alnGLSUD=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 53000.)
+alnCE=InfoAlignment('Cunicolo esplorativo direzione Nord', 'CE', 13290., 27217., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
+alnGLNORD=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD', 44191.75, 32088., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
+alnGLSUD=InfoAlignment('Galleria di linea direzione Sud', 'GLSUD', 49082.867, 53000., fiRi, frictionCoeff) # gabriele@20151114 friction parametrica
 
 #loop sui tracciati (ora prendo solo il CE
 alnCurr = alnCE
@@ -48,7 +53,7 @@ pkMaxCurr = max(alnCurr.pkStart, alnCurr.pkEnd)
 
 # definisco matrice dei risultati per excel
 resMatrix=[]
-resMatrix.append(['Alignment', 'TBM', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', \
+resMatrix.append(['Alignment', 'TBM', 'SCORE', 'P1', 'P2', 'P3', 'P4', 'P5', 'P6', \
                     'G1', 'G2', 'G5', 'G6', 'G7', 'G8', 'G11', 'G12', 'G13', \
                     'V1', 'V2', 'V3', 'V4', 'V5', 'V6']) 
 
@@ -101,8 +106,8 @@ for tbmName in tbms:
         pCur=1.
 
         iCur=tbm.P2.impact
-        P2.updateIndex(pCur, iCur, 1.)
-        P2.finalizeIndex(1.)
+        P2.updateIndex(0.005, iCur, alnCurr.length) # gabriele@20151115
+        P2.finalizeIndex(alnCurr.length) # gabriele@20151115
 
         iCur=tbm.P6.impact
         P6.updateIndex(pCur, iCur, 1.)
@@ -115,11 +120,13 @@ for tbmName in tbms:
         projectRefCost = 1400. # mln di euro
         tbm.V2.defineImpact(projectRefCost)
         iCur=tbm.V2.impact
-        V2.updateIndex(pCur, iCur, 1.)
-        V2.finalizeIndex(1.)
+        V2.updateIndex(0.005, iCur, alnCurr.length) # gabriele@20151115
+        V2.finalizeIndex(alnCurr.length) # gabriele@20151115
 
+# gabriele@20151115
+# assegno la stessa percentuale della preparazione prospezioni che ee' su tutto il tracciato
         iCur=tbm.V3.impact
-        V3.updateIndex(0.005, iCur, alnCurr.length)
+        V3.updateIndex(1., iCur, alnCurr.length)
         V3.finalizeIndex(alnCurr.length)
 
         iCur=tbm.V4.impact
@@ -150,7 +157,7 @@ for tbmName in tbms:
             segmToAnalize = pkMinSegm<=pkMaxCurr and pkMaxSegm>=pkMinCurr
             
             if segmToAnalize:
-                tbmsect = TBMSegment(p, tbm)
+                tbmsect = tbmsect = TBMSegment(p, tbm, alnCurr.fiRi, alnCurr.frictionCoeff)
                 
                 # aggiorno indici produzione. l'impatto medio dovra' poi essere diviso per la lunghezza del tracciato
 
@@ -252,8 +259,12 @@ for tbmName in tbms:
         G11.finalizeIndex(alnCurr.length)
         G12.finalizeIndex(alnCurr.length)
         G13.finalizeIndex(alnCurr.length)
+        
+        score =  P1.totalImpact+P2.totalImpact+ P3.totalImpact+ P4.totalImpact+ P5.totalImpact+ P6.totalImpact+ \
+                    G1.totalImpact+ G2.totalImpact+ G5.totalImpact+ G6.totalImpact+ G7.totalImpact+ G8.totalImpact+ G11.totalImpact+ G12.totalImpact+ G13.totalImpact+ \
+                    V1.totalImpact+ V2.totalImpact+ V3.totalImpact+ V4.totalImpact+ V5.totalImpact+ V6.totalImpact
 
-        resRow = [alnCurr.description, tbmName, \
+        resRow = [alnCurr.description, tbmName, score, \
                     P1.totalImpact, P2.totalImpact, P3.totalImpact, P4.totalImpact, P5.totalImpact, P6.totalImpact, \
                     G1.totalImpact, G2.totalImpact, G5.totalImpact, G6.totalImpact, G7.totalImpact, G8.totalImpact, G11.totalImpact, G12.totalImpact, G13.totalImpact, \
                     V1.totalImpact, V2.totalImpact, V3.totalImpact, V4.totalImpact, V5.totalImpact, V6.totalImpact]

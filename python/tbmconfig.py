@@ -7,6 +7,7 @@ class TBMConfig:
     type='' # O = open, S = single shield, DS = double shield
     alignmentCode=''
     shieldLength=0.
+    frontShieldLength=0.
     frontShieldDiameter=0.
     tailShieldDiameter=0.
     nominalThrustForce=0.
@@ -26,7 +27,7 @@ class TBMConfig:
     frictionCoefficient=0.
     openingRatio=0.
     cutterheadThickness=0.8 # in metri lo spessore della testa di scavo
-    frontShieldLength=5.0
+    dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
 
 tbms={}
 
@@ -36,7 +37,7 @@ tbm1.name = 'GL_O_BBT '
 tbm1.manifacturer='BBT'
 tbm1.alignmentCode='GLSUD'
 tbm1.type='O' # O = open, S = single shield, DS = double shield
-tbm1.shieldLength=2.
+tbm1.shieldLength=2. 
 tbm1.frontShieldDiameter=0.
 tbm1.tailShieldDiameter=0.
 tbm1.excavationDiameter=9.72
@@ -63,7 +64,7 @@ tbm2.name = 'GL_S_BBT'
 tbm2.alignmentCode='GLSUD;GLNORD'
 tbm2.manifacturer='BBT'
 tbm2.type='S' # O = open, S = single shield, DS = double shield
-tbm2.shieldLength=10.
+tbm2.shieldLength=10. 
 tbm2.frontShieldDiameter=10.27
 tbm2.tailShieldDiameter=10.27
 tbm2.excavationDiameter=10.47
@@ -90,7 +91,7 @@ tbm3.name = 'CE_S_BBT'
 tbm3.alignmentCode='CE'
 tbm3.manifacturer='BBT'
 tbm3.type='S' # O = open, S = single shield, DS = double shield
-tbm3.shieldLength=10.
+tbm3.shieldLength=10. 
 tbm3.frontShieldDiameter=6.42
 tbm3.tailShieldDiameter=6.42
 tbm3.excavationDiameter=6.62
@@ -117,7 +118,7 @@ tbm4.name = 'GL_O_HRK'
 tbm4.alignmentCode='GLSUD'
 tbm4.manifacturer='Herrenknecht'
 tbm4.type='O' # O = open, S = single shield, DS = double shield
-tbm4.shieldLength=3.88
+tbm4.shieldLength=3.88 
 tbm4.frontShieldDiameter=7.
 tbm4.tailShieldDiameter=7.
 tbm4.excavationDiameter=9.72
@@ -144,7 +145,7 @@ tbm5.name = 'GL_S_HRK'
 tbm5.alignmentCode='GLSUD;GLNORD'
 tbm5.manifacturer='Herrenknecht'
 tbm5.type='S' # O = open, S = single shield, DS = double shield
-tbm5.shieldLength=9.915
+tbm5.shieldLength=9.915 
 tbm5.frontShieldDiameter=10.46
 tbm5.tailShieldDiameter=10.42
 tbm5.excavationDiameter=10.52
@@ -171,7 +172,7 @@ tbm6.name = 'GL_DS_HRK'
 tbm6.alignmentCode='GLSUD;GLNORD'
 tbm6.manifacturer='Herrenknecht'
 tbm6.type='DS' # O = open, S = single shield, DS = double shield
-tbm6.shieldLength=12.25
+tbm6.shieldLength=12.25 
 tbm6.frontShieldDiameter=10.62
 tbm6.tailShieldDiameter=10.42
 tbm6.excavationDiameter=10.68
@@ -252,7 +253,7 @@ tbm9.name = 'GL_O_RBS'
 tbm9.alignmentCode='GLSUD'
 tbm9.manifacturer='Robbins'
 tbm9.type='O' # O = open, S = single shield, DS = double shield
-tbm9.shieldLength=3.88
+tbm9.shieldLength=3.88 
 tbm9.frontShieldDiameter=7.
 tbm9.tailShieldDiameter=7.
 tbm9.excavationDiameter=9.72
@@ -279,7 +280,7 @@ tbm10.name = 'GL_DS_RBS'
 tbm10.alignmentCode='GLSUD;GLNORD'
 tbm10.manifacturer='Robbins'
 tbm10.type='DS' # O = open, S = single shield, DS = double shield
-tbm10.shieldLength=12.25
+tbm10.shieldLength=12.25 
 tbm10.frontShieldDiameter=7.
 tbm10.tailShieldDiameter=7.
 tbm10.excavationDiameter=10.47
@@ -306,10 +307,11 @@ tbm11.name = 'CE_DS_RBS'
 tbm11.alignmentCode='CE'
 tbm11.manifacturer='Robbins'
 tbm11.type='DS' # O = open, S = single shield, DS = double shield
-tbm11.shieldLength=14.5
+tbm11.shieldLength=14.5 
 tbm11.frontShieldDiameter=6.62
+tbm11.frontShieldLength=6.5
 tbm11.tailShieldDiameter=6.56
-tbm11.excavationDiameter=6.76
+tbm11.excavationDiameter=6.82
 tbm11.overcut=0.1
 tbm11.loadPerCutter=267.
 tbm11.cutterSize=17.*0.0254 #diameter
@@ -318,11 +320,96 @@ tbm11.cutterThickness=0.02
 tbm11.cutterCount=43
 tbm11.totalContactThrust=tbm11.loadPerCutter*tbm11.cutterCount
 tbm11.referenceRpm=8.
-tbm11.nominalTorque=14053.
+tbm11.nominalTorque=6000.
 tbm11.breakawayTorque=14053.
 tbm11.backupDragForce=4000.
-tbm11.frictionCoefficient=0.15
-tbm11.nominalThrustForce=61965.
+tbm11.nominalThrustForce=40000.
 tbm11.auxiliaryThrustForce=61965.
 tbm11.openingRatio=0.1
+tbm11.dotationForProspection=0.9
 tbms[tbm11.name] = tbm11
+
+#TBM 11_bis
+tbm12=TBMConfig()
+tbm12.name = 'CE_DS_RBS_OCRID'
+tbm12.alignmentCode='CE'
+tbm12.manifacturer='Robbins'
+tbm12.type='DS' # O = open, S = single shield, DS = double shield
+tbm12.shieldLength=14.5 
+tbm12.frontShieldDiameter=6.62
+tbm12.frontShieldLength=6.5
+tbm12.tailShieldDiameter=6.56
+tbm12.excavationDiameter=6.7
+tbm12.overcut=0.04
+tbm12.loadPerCutter=267.
+tbm12.cutterSize=17.*0.0254 #diameter
+tbm12.cutterSpacing=0.1
+tbm12.cutterThickness=0.02
+tbm12.cutterCount=43
+tbm12.totalContactThrust=tbm12.loadPerCutter*tbm12.cutterCount
+tbm12.referenceRpm=8.
+tbm12.nominalTorque=6000.
+tbm12.breakawayTorque=14053.
+tbm12.backupDragForce=4000.
+tbm12.nominalThrustForce=40000.
+tbm12.auxiliaryThrustForce=61965.
+tbm12.openingRatio=0.1
+tbm12.dotationForProspection=0.9
+tbms[tbm12.name] = tbm12
+
+#TBM 11_ter
+tbm13=TBMConfig()
+tbm13.name = 'CE_DS_RBS_TORQUERID'
+tbm13.alignmentCode='CE'
+tbm13.manifacturer='Robbins'
+tbm13.type='DS' # O = open, S = single shield, DS = double shield
+tbm13.shieldLength=14.5 
+tbm13.frontShieldDiameter=6.62
+tbm13.frontShieldLength=6.5
+tbm13.tailShieldDiameter=6.56
+tbm13.excavationDiameter=6.82
+tbm13.overcut=0.1
+tbm13.loadPerCutter=267.
+tbm13.cutterSize=17.*0.0254 #diameter
+tbm13.cutterSpacing=0.1
+tbm13.cutterThickness=0.02
+tbm13.cutterCount=43
+tbm13.totalContactThrust=tbm13.loadPerCutter*tbm13.cutterCount
+tbm13.referenceRpm=8.
+tbm13.nominalTorque=4000.
+tbm13.breakawayTorque=6000.
+tbm13.backupDragForce=4000.
+tbm13.nominalThrustForce=40000.
+tbm13.auxiliaryThrustForce=61965.
+tbm13.openingRatio=0.1
+tbm13.dotationForProspection=0.9
+tbms[tbm13.name] = tbm13
+
+#TBM 11_quater
+tbm14=TBMConfig()
+tbm14.name = 'CE_S_RBS_DEMO'
+tbm14.alignmentCode='CE'
+tbm14.manifacturer='Robbins'
+tbm14.type='S' # O = open, S = single shield, DS = double shield
+tbm14.shieldLength=13 
+tbm14.frontShieldDiameter=6.62
+tbm14.frontShieldLength=13
+tbm14.tailShieldDiameter=6.56
+tbm14.excavationDiameter=6.82
+tbm14.overcut=0.1
+tbm14.loadPerCutter=267.
+tbm14.cutterSize=17.*0.0254 #diameter
+tbm14.cutterSpacing=0.1
+tbm14.cutterThickness=0.02
+tbm14.cutterCount=43
+tbm14.totalContactThrust=tbm14.loadPerCutter*tbm14.cutterCount
+tbm14.referenceRpm=8.
+tbm14.nominalTorque=6000.
+tbm14.breakawayTorque=14053.
+tbm14.backupDragForce=4000.
+tbm14.nominalThrustForce=40000.
+tbm14.auxiliaryThrustForce=61965.
+tbm14.openingRatio=0.1
+tbm14.dotationForProspection=0.9
+tbms[tbm14.name] = tbm14
+
