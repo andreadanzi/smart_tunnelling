@@ -4,6 +4,7 @@ from tbmconfig import tbms
 from bbtutils import *
 from bbtnamedtuples import *
 from readkpis import *
+from collections import defaultdict
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -192,8 +193,56 @@ def main(argv):
             if bShowDetailKPI:
                 allTbmData += plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
         if len(allTbmData) > 0:
-            for tbdt in allTbmData:
-                print tbdt
+            dictKPI = defaultdict(list)
+            for item in allTbmData:
+                key = item[0]
+                dictKPI[key].append(item[1:])
+            for key in dictKPI:
+                allTbmData = dictKPI[key]
+                fig = plt.figure(figsize=(14, 6), dpi=75)
+                ax = fig.add_subplot(111)
+                ax.yaxis.grid(True)
+                tbmNames = map(lambda y:y[0],allTbmData)
+                tbmMeans = map(lambda y:y[1],allTbmData)
+                tbmSigmas = map(lambda y:y[2],allTbmData)
+                tbmDatas = map(lambda y:y[3],allTbmData)
+                ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
+                ax.set_xlabel('TBMs')
+                ax.set_ylabel(key)
+                xind = np.arange(len(tbmDatas))
+                plotColors =[]
+                for tk in tbmNames:
+                    plotColors.append(tbmColors[tk])
+                if len(tbmDatas[0]) < 3:
+                    #Stampa per quando len(tbmDatas) < 3
+                    width = 0.35
+                    plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
+                    plt.xticks(xind + width/2., tbmNames)
+                else:
+                    try:
+                        violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
+                        idx = 0
+                        indMax = np.argmax(tbmMeans)
+                        for vp in violin_parts['bodies']:
+                            vp.set_facecolor(tbmColors[tbmNames[idx]])
+                            vp.set_edgecolor(tbmColors[tbmNames[idx]])
+                            vp.set_alpha(0.4)
+                            if idx==indMax:
+                                vp.set_edgecolor('red')
+                                vp.set_linewidth(2)
+                            idx +=1
+                        ax.set_title("%s, comparazione %s " % (tun,key))
+                        plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
+                    except Exception as e:
+                        print "Impossibile generare violin per: " , e
+                        width = 0.35
+                        plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
+                        plt.xticks(xind + width/2., tbmNames)
+
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_comp.png" % (tun.replace (" ", "_") , key))
+                plt.close(fig)
+
+
     if bShowRadar:
         plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors)
     conn.close()
