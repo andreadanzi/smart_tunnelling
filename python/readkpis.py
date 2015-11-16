@@ -286,6 +286,7 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
 
 
 def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+    num_bins = 20
     # print "#### %s" % tun
     sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM  bbtTbmKpi   WHERE  bbtTbmKpi.tunnelName = '%s'" % tun
     if len(tbmName) > 0:
