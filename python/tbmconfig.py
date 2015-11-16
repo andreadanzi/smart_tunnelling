@@ -111,8 +111,8 @@ tbm8.backupDragForce=4000.
 tbm8.nominalThrustForce=35539.
 tbm8.auxiliaryThrustForce=60236.
 tbm8.openingRatio=0.05
-tbm7.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
-tbm7.cutterheadThickness=0.9 
+tbm8.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbm8.cutterheadThickness=0.9 
 tbms[tbm8.name] = tbm8
 
 #TBM 11
