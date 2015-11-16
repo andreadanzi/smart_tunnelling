@@ -206,7 +206,7 @@ def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors):
     plt.close(fig)
 
 
-def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
     kpiDescrDict = {'G':'Geologia', 'P':'Produzione', 'V':'Parametri Vari'}
     num_bins = 20
     # print "#### %s" % tun
@@ -240,8 +240,6 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
         tbmNo = len(bbtTBMresults)
         bViolin = False
         for bbtTbm in bbtTBMresults:
-            fig = plt.figure(figsize=(10, 6), dpi=75)
-            ax = fig.add_subplot(111)
             sSql = """SELECT  sum(BbtTbmKpi.totalImpact), BbtTbmKpi.iterationNo
                     FROM
                     bbtTbmKpi
@@ -259,34 +257,36 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
             tbmMean = np.mean(tbmData)
             tbmSigma = 0
             resNo = len(bbtImpResults)
-            if resNo>2:
-                bViolin = True
-                tbmSigma = np.std(tbmData)
-                n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-                y = mlab.normpdf(bins, tbmMean, tbmSigma)
-                plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-                plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
-                plt.ylabel("Probabilita'")
-                plt.axvline(tbmMean, color='r', linewidth=2)
+            if bPrintHist:
+                fig = plt.figure(figsize=(10, 6), dpi=75)
+                ax = fig.add_subplot(111)
+                if resNo>2:
+                    bViolin = True
+                    tbmSigma = np.std(tbmData)
+                    n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+                    y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                    plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+                    plt.xlabel("%s - valore medio %f" % (bbtKpi[0], tbmMean))
+                    plt.ylabel("Probabilita'")
+                    plt.axvline(tbmMean, color='r', linewidth=2)
 
-                ax.yaxis.grid(True)
-                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
-                plt.close(fig)
-            else:
-                x = range(resNo)
-                plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
-                plt.xlabel("Iterazioni")
-                plt.ylabel("Totale indicatori di tipo %s=%f" % (bbtKpi[0],tbmMean))
-                ax.yaxis.grid(True)
-                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
+                    ax.yaxis.grid(True)
+                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
+                else:
+                    x = range(resNo)
+                    plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+                    plt.xlabel("Iterazioni")
+                    plt.ylabel("Totale indicatori di tipo %s=%f" % (bbtKpi[0],tbmMean))
+                    ax.yaxis.grid(True)
+                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
                 plt.close(fig)
             all_data.append(( bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, kpiDescrDict[bbtKpi[0]]))
     return all_data
 
 
-def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
     num_bins = 20
     # print "#### %s" % tun
     sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM  bbtTbmKpi   WHERE  bbtTbmKpi.tunnelName = '%s'" % tun
@@ -299,8 +299,6 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
     all_data = []
     bViolin = False
     for bbtTbm in bbtTBMresults:
-        fig = plt.figure(figsize=(10, 6), dpi=75)
-        ax = fig.add_subplot(111)
         sSql = """SELECT  sum(BbtTbmKpi.totalImpact), BbtTbmKpi.iterationNo
                 FROM
                 bbtTbmKpi
@@ -317,32 +315,34 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
         tbmMean = np.mean(tbmData)
         tbmSigma = 0
         resNo = len(bbtImpResults)
-        if resNo>2:
-            bViolin = True
-            tbmSigma = np.std(tbmData)
-            n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-            y = mlab.normpdf(bins, tbmMean, tbmSigma)
-            plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-            plt.xlabel("Valore medio %f" %  tbmMean)
-            plt.ylabel("Probabilita'")
-            plt.axvline(tbmMean, color='r', linewidth=2)
-            ax.yaxis.grid(True)
-            ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.png" % (tun.replace(" ", "_") , bbtTbm[0]))
-            plt.close(fig)
-        else:
-            x = range(resNo)
-            plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
-            plt.xlabel("Iterazioni")
-            plt.ylabel("Valore KPI Totale=%f" % tbmMean)
-            ax.yaxis.grid(True)
-            ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
-            outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.png" % (tun.replace(" ", "_") , bbtTbm[0]))
+        if bPrintHist:
+            fig = plt.figure(figsize=(10, 6), dpi=75)
+            ax = fig.add_subplot(111)
+            if resNo>2:
+                bViolin = True
+                tbmSigma = np.std(tbmData)
+                n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+                y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("Valore medio %f" %  tbmMean)
+                plt.ylabel("Probabilita'")
+                plt.axvline(tbmMean, color='r', linewidth=2)
+                ax.yaxis.grid(True)
+                ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.png" % (tun.replace(" ", "_") , bbtTbm[0]))
+            else:
+                x = range(resNo)
+                plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+                plt.xlabel("Iterazioni")
+                plt.ylabel("Valore KPI Totale=%f" % tbmMean)
+                ax.yaxis.grid(True)
+                ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.png" % (tun.replace(" ", "_") , bbtTbm[0]))
             plt.close(fig)
         all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, 'Totale KPI'))
     return all_data
 
-def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
     num_bins = 20
     # print "#### %s" % tun
     # Legget tutte le TBM di quel tunnel
@@ -370,8 +370,6 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
         tbmNo = len(bbtTBMresults)
         bViolin = False
         for bbtTbm in bbtTBMresults:
-            fig = plt.figure(figsize=(10, 6), dpi=75)
-            ax = fig.add_subplot(111)
             sSql = """SELECT  BbtTbmKpi.totalImpact, BbtTbmKpi.avgImpact, BbtTbmKpi.probabilityScore
                     FROM
                     bbtTbmKpi
@@ -392,27 +390,29 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
             resNo = len(bbtImpResults)
             tbmMean = np.mean(tbmData)
             tbmSigma = 0
-            if resNo>2:
-                bViolin = True
-                tbmSigma = np.std(tbmData)
-                n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
-                y = mlab.normpdf(bins, tbmMean, tbmSigma)
-                plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
-                plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
-                plt.ylabel("Probabilita'")
-                plt.axvline(tbmMean, color='r', linewidth=2)
-                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-                ax.yaxis.grid(True)
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.png" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
-                plt.close(fig)
-            else:
-                x = range(resNo)
-                plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
-                plt.xlabel("Iterazioni")
-                plt.ylabel("Valore KPI %s = %f" % (bbtKpi[1],tbmMean))
-                ax.yaxis.grid(True)
-                ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0], bbtKpi[0]))
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.png" %  (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
+            if bPrintHist:
+                fig = plt.figure(figsize=(10, 6), dpi=75)
+                ax = fig.add_subplot(111)
+                if resNo>2:
+                    bViolin = True
+                    tbmSigma = np.std(tbmData)
+                    n, bins, patches = ax.hist(tbmData,num_bins, normed=1, histtype ='stepfilled', color=tbmColors[bbtTbm[0]], alpha=0.3)
+                    y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                    plt.plot(bins, y, '--', color=tbmColors[bbtTbm[0]])
+                    plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
+                    plt.ylabel("Probabilita'")
+                    plt.axvline(tbmMean, color='r', linewidth=2)
+                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                    ax.yaxis.grid(True)
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.png" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
+                else:
+                    x = range(resNo)
+                    plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
+                    plt.xlabel("Iterazioni")
+                    plt.ylabel("Valore KPI %s = %f" % (bbtKpi[1],tbmMean))
+                    ax.yaxis.grid(True)
+                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0], bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.png" %  (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
                 plt.close(fig)
             all_data.append((bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, bbtKpi[1]))
     return all_data

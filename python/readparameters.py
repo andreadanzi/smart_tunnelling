@@ -15,6 +15,7 @@ def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
     sTbmCode = ""
+    bPrintHist = False
     bShowProfile = False
     bShowRadar = False
     bShowKPI = False
@@ -29,17 +30,18 @@ def main(argv):
     sParm += "\n\t-k => generazione diagrammi KPI G, P e V\n"
     sParm += "\n\t-a => generazione diagrammi KPI G + P + V\n"
     sParm += "\n\t-d => generazione diagrammi KPI di Dettaglio\n"
+    sParm += "\n\t-h => generazione delle distribuzioni per ogni tipo di KPI selezionato\n"
     try:
-        opts, args = getopt.getopt(argv,"hp:t:rkad",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi"])
+        opts, args = getopt.getopt(argv,"hp:t:rkadh",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms"])
     except getopt.GetoptError:
-        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
         sys.exit(2)
     if len(opts) < 1:
-        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "readparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % sParm
+            print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
             sys.exit()
         elif opt in ("-p", "--iparameter"):
             sParameterToShow = arg
@@ -54,11 +56,13 @@ def main(argv):
             bShowAllKpi = True
         elif opt in ("-d", "--detailkpi"):
             bShowDetailKPI = True
+        elif opt in ("-h", "--histograms"):
+            bPrintHist = True
     if len(sParameterToShow) >0 and sParameterToShow not in parmDict:
-        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % (sParameterToShow,sParm)
+        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % (sParameterToShow,sParm)
         sys.exit(2)
     if len(sTbmCode) >0 and sTbmCode not in tbms:
-        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rka]\r\n where\r\n %s" % (sTbmCode,sParm)
+        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rkah]\r\n where\r\n %s" % (sTbmCode,sParm)
         sys.exit(2)
     # mi metto nella directory corrente
     path = os.path.dirname(os.path.realpath(__file__))
@@ -190,11 +194,11 @@ def main(argv):
                         writer.writerow(('fine','he','hp',sParameterToShow  ))
                         writer.writerows(outValues)
             if bShowKPI:
-                allTbmData += plotKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+                allTbmData += plotKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors,bPrintHist)
             if bShowAllKpi:
-                allTbmData += plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+                allTbmData += plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors,bPrintHist)
             if bShowDetailKPI:
-                allTbmData += plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
+                allTbmData += plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors,bPrintHist)
         if len(allTbmData) > 0:
             dictKPI = defaultdict(list)
             dictDescr = {}
@@ -203,7 +207,7 @@ def main(argv):
                 key = item[0]
                 dictDescr[key] = item[-1]
                 dictKPI[key].append( item[1:-1] )
-                listToExport.append(item[:3])
+                listToExport.append(item[:4])
             # esposrto in csv i valori di confronto
             csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_all_data.csv" %  tun.replace (" ", "_") )
             with open(csvfname, 'wb') as f:
@@ -246,7 +250,7 @@ def main(argv):
                                 vp.set_edgecolor('red')
                                 vp.set_linewidth(2)
                             idx +=1
-                
+
                         plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
                     except Exception as e:
                         print "Impossibile generare violin per: " , e
