@@ -223,6 +223,7 @@ def main(argv):
                 ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
                 ax.set_xlabel('TBMs')
                 ax.set_ylabel("%s - %s" % (key,keyDescr))
+                ax.set_title("%s, comparazione %s " % (tun,keyDescr))
                 xind = np.arange(len(tbmDatas))
                 plotColors =[]
                 for tk in tbmNames:
@@ -245,7 +246,7 @@ def main(argv):
                                 vp.set_edgecolor('red')
                                 vp.set_linewidth(2)
                             idx +=1
-                        ax.set_title("%s, comparazione %s " % (tun,keyDescr))
+                
                         plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
                     except Exception as e:
                         print "Impossibile generare violin per: " , e
