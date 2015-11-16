@@ -462,8 +462,8 @@ class TBM:
         self.dotation = tbmData.dotationForProspection #numero tra 0 e 1 dove 0 e' la meno dotata
         self.name = tbmData.name
 
-        self.gap = tbmData.overcut + (tbmData.frontShieldDiameter-tbmData.tailShieldDiameter)/2. #gap in m
-        self.gap1 = tbmData.overcut #gap in m del primo scudo (per le DS)
+        self.gap = tbmData.overcut + (self.excavationDiam-tbmData.tailShieldDiameter)/2. #gap in m
+        self.gap1 = tbmData.overcut + (self.excavationDiam-tbmData.frontShieldDiameter)/2. #gap in m del primo scudo (per le DS)
         self.CutterNo = tbmData.cutterCount # numebr of cutters
         self.CutterRadius = tbmData.cutterSize/2.  #Cutter radius
         self.CutterThickness = tbmData.cutterThickness #Cutterthickness
