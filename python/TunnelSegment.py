@@ -363,7 +363,7 @@ class frontStability:
         if self.Ns >1:
             self.lambdae = (kp-1.0+2.0/self.Ns)/(kp+1.0)
         else:
-            self.lambdae = 0.0
+            self.lambdae = 1.0
 
         if self.lambdae > 0.6:
             self.Class = 'Stability'
