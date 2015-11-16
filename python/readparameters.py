@@ -241,19 +241,19 @@ def main(argv):
                     try:
                         violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
                         idx = 0
-                        indMax = np.argmax(tbmMeans)
+                        indMin = np.argmin(tbmMeans)
                         for vp in violin_parts['bodies']:
                             vp.set_facecolor(tbmColors[tbmNames[idx]])
                             vp.set_edgecolor(tbmColors[tbmNames[idx]])
                             vp.set_alpha(0.4)
-                            if idx==indMax:
-                                vp.set_edgecolor('red')
+                            if idx==indMin:
+                                vp.set_edgecolor('y')
                                 vp.set_linewidth(2)
                             idx +=1
 
                         plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
                     except Exception as e:
-                        print "Impossibile generare violin per: " , e
+                        print "Impossibile generare violin di %s per: %s" % ( key ,e)
                         width = 0.35
                         plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
                         plt.xticks(xind + width/2., tbmNames)
