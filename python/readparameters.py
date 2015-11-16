@@ -32,16 +32,16 @@ def main(argv):
     sParm += "\n\t-d => generazione diagrammi KPI di Dettaglio\n"
     sParm += "\n\t-h => generazione delle distribuzioni per ogni tipo di KPI selezionato\n"
     try:
-        opts, args = getopt.getopt(argv,"hp:t:rkadh",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms"])
+        opts, args = getopt.getopt(argv,"hp:t:rkadi",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms"])
     except getopt.GetoptError:
-        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % sParm
         sys.exit(2)
     if len(opts) < 1:
-        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
+        print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % sParm
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % sParm
+            print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % sParm
             sys.exit()
         elif opt in ("-p", "--iparameter"):
             sParameterToShow = arg
@@ -56,13 +56,13 @@ def main(argv):
             bShowAllKpi = True
         elif opt in ("-d", "--detailkpi"):
             bShowDetailKPI = True
-        elif opt in ("-h", "--histograms"):
+        elif opt in ("-i", "--histograms"):
             bPrintHist = True
     if len(sParameterToShow) >0 and sParameterToShow not in parmDict:
-        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkah]\r\n where\r\n %s" % (sParameterToShow,sParm)
+        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % (sParameterToShow,sParm)
         sys.exit(2)
     if len(sTbmCode) >0 and sTbmCode not in tbms:
-        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rkah]\r\n where\r\n %s" % (sTbmCode,sParm)
+        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rkai]\r\n where\r\n %s" % (sTbmCode,sParm)
         sys.exit(2)
     # mi metto nella directory corrente
     path = os.path.dirname(os.path.realpath(__file__))
