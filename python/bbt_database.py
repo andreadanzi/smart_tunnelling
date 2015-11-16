@@ -6,7 +6,6 @@ def get_bbtparameterseval(sDBPath):
     conn = sqlite3.connect(sDBPath)
     conn.row_factory = bbtparametereval_factory
     cur = conn.cursor()
-    print "start querying database  "
     bbtresults = cur.execute("SELECT insertdate,iteration_no,fine,he,hp,co,gamma,sigma,mi,ei,cai,gsi,rmr,pkgl,closure,rockburst,front_stability_ns,front_stability_lambda,penetrationRate,penetrationRateReduction,contactThrust,torque,frictionForce,requiredThrustForce,availableThrust,dailyAdvanceRate,profilo_id,geoitem_id,title,sigma_ti,k0 FROM BbtParameterEval ORDER BY iteration_no, profilo_id")
     bbt_bbtparameterseval = []
     for bbt_parametereval in bbtresults:
@@ -19,7 +18,6 @@ def get_bbtparameters(sDBPath):
     conn = sqlite3.connect(sDBPath)
     conn.row_factory = bbtparameter_factory
     cur = conn.cursor()
-    print "start querying database  "
     bbtresults = cur.execute("SELECT inizio,fine,est,nord,he,hp,co,tipo,g_med,g_stddev,sigma_ci_avg,sigma_ci_stdev,mi_med,mi_stdev,ei_med,ei_stdev,cai_med,cai_stdev,gsi_med,gsi_stdev,rmr_med,rmr_stdev,profilo_id,geoitem_id,title,sigma_ti_min,sigma_ti_max,k0_min,k0_max FROM bbtparameter ORDER BY profilo_id")
     bbt_parameters = []
     for bbt_parameter in bbtresults:
@@ -190,3 +188,13 @@ def insert_one_bbtparameterseval(cur, bbtpar):
                                                         availableThrust,\
                                                         dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0 \
     ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
+
+
+# danzi.tn@20151116 pulizia delle valutazioni
+def clean_all_eval_ad_kpi(sDBPath):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    c.execute("delete from BbtParameterEval")
+    c.execute("delete from BbtTbmKpi")
+    conn.commit()
+    conn.close()

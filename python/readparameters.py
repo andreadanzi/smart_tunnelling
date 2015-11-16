@@ -15,6 +15,7 @@ def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
     sTbmCode = ""
+    bShowProfile = False
     bShowRadar = False
     bShowKPI = False
     bShowAllKpi = False
@@ -42,6 +43,7 @@ def main(argv):
             sys.exit()
         elif opt in ("-p", "--iparameter"):
             sParameterToShow = arg
+            bShowProfile = True
         elif opt in ("-t", "--tbmcode"):
             sTbmCode = arg
         elif opt in ("-r", "--radar"):
@@ -52,7 +54,7 @@ def main(argv):
             bShowAllKpi = True
         elif opt in ("-d", "--detailkpi"):
             bShowDetailKPI = True
-    if sParameterToShow not in parmDict:
+    if len(sParameterToShow) >0 and sParameterToShow not in parmDict:
         print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rka]\r\n where\r\n %s" % (sParameterToShow,sParm)
         sys.exit(2)
     if len(sTbmCode) >0 and sTbmCode not in tbms:
@@ -121,71 +123,72 @@ def main(argv):
         allTbmData = []
         print "\r\n%s" % tun
         for tbmKey in selectdTbms:
-            cur.execute("SELECT * FROM BBtParameterEval  WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine")
-            bbtresults = cur.fetchall()
-            # recupero tutti i parametri e li metto in una lista
-            N = len(bbtresults)/M # No di segmenti
-            pi = zeros(shape=(N,), dtype=float)
-            he = zeros(shape=(N,), dtype=float)
-            hp = zeros(shape=(N,), dtype=float)
-            ti = zeros(shape=(N,), dtype=float)
-            parm2show = zeros(shape=(N,M), dtype=float)
-            tti = zeros(shape=(N,M), dtype=float)
-            xti = zeros(shape=(N,M), dtype=float)
-            i = 0
-            pj = 0
-            prev = 0.0
-            outValues =[]
-            for bbt_parametereval in bbtresults:
-                j = int(bbt_parametereval['iteration_no'])
-                if pj != j:
-                    pj = j
-                    prev = i = 0
-                pi[i] = bbt_parametereval['fine']
-                xti[i][j] = float(bbt_parametereval['dailyAdvanceRate'])
-                tti[i][j] = prev + 10.0/xti[i][j]
-                prev = tti[i][j]
-                he[i] = bbt_parametereval['he']
-                hp[i] = bbt_parametereval['hp']
-                pVal = bbt_parametereval[sParameterToShow]
-                if pVal == None:
-                    pVal = 0
-                pVal = float(pVal)
-                outValues.append((float(bbt_parametereval['fine']), float(bbt_parametereval['he']),float(bbt_parametereval['hp']),pVal))
-                parm2show[i][j] = pVal
-                i += 1
-            if N==0:
-                print "\tPer TBM %s non ci sono dati in %s" % (tbmKey, tun)
-            else:
-                ylimInf = parmDict[sParameterToShow][2]
-                ylimSup = parmDict[sParameterToShow][3]
-                ymainInf = min(he)
-                fig = plt.figure(figsize=(16, 10), dpi=100)
-                ax1 = fig.add_subplot(111)
-                ax1.set_ylim(0,max(he)+100)
-                title("%s - %s" % (tun,tbmKey))
-                ax1.plot(pi,he,'b-', linewidth=1)
-                if bShowlTunnel:
-                    ax1.plot(pi,hp,'k-', linewidth=1)
-                ax1.set_xlabel('Progressiva (m)')
-                ax1.set_ylabel('Quota (m)', color='b')
-                for tl in ax1.get_yticklabels():
-                    tl.set_color('b')
-                ##########
-                ax2 = ax1.twinx()
-                if ylimSup > 0:
-                    ax2.set_ylim(ylimInf,ylimSup)
-                ax2.plot(pi,parm2show,'r-')
-                ax2.set_ylabel("%s (%s)" % (parmDict[sParameterToShow][0],parmDict[sParameterToShow][1]), color='r')
-                for tl in ax2.get_yticklabels():
-                    tl.set_color('r')
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.png" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
-                # esposrto in csv i valori di confronto
-                csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_%s_%s.csv" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
-                with open(csvfname, 'wb') as f:
-                    writer = csv.writer(f,delimiter=";")
-                    writer.writerow(('fine','he','hp',sParameterToShow  ))
-                    writer.writerows(outValues)
+            if bShowProfile:
+                cur.execute("SELECT * FROM BBtParameterEval  WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine")
+                bbtresults = cur.fetchall()
+                # recupero tutti i parametri e li metto in una lista
+                N = len(bbtresults)/M # No di segmenti
+                pi = zeros(shape=(N,), dtype=float)
+                he = zeros(shape=(N,), dtype=float)
+                hp = zeros(shape=(N,), dtype=float)
+                ti = zeros(shape=(N,), dtype=float)
+                parm2show = zeros(shape=(N,M), dtype=float)
+                tti = zeros(shape=(N,M), dtype=float)
+                xti = zeros(shape=(N,M), dtype=float)
+                i = 0
+                pj = 0
+                prev = 0.0
+                outValues =[]
+                for bbt_parametereval in bbtresults:
+                    j = int(bbt_parametereval['iteration_no'])
+                    if pj != j:
+                        pj = j
+                        prev = i = 0
+                    pi[i] = bbt_parametereval['fine']
+                    xti[i][j] = float(bbt_parametereval['dailyAdvanceRate'])
+                    tti[i][j] = prev + 10.0/xti[i][j]
+                    prev = tti[i][j]
+                    he[i] = bbt_parametereval['he']
+                    hp[i] = bbt_parametereval['hp']
+                    pVal = bbt_parametereval[sParameterToShow]
+                    if pVal == None:
+                        pVal = 0
+                    pVal = float(pVal)
+                    outValues.append((float(bbt_parametereval['fine']), float(bbt_parametereval['he']),float(bbt_parametereval['hp']),pVal))
+                    parm2show[i][j] = pVal
+                    i += 1
+                if N==0:
+                    print "\tPer TBM %s non ci sono dati in %s" % (tbmKey, tun)
+                else:
+                    ylimInf = parmDict[sParameterToShow][2]
+                    ylimSup = parmDict[sParameterToShow][3]
+                    ymainInf = min(he)
+                    fig = plt.figure(figsize=(16, 10), dpi=100)
+                    ax1 = fig.add_subplot(111)
+                    ax1.set_ylim(0,max(he)+100)
+                    title("%s - %s" % (tun,tbmKey))
+                    ax1.plot(pi,he,'b-', linewidth=1)
+                    if bShowlTunnel:
+                        ax1.plot(pi,hp,'k-', linewidth=1)
+                    ax1.set_xlabel('Progressiva (m)')
+                    ax1.set_ylabel('Quota (m)', color='b')
+                    for tl in ax1.get_yticklabels():
+                        tl.set_color('b')
+                    ##########
+                    ax2 = ax1.twinx()
+                    if ylimSup > 0:
+                        ax2.set_ylim(ylimInf,ylimSup)
+                    ax2.plot(pi,parm2show,'r-')
+                    ax2.set_ylabel("%s (%s)" % (parmDict[sParameterToShow][0],parmDict[sParameterToShow][1]), color='r')
+                    for tl in ax2.get_yticklabels():
+                        tl.set_color('r')
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.png" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
+                    # esposrto in csv i valori di confronto
+                    csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_%s_%s.csv" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
+                    with open(csvfname, 'wb') as f:
+                        writer = csv.writer(f,delimiter=";")
+                        writer.writerow(('fine','he','hp',sParameterToShow  ))
+                        writer.writerows(outValues)
             if bShowKPI:
                 allTbmData += plotKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
             if bShowAllKpi:
@@ -194,12 +197,23 @@ def main(argv):
                 allTbmData += plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors)
         if len(allTbmData) > 0:
             dictKPI = defaultdict(list)
+            dictDescr = {}
+            listToExport = []
             for item in allTbmData:
                 key = item[0]
-                dictKPI[key].append(item[1:])
+                dictDescr[key] = item[-1]
+                dictKPI[key].append( item[1:-1] )
+                listToExport.append(item[:3])
+            # esposrto in csv i valori di confronto
+            csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_all_data.csv" %  tun.replace (" ", "_") )
+            with open(csvfname, 'wb') as f:
+                writer = csv.writer(f,delimiter=";")
+                writer.writerow(('kpi','tbm','medie','sigma'  ))
+                writer.writerows(listToExport)
             for key in dictKPI:
+                keyDescr = dictDescr[key]
                 allTbmData = dictKPI[key]
-                fig = plt.figure(figsize=(14, 6), dpi=75)
+                fig = plt.figure(figsize=(22, 10), dpi=75)
                 ax = fig.add_subplot(111)
                 ax.yaxis.grid(True)
                 tbmNames = map(lambda y:y[0],allTbmData)
@@ -208,7 +222,7 @@ def main(argv):
                 tbmDatas = map(lambda y:y[3],allTbmData)
                 ax.set_xticks([y+1 for y in range(len(tbmDatas)) ])
                 ax.set_xlabel('TBMs')
-                ax.set_ylabel(key)
+                ax.set_ylabel("%s - %s" % (key,keyDescr))
                 xind = np.arange(len(tbmDatas))
                 plotColors =[]
                 for tk in tbmNames:
@@ -231,7 +245,7 @@ def main(argv):
                                 vp.set_edgecolor('red')
                                 vp.set_linewidth(2)
                             idx +=1
-                        ax.set_title("%s, comparazione %s " % (tun,key))
+                        ax.set_title("%s, comparazione %s " % (tun,keyDescr))
                         plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
                     except Exception as e:
                         print "Impossibile generare violin per: " , e

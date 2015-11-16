@@ -207,6 +207,7 @@ def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors):
 
 
 def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
+    kpiDescrDict = {'G':'Geologia', 'P':'Produzione', 'V':'Parametri Vari'}
     num_bins = 20
     # print "#### %s" % tun
     # Legget tutti i KPI di quel tunnel
@@ -281,7 +282,7 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
                 ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
                 outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.png" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]))
                 plt.close(fig)
-            all_data.append(( bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+            all_data.append(( bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, kpiDescrDict[bbtKpi[0]]))
     return all_data
 
 
@@ -338,7 +339,7 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
             ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
             outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.png" % (tun.replace(" ", "_") , bbtTbm[0]))
             plt.close(fig)
-        all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+        all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, 'Totale KPI'))
     return all_data
 
 def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
@@ -413,5 +414,5 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors):
                 ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0], bbtKpi[0]))
                 outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.png" %  (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ))
                 plt.close(fig)
-            all_data.append((bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData))
+            all_data.append((bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, bbtKpi[1]))
     return all_data

@@ -36,6 +36,9 @@ def main_loop(nIter):
         normfunc_dict = build_normfunc_dict(bbt_parameter,nIter)
         normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
 
+    # danzi.tn@20151116
+    clean_all_eval_ad_kpi(sDBPath)
+
     #inizializzo le info sui tracciati dai file di configurazione
     inizio_GLEST = bbtConfig.getfloat('Import','inizio_GLEST')
     fine_GLEST = bbtConfig.getfloat('Import','fine_GLEST')
@@ -72,15 +75,15 @@ def main_loop(nIter):
     kpiTbmList = []
     for iIterationNo in range(nIter):
         # Per tutti i Tunnel
-        print "iteration %d" % iIterationNo
+        print "########### iteration %d" % iIterationNo
         for alnCurr in alnAll:
             # Per tutte le tbm
-            print "Galleria %s" % alnCurr.description
+            print "Tunnel: %s" % alnCurr.description
             for tbmKey in tbms:
                 tbmData = tbms[tbmKey]
-                print "TBM %s" % tbmKey
                 # Se la TBM e' conforme al TUnnell
                 if alnCurr.tbmKey in tbmData.alignmentCode:
+                    print "\tTBM %s ok" % tbmKey
                     tbm = TBM(tbmData, 'V')
                     kpiTbm = KpiTbm4Tunnel(alnCurr.description,iIterationNo)
                     kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
@@ -147,6 +150,8 @@ def main_loop(nIter):
                     kpiTbm.updateKPI(alnCurr)
                     kpiTbm.saveBbtTbmKpis(sDBPath)
                     insert_bbtparameterseval(sDBPath,bbt_evalparameters,iIterationNo)
+                else:
+                    print "\tTBM %s NON disponibile per questo Tunnel" % tbmKey
 
     print "############################# Fine"
 

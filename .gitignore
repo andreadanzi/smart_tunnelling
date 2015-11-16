@@ -11,3 +11,4 @@ python/kpis.log
 *.db-journal
 *.csv
 *.xls
+*.zip
