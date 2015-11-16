@@ -807,10 +807,13 @@ class TBMSegment:
         S0_r = sigma0/mb_sci_r+s_mb_r
         Pi_r = pi/mb_sci_r+s_mb_r
         Picr_r = picr/mb_sci_r+s_mb_r
+        if Picr_r > 0.:
         #danzi.tn@20151113 utilizzo np.power per elevamento a potenza
 #        Rpl = R*math.exp((Picr_r**(1.-a_r)-Pi_r**(1.-a_r))/((1.-a_r)*nu_r))
-        _esp = (np.power(Picr_r,1.-a_r)-np.power(Pi_r,1.-a_r))/((1.-a_r)*nu_r)
-        Rpl = R*np.exp(_esp)
+            _esp = (np.power(Picr_r,1.-a_r)-np.power(Pi_r,1.-a_r))/((1.-a_r)*nu_r)
+            Rpl = R*np.exp(_esp)
+        else:
+            Rpl = R
         self.Rpl = Rpl
         G_r = G/mb_sci_r
 
