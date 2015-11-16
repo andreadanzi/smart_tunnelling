@@ -1034,11 +1034,14 @@ class G2:
             self.probability = 1.
             self.impact = imax
         elif contactType==2:
-            imax=2.5
+            if tbmType =='S':
+                imax=2.5
+            else:
+                imax=2.
             self.probability = 1.
             self.impact = imax*cavityStabilityPar
         else:
-            imax=2.75
+            imax=2.25
             self.probability = 1.
             self.impact = imax
 

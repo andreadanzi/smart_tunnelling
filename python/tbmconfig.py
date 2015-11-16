@@ -140,7 +140,7 @@ tbm11.backupDragForce=4000.
 tbm11.nominalThrustForce=31220.
 tbm11.auxiliaryThrustForce=61965.
 tbm11.openingRatio=0.1
-tbm11.dotationForProspection=0.95
+tbm11.dotationForProspection=1.
 tbm11.cutterheadThickness=0.9 
 tbms[tbm11.name] = tbm11
 
@@ -168,7 +168,7 @@ tbm12.backupDragForce=4000.
 tbm12.nominalThrustForce=57306.
 tbm12.auxiliaryThrustForce=97205.
 tbm12.openingRatio=0.1
-tbm12.dotationForProspection=0.95 # da 0 a 1 se e' per niente o molto dotata
+tbm12.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
 tbm12.cutterheadThickness=0.9 
 tbms[tbm12.name] = tbm12
 
