@@ -4,7 +4,7 @@ from tbmconfig import *
 from pylab import *
 import matplotlib.pyplot as plt
 from bbt_database import *
-import sqlite3, os,  csv , datetime
+import sqlite3, os,  csv , datetime, time
 from bbtutils import *
 from bbtnamedtuples import *
 from tbmkpi import *
@@ -13,33 +13,12 @@ from pprint import pprint
 from tbmkpi import FrictionCoeff
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
 # danzi.tn@20151117 compact database
-def main_loop(nIter):
+def main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts):
+    start_time = time.time()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
-    # mi metto nella directory corrente
-    path = os.path.dirname(os.path.realpath(__file__))
-    os.chdir(path)
+    print "############################# Starts at %s" % strnow
 
-    ########## File vari: DB
-    sDBName = bbtConfig.get('Database','dbname')
-    sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
-    if not os.path.isfile(sDBPath):
-        print "Errore! File %s inesistente!" % sDBPath
-        exit(1)
-    bbt_parameters = get_bbtparameters(sDBPath)
-    if len(bbt_parameters) == 0:
-        print "Attenzione! Nel DB %s non ci sono i dati necessari!" % sDBPath
-        exit(2)
-
-    # lista delle funzioni random per ogni profilo
-    normfunc_dicts = {}
-    for bbt_parameter in bbt_parameters:
-        normfunc_dict = build_normfunc_dict(bbt_parameter,nIter)
-        normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
-
-    # danzi.tn@20151116
-    clean_all_eval_ad_kpi(sDBPath)
-    compact_database(sDBPath)
 
     #inizializzo le info sui tracciati dai file di configurazione
     inizio_GLEST = bbtConfig.getfloat('Import','inizio_GLEST')
@@ -156,8 +135,10 @@ def main_loop(nIter):
                     insert_bbtparameterseval(sDBPath,bbt_evalparameters,iIterationNo)
                 else:
                     print "\tTBM %s NON disponibile per questo Tunnel" % tbmKey
-
-    print "############################# Fine"
+    now = datetime.datetime.now()
+    strnow = now.strftime("%Y%m%d%H%M%S")
+    end_time = time.time()
+    print "############################# Ends at %s (%s seconds)" % (strnow, end_time-start_time)
 
 
 
@@ -182,7 +163,33 @@ def main(argv):
                 print "main_loop.py -n <number of iteration (positive integer)>"
                 sys.exit(2)
     if nIter > 0:
-        main_loop(nIter)
+        # mi metto nella directory corrente
+        path = os.path.dirname(os.path.realpath(__file__))
+        os.chdir(path)
+
+        ########## File vari: DB
+        sDBName = bbtConfig.get('Database','dbname')
+        sDBPath = os.path.join(os.path.abspath('..'), bbtConfig.get('Database','dbfolder'), sDBName)
+        if not os.path.isfile(sDBPath):
+            print "Errore! File %s inesistente!" % sDBPath
+            exit(1)
+        bbt_parameters = get_bbtparameters(sDBPath)
+        if len(bbt_parameters) == 0:
+            print "Attenzione! Nel DB %s non ci sono i dati necessari!" % sDBPath
+            exit(2)
+
+        # lista delle funzioni random per ogni profilo
+        normfunc_dicts = {}
+        for bbt_parameter in bbt_parameters:
+            normfunc_dict = build_normfunc_dict(bbt_parameter,nIter)
+            normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
+
+        # danzi.tn@20151116
+        clean_all_eval_ad_kpi(sDBPath)
+        load_tbm_table(sDBPath, tbms)
+        compact_database(sDBPath)
+        #
+        main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts)
     else:
         print "main_loop.py -n <number of iteration (positive integer)>"
 

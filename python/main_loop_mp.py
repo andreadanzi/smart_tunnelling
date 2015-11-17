@@ -61,7 +61,7 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
     alnAll.append(aln)
     kpiTbmList = []
     for iIterationNo in range(nIter):
-        if iIterationNo+1 % 5 ==0:
+        if (iIterationNo+1) % 10 ==0:
             compact_database(sDBPath)
         # Per tutti i Tunnel
         with plock:

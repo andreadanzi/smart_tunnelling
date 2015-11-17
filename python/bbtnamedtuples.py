@@ -131,6 +131,13 @@ parmDict = {
     'requiredThrustForce':("xxx", "GPa",0,0),\
     'availableThrust':("xxx", "GPa",0,0),\
     'dailyAdvanceRate':("Avanzamento giornaliero", "m/die",0,0),
+    't1':("Tempo di produzione teorico", "gg",0,0),
+    't2':("Tempo di montaggio/smontaggio/spostamento", "gg",0,0),
+    't3':("Extra tempo per scavo in rocce dure", "gg",0,0),
+    't4':("Tempo apprestamento prospezioni", "gg",0,0),
+    't5':("Tempo approstamento consolidamenti", "gg",0,0),
+    'tsum':("Tempo di scavo totale", "gg",0,0),
+    'adv':("Avanzamento cumulato", "gg",0,1400),
     'sigma_ti':("Resistenza a trazione", "GPa",0,0),
     'k0':("K0", "-",0,0)
 }

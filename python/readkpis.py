@@ -108,7 +108,7 @@ def unit_poly_verts(theta):
     return verts
 
 
-def radar_data(kpiArray,tunnelArray,cur):
+def radar_data(kpiArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup):
     data = []
     data.append(kpiArray)
     # Raggruppa per ogni tunnel gli Indicatori
@@ -148,6 +148,22 @@ def radar_data(kpiArray,tunnelArray,cur):
             bbtTbmKpi.kpiKey,
             bbtTbmKpi.tbmName
             order by bbtTbmKpi.tbmName, bbtTbmKpi.kpiKey"""
+        if bGroupTypes:
+            sSql = """SELECT
+                bbtTbmKpi.kpiKey,
+                BbtTbm.type,
+                avg(bbtTbmKpi.totalImpact) as val
+                FROM
+                bbtTbmKpi
+                JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tn+"""'
+                AND bbtTbmKpi.kpiKey in ('"""+sHavingKpis+"""')
+                group by
+                bbtTbmKpi.kpiKey,
+                BbtTbm.type
+                order by BbtTbm.type, bbtTbmKpi.kpiKey"""
+
         cur.execute(sSql)
         bbtresults = cur.fetchall()
         for bbtr in bbtresults:
@@ -156,18 +172,18 @@ def radar_data(kpiArray,tunnelArray,cur):
 
     return data
 
-def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors):
+def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors,bGroupTypes, sTypeToGroup):
     plotArray = []
     kpiPArray = ['P1','P2','P3','P4','P5','P6']
-    kpiPdata = radar_data(kpiPArray,tunnelArray,cur)
+    kpiPdata = radar_data(kpiPArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup)
     plotArray.append(kpiPdata)
     kpiGArray = ['G1','G2','G5','G6','G7','G8','G11','G12','G13']
-    kpiGdata = radar_data(kpiGArray,tunnelArray,cur)
+    kpiGdata = radar_data(kpiGArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup)
     plotArray.append(kpiGdata)
     kpiVArray = ['V1','V2','V3','V4','V5','V6']
-    kpiVdata = radar_data(kpiVArray,tunnelArray,cur)
+    kpiVdata = radar_data(kpiVArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup)
     plotArray.append(kpiVdata)
-    fig = plt.figure(figsize=(20, 12), dpi=200)
+    fig = plt.figure(figsize=(30, 20), dpi=200)
     fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
     pltIndex = 1
     for pltItem in plotArray:
@@ -206,7 +222,7 @@ def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors):
     plt.close(fig)
 
 
-def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
+def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sTypeToGroup,bPrintHist=False):
     kpiDescrDict = {'G':'Geologia', 'P':'Produzione', 'V':'Parametri Vari'}
     num_bins = 20
     # print "#### %s" % tun
@@ -235,6 +251,21 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
         if len(tbmName)>0:
             sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
         sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
+        if bGroupTypes:
+            sSql = """SELECT BbtTbm.type  , count(*) as cnt_tbmtype
+                    FROM
+                    BbtTbm
+					WHERE
+					BbtTbm.name IN (
+                    SELECT DISTINCT BbtTbmKpi.tbmName
+					FROM bbtTbmKpi
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    AND BbtTbmKpi.kpiKey LIKE '"""+ bbtKpi[0]+"""%')
+        			"""
+            if len(tbmName)>0:
+                sSql = sSql + " AND BbtTbm.type = '%s'" % tbmName
+            sSql = sSql + " GROUP BY BbtTbm.type ORDER BY BbtTbm.type "
         cur.execute(sSql)
         bbtTBMresults = cur.fetchall()
         tbmNo = len(bbtTBMresults)
@@ -249,6 +280,11 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
                     AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
                     GROUP BY BbtTbmKpi.iterationNo
                     ORDER BY BbtTbmKpi.iterationNo """
+            if bGroupTypes:
+                sSql = "SELECT  sum(BbtTbmKpi.totalImpact) / %s , BbtTbmKpi.iterationNo " % bbtTbm[1]
+                sSql += " FROM bbtTbmKpi JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName WHERE "
+                sSql += " bbtTbmKpi.tunnelName = '"+tun+"' AND BbtTbmKpi.kpiKey like '" +bbtKpi[0]+"%'  AND BbtTbm.type = '"+bbtTbm[0]+"'"
+                sSql += " GROUP BY BbtTbmKpi.iterationNo ORDER BY BbtTbmKpi.iterationNo "
             cur.execute(sSql)
             bbtImpResults = cur.fetchall()
             tbmData = []
@@ -286,13 +322,29 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
     return all_data
 
 
-def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
+def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sTypeToGroup,bPrintHist=False):
     num_bins = 20
     # print "#### %s" % tun
     sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM  bbtTbmKpi   WHERE  bbtTbmKpi.tunnelName = '%s'" % tun
     if len(tbmName) > 0:
         sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
     sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
+    if bGroupTypes:
+        sSql = """SELECT BbtTbm.type  , count(*) as cnt_tbmtype
+                FROM
+                BbtTbm
+                WHERE
+                BbtTbm.name IN (
+                SELECT DISTINCT BbtTbmKpi.tbmName
+                FROM bbtTbmKpi
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tun+"""')
+                """
+        if len(tbmName)>0:
+            sSql = sSql + " AND BbtTbm.type = '%s'" % tbmName
+        sSql = sSql + " GROUP BY BbtTbm.type ORDER BY BbtTbm.type "
+
+    print sSql
     cur.execute(sSql)
     bbtTBMresults = cur.fetchall()
     tbmNo = len(bbtTBMresults)
@@ -307,6 +359,17 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=Fals
                 AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
                 GROUP BY BbtTbmKpi.iterationNo
                 ORDER BY BbtTbmKpi.iterationNo """
+        if bGroupTypes:
+            sSql = """SELECT  sum(BbtTbmKpi.totalImpact)/"""+str(bbtTbm[1])+""", BbtTbmKpi.iterationNo
+                    FROM
+                    bbtTbmKpi
+                    JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    AND BbtTbm.type = '"""+ bbtTbm[0]+"""'
+                    GROUP BY BbtTbmKpi.iterationNo
+                    ORDER BY BbtTbmKpi.iterationNo """
+        print sSql
         cur.execute(sSql)
         bbtImpResults = cur.fetchall()
         tbmData = []
@@ -342,7 +405,7 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=Fals
         all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, 'Totale KPI'))
     return all_data
 
-def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=False):
+def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sTypeToGroup,bPrintHist=False):
     num_bins = 20
     # print "#### %s" % tun
     # Legget tutte le TBM di quel tunnel
@@ -361,10 +424,25 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=Fals
     currentTbm = ""
     all_data = []
     for bbtKpi in bbtKpiresults:
-        sSql = "SELECT  BbtTbmKpi.tbmName, count(*) FROM bbtTbmKpi WHERE bbtTbmKpi.tunnelName = '%s' AND BbtTbmKpi.kpiKey = '%s'" % (tun, bbtKpi[0])
+        sSql = "SELECT  BbtTbmKpi.tbmName, count(*) as cnt_tbmtype FROM bbtTbmKpi WHERE bbtTbmKpi.tunnelName = '%s' AND BbtTbmKpi.kpiKey = '%s'" % (tun, bbtKpi[0])
         if len(tbmName) > 0:
             sSql = sSql + " AND BbtTbmKpi.tbmName = '%s'" % tbmName
         sSql = sSql + " GROUP BY BbtTbmKpi.tbmName ORDER BY BbtTbmKpi.tbmName "
+        if bGroupTypes:
+            sSql = """SELECT BbtTbm.type  , count(*) as cnt_tbmtype
+                    FROM
+                    BbtTbm
+                    WHERE
+                    BbtTbm.name IN (
+                    SELECT DISTINCT BbtTbmKpi.tbmName
+                    FROM bbtTbmKpi
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""')
+                    """
+            if len(tbmName)>0:
+                sSql = sSql + " AND BbtTbm.type = '%s'" % tbmName
+            sSql = sSql + " GROUP BY BbtTbm.type ORDER BY BbtTbm.type "
         cur.execute(sSql)
         bbtTBMresults = cur.fetchall()
         tbmNo = len(bbtTBMresults)
@@ -378,6 +456,17 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bPrintHist=Fals
                     AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""'
                     AND BbtTbmKpi.tbmName = '"""+ bbtTbm[0]+"""'
                     ORDER BY BbtTbmKpi.iterationNo """
+            if bGroupTypes:
+                sSql = """SELECT  avg(BbtTbmKpi.totalImpact), avg(BbtTbmKpi.avgImpact), avg(BbtTbmKpi.probabilityScore), BbtTbm.type
+                        FROM
+                        bbtTbmKpi
+                        JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
+                        WHERE
+                        bbtTbmKpi.tunnelName = '"""+tun+"""'
+                        AND BbtTbmKpi.kpiKey = '"""+ bbtKpi[0]+"""'
+                        AND BbtTbm.type = '"""+ bbtTbm[0]+"""'
+                        GROUP BY BbtTbm.type
+                        ORDER BY BbtTbmKpi.iterationNo """
             cur.execute(sSql)
             bbtImpResults = cur.fetchall()
             tbmData = []
