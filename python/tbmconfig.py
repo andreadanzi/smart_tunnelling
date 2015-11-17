@@ -64,7 +64,7 @@ tbm2.name = 'GL_S_BBT_10.47'
 tbm2.alignmentCode='GLSUD;GLNORD'
 tbm2.manifacturer='BBT'
 tbm2.type='S' # O = open, S = single shield, DS = double shield
-tbm2.shieldLength=9.5 # lunghezza media delle S 
+tbm2.shieldLength=9.5+1.05 # lunghezza media delle S 
 tbm2.frontShieldDiameter=10.37
 tbm2.tailShieldDiameter=10.37
 tbm2.excavationDiameter=10.47
@@ -92,7 +92,7 @@ tbm3.name = 'CE_S_BBT_6.62'
 tbm3.alignmentCode='CE'
 tbm3.manifacturer='BBT'
 tbm3.type='S' # O = open, S = single shield, DS = double shield
-tbm3.shieldLength=9.9 # lunghezza media degli scudi dei fornitori singolo scudo
+tbm3.shieldLength=9.9+0.9 # lunghezza media degli scudi dei fornitori singolo scudo
 tbm3.frontShieldDiameter=6.62
 tbm3.tailShieldDiameter=6.62
 tbm3.excavationDiameter=6.62
@@ -120,7 +120,7 @@ tbm4.name = 'GL_O_HRK_9.72'
 tbm4.alignmentCode='GLSUD'
 tbm4.manifacturer='Herrenknecht'
 tbm4.type='O' # O = open, S = single shield, DS = double shield
-tbm4.shieldLength=1.05 
+tbm4.shieldLength=1.1 
 tbm4.frontShieldDiameter=9.62
 tbm4.tailShieldDiameter=9.62
 tbm4.excavationDiameter=9.72
@@ -177,7 +177,7 @@ tbm6.alignmentCode='GLSUD;GLNORD'
 tbm6.manifacturer='Herrenknecht'
 tbm6.type='DS' # O = open, S = single shield, DS = double shield
 tbm6.shieldLength=12.25+1.1 
-tbm6.frontShieldLength=4.82
+tbm6.frontShieldLength=4.82+1.1
 tbm6.frontShieldDiameter=10.58
 tbm6.tailShieldDiameter=10.44
 tbm6.excavationDiameter=10.64
@@ -235,7 +235,7 @@ tbm8.manifacturer='Herrenknecht'
 tbm8.type='DS' # O = open, S = single shield, DS = double shield
 tbm8.shieldLength=11.695 + .9
 tbm8.frontShieldDiameter=6.77
-tbm8.frontShieldLength=4.595
+tbm8.frontShieldLength=4.595+.9
 tbm8.tailShieldDiameter=6.65
 tbm8.excavationDiameter=6.82
 tbm8.overcut=0.12
@@ -290,8 +290,8 @@ tbm10.name = 'GL_DS_RBS_10.52'
 tbm10.alignmentCode='GLSUD;GLNORD'
 tbm10.manifacturer='Robbins'
 tbm10.type='DS' # O = open, S = single shield, DS = double shield
-tbm10.shieldLength=11. 
-tbm10.frontShieldLength=4.7
+tbm10.shieldLength=11.+1. 
+tbm10.frontShieldLength=4.7+1.
 tbm10.frontShieldDiameter=10.44
 tbm10.tailShieldDiameter=10.32
 tbm10.excavationDiameter=10.52
@@ -309,7 +309,7 @@ tbm10.backupDragForce=8000.
 tbm10.nominalThrustForce=69305.
 tbm10.auxiliaryThrustForce=217519.
 tbm10.openingRatio=0.1
-tbm10.cutterheadThickness=1.0 # in metri lo spessore della testa di scavo
+tbm10.cutterheadThickness=1. # in metri lo spessore della testa di scavo
 tbm10.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
 tbms[tbm10.name] = tbm10
 
@@ -319,9 +319,9 @@ tbm11.name = 'CE_DS_RBS_6.74'
 tbm11.alignmentCode='CE'
 tbm11.manifacturer='Robbins'
 tbm11.type='DS' # O = open, S = single shield, DS = double shield
-tbm11.shieldLength=13.6 
+tbm11.shieldLength=13.6+.9 
 tbm11.frontShieldDiameter=6.67
-tbm11.frontShieldLength=6.25
+tbm11.frontShieldLength=6.25+.9
 tbm11.tailShieldDiameter=6.56
 tbm11.excavationDiameter=6.73
 tbm11.overcut=0.1
@@ -339,7 +339,7 @@ tbm11.nominalThrustForce=31220.
 tbm11.auxiliaryThrustForce=61965.
 tbm11.openingRatio=0.1
 tbm11.dotationForProspection=1.
-tbm11.cutterheadThickness=0.9 
+tbm11.cutterheadThickness=.9 
 tbms[tbm11.name] = tbm11
 
 #TBM 12
@@ -348,7 +348,7 @@ tbm12.name = 'CE_S_RBS_6.73'
 tbm12.alignmentCode='CE'
 tbm12.manifacturer='Robbins'
 tbm12.type='S' # O = open, S = single shield, DS = double shield
-tbm12.shieldLength=10.6
+tbm12.shieldLength=10.6+.9
 tbm12.frontShieldDiameter=6.67
 tbm12.tailShieldDiameter=6.56
 tbm12.excavationDiameter=6.73
@@ -367,7 +367,7 @@ tbm12.nominalThrustForce=57306.
 tbm12.auxiliaryThrustForce=97205.
 tbm12.openingRatio=0.1
 tbm12.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
-tbm12.cutterheadThickness=0.9 
+tbm12.cutterheadThickness=.9 
 tbms[tbm12.name] = tbm12
 
 #TBM 13
@@ -376,9 +376,9 @@ tbm13.name = 'CE_DS_LOV_6.70'
 tbm13.alignmentCode='CE'
 tbm13.manifacturer='LOV'
 tbm13.type='DS' # O = open, S = single shield, DS = double shield
-tbm13.shieldLength=10.2 
+tbm13.shieldLength=10.2+.95 
 tbm13.frontShieldDiameter=6.689
-tbm13.frontShieldLength=4.2
+tbm13.frontShieldLength=4.2+.95
 tbm13.tailShieldDiameter=6.65
 tbm13.excavationDiameter=6.697
 tbm13.overcut=0.1
@@ -405,7 +405,7 @@ tbm14.name = 'CE_S_LOV_6.70'
 tbm14.alignmentCode='CE'
 tbm14.manifacturer='LOV'
 tbm14.type='S' # O = open, S = single shield, DS = double shield
-tbm14.shieldLength=9.4
+tbm14.shieldLength=9.4+.95
 tbm14.frontShieldDiameter=6.676
 tbm14.tailShieldDiameter=6.664
 tbm14.excavationDiameter=6.684
@@ -433,9 +433,9 @@ tbm15.name = 'CE_DS_NFM_6.71'
 tbm15.alignmentCode='CE'
 tbm15.manifacturer='NFM'
 tbm15.type='DS' # O = open, S = single shield, DS = double shield
-tbm15.shieldLength=12.4 
+tbm15.shieldLength=12.4 +0.85
 tbm15.frontShieldDiameter=6.69
-tbm15.frontShieldLength=5.3
+tbm15.frontShieldLength=5.3+.85
 tbm15.tailShieldDiameter=6.68
 tbm15.excavationDiameter=6.71
 tbm15.overcut=0.105
@@ -462,7 +462,7 @@ tbm16.name = 'CE_S_NFM_6.71'
 tbm16.alignmentCode='CE'
 tbm16.manifacturer='NFM'
 tbm16.type='S' # O = open, S = single shield, DS = double shield
-tbm16.shieldLength=8.65
+tbm16.shieldLength=8.65+.85
 tbm16.frontShieldDiameter=6.69
 tbm16.tailShieldDiameter=6.68
 tbm16.excavationDiameter=6.71
@@ -490,7 +490,7 @@ tbm18.name = 'GL_S_RBS_10.52'
 tbm18.alignmentCode='GLSUD;GLNORD'
 tbm18.manifacturer='Robbins'
 tbm18.type='S' # O = open, S = single shield, DS = double shield
-tbm18.shieldLength=9.5 
+tbm18.shieldLength=9.5 +1.
 tbm18.frontShieldDiameter=10.44
 tbm18.tailShieldDiameter=10.32
 tbm18.excavationDiameter=10.52
@@ -518,8 +518,8 @@ tbm19.name = 'GL_DS_LOV_10.50'
 tbm19.alignmentCode='GLSUD;GLNORD'
 tbm19.manifacturer='LOV'
 tbm19.type='DS' # O = open, S = single shield, DS = double shield
-tbm19.shieldLength=10.303 
-tbm19.frontShieldLength=4.445
+tbm19.shieldLength=10.303+1. 
+tbm19.frontShieldLength=4.445+1.
 tbm19.frontShieldDiameter=10.453
 tbm19.tailShieldDiameter=10.441
 tbm19.excavationDiameter=10.479
@@ -547,7 +547,7 @@ tbm20.name = 'GL_S_LOV_10.47'
 tbm20.alignmentCode='GLSUD;GLNORD'
 tbm20.manifacturer='LOV'
 tbm20.type='S' # O = open, S = single shield, DS = double shield
-tbm20.shieldLength=9.563 
+tbm20.shieldLength=9.563+1. 
 tbm20.frontShieldDiameter=10.453
 tbm20.tailShieldDiameter=10.441
 tbm20.excavationDiameter=10.466
@@ -575,8 +575,8 @@ tbm21.name = 'GL_DS_NFM_10.52'
 tbm21.alignmentCode='GLSUD;GLNORD'
 tbm21.manifacturer='NFM'
 tbm21.type='DS' # O = open, S = single shield, DS = double shield
-tbm21.shieldLength=12.65 
-tbm21.frontShieldLength=5.2
+tbm21.shieldLength=12.65+1.2 
+tbm21.frontShieldLength=5.2+1.2
 tbm21.frontShieldDiameter=10.48
 tbm21.tailShieldDiameter=10.44
 tbm21.excavationDiameter=10.52
@@ -604,7 +604,7 @@ tbm22.name = 'GL_S_NFM_10.47'
 tbm22.alignmentCode='GLSUD;GLNORD'
 tbm22.manifacturer='NFM'
 tbm22.type='S' # O = open, S = single shield, DS = double shield
-tbm22.shieldLength=9.1 
+tbm22.shieldLength=9.1+1.1 
 tbm22.frontShieldDiameter=10.48
 tbm22.tailShieldDiameter=10.44
 tbm22.excavationDiameter=10.52
