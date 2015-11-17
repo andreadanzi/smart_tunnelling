@@ -142,7 +142,7 @@ def main(argv):
     for tun in tunnelArray:
         allTbmData = []
         print "\r\n%s" % tun
-        sSql = """SELECT bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer, count(*) as cnt
+        sSql = """SELECT bbtTbmKpi.tbmName, count(*) as cnt, BbtTbm.type, BbtTbm.manufacturer
                 FROM
                 bbtTbmKpi
                 JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
@@ -151,7 +151,7 @@ def main(argv):
                 ORDER BY bbtTbmKpi.tbmName"""
         # Filtro sulla eventuale TBM passata come parametro
         if len(sTbmCode) > 0:
-            sSql = """SELECT bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer, count(*) as cnt
+            sSql = """SELECT bbtTbmKpi.tbmName, count(*) as cnt, BbtTbm.type, BbtTbm.manufacturer
                     FROM
                     bbtTbmKpi
         			JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
@@ -159,11 +159,15 @@ def main(argv):
         			GROUP BY bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer
                     ORDER BY bbtTbmKpi.tbmName"""
         if bGroupTypes:
-            sSql = """SELECT BbtTbm.type, count(*) as cnt
+            sSql = """SELECT BbtTbm.type, count(*) as cnt_tbmtype
                     FROM
-                    bbtTbmKpi
-        			JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
-                    WHERE bbtTbmKpi.tunnelName = '"""+tun+"""'
+                    BbtTbm
+					WHERE
+					BbtTbm.name IN (
+                    SELECT DISTINCT BbtTbmKpi.tbmName
+					FROM bbtTbmKpi
+                    WHERE
+                    bbtTbmKpi.tunnelName = '"""+tun+"""')
         			GROUP BY BbtTbm.type
                     ORDER BY BbtTbm.type"""
         cur.execute(sSql)
@@ -171,6 +175,7 @@ def main(argv):
         print "Sono presenti %d diverse TBM" % len(bbtresults)
         for tb in bbtresults:
             tbmKey = tb[0]
+            tbmCount = float(tb[1])
             if bShowProfile:
                 sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval  WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine"
                 if bGroupTypes:
@@ -210,6 +215,8 @@ def main(argv):
                     pVal = float(pVal)
                     if bShowAdvance:
                         pVal = tti[i][j]
+                        if bGroupTypes:
+                            pVal = pVal/tbmCount
                     outValues.append([int(bbt_parametereval['iteration_no']),float(bbt_parametereval['fine']), float(bbt_parametereval['he']),float(bbt_parametereval['hp']),pVal])
                     parm2show[i][j] = pVal
                     i += 1
@@ -231,7 +238,7 @@ def main(argv):
                     ylimInf = parmDict[sParameterToShow][2]
                     ylimSup = parmDict[sParameterToShow][3]
                     ymainInf = min(he)
-                    fig = plt.figure(figsize=(32, 20), dpi=300)
+                    fig = plt.figure(figsize=(32, 20), dpi=100)
                     ax1 = fig.add_subplot(111)
                     ax1.set_ylim(0,max(he)+100)
                     title("%s - %s" % (tun,tbmKey))
