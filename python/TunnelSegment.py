@@ -1040,11 +1040,11 @@ class G2:
             if tbmType =='S':
                 imax=2.5
             else:
-                imax=2.
+                imax=1.5
             self.probability = 1.
             self.impact = imax*cavityStabilityPar
         else:
-            imax=2.25
+            imax=2.
             self.probability = 1.
             self.impact = imax
 
@@ -1056,7 +1056,7 @@ class G5:
         elif tbmType=='S':
             imax = 1
         elif tbmType=='DS':
-            imax = 1.25
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1083,7 +1083,7 @@ class G6:
         elif tbmType=='S':
             imax = 1.5
         elif tbmType=='DS':
-            imax = 1.75
+            imax = 1.5
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1099,7 +1099,7 @@ class G7:
         elif tbmType=='S':
             imax = 1.
         elif tbmType=='DS':
-            imax = 1.25
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1132,7 +1132,7 @@ class G11:
         elif tbmType=='S':
             imax = 1.
         elif tbmType=='DS':
-            imax = 1.0
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1154,9 +1154,9 @@ class G12:
         if tbmType=='O':
             imax = 2.25
         elif tbmType=='S':
-            imax = 1.
+            imax = 2.
         elif tbmType=='DS':
-            imax = 1.5
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1354,7 +1354,7 @@ class V1:
         elif tbmType=='S':
             imax = 1.25
         elif tbmType=='DS':
-            imax = 1.5
+            imax = 1.25
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
@@ -1408,9 +1408,9 @@ class V3:
         if tbmType=='O':
             imax = 1.
         elif tbmType=='S':
-            imax = 1.25
+            imax = 1.
         elif tbmType=='DS':
-            imax = 1.5
+            imax = 1.
         else:
             print 'Errore tipo di tbm inesistente!'
             exit(1)
