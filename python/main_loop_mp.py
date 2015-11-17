@@ -19,7 +19,7 @@ plock = Lock()
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
 # danzi.tn@20151117 versione multithread
 def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
-
+    start_time = time.time()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
     with plock:
@@ -139,8 +139,9 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
                     insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
+    end_time = time.time()
     with plock:
-        print "[%d]############################# Ends at %s" % (idWorker,strnow)
+        print "[%d]############################# Ends at %s (%s seconds)" % (idWorker,strnow, end_time-start_time)
 
 
 if __name__ == "__main__":
