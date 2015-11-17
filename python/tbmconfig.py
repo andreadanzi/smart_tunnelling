@@ -30,6 +30,62 @@ class TBMConfig:
 
 tbms={}
 
+#TBM 1
+tbm1=TBMConfig()
+tbm1.name = 'GL_O_BBT_9.72'
+tbm1.manifacturer='BBT'
+tbm1.alignmentCode='GLSUD'
+tbm1.type='O' # O = open, S = single shield, DS = double shield
+tbm1.shieldLength=1.05
+tbm1.frontShieldDiameter=9.62
+tbm1.tailShieldDiameter=9.62
+tbm1.excavationDiameter=9.72
+tbm1.overcut=0.1
+tbm1.loadPerCutter=250.
+tbm1.cutterSize=17.*0.0254 #diameter
+tbm1.cutterSpacing=0.1
+tbm1.cutterThickness=0.02
+tbm1.cutterCount=76
+tbm1.totalContactThrust=tbm1.loadPerCutter*tbm1.cutterCount
+tbm1.referenceRpm=5.
+tbm1.nominalTorque=9000.
+tbm1.breakawayTorque=9000.
+tbm1.backupDragForce=6000.
+tbm1.nominalThrustForce=tbm1.totalContactThrust+1.5*tbm1.backupDragForce
+tbm1.auxiliaryThrustForce=tbm1.nominalThrustForce
+tbm1.openingRatio=0.1
+tbm1.cutterheadThickness=1.05 # in metri lo spessore della testa di scavo
+tbm1.dotationForProspection=0.5 # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm1.name] = tbm1
+
+#TBM 2
+tbm2=TBMConfig()
+tbm2.name = 'GL_S_BBT_10.47'
+tbm2.alignmentCode='GLSUD;GLNORD'
+tbm2.manifacturer='BBT'
+tbm2.type='S' # O = open, S = single shield, DS = double shield
+tbm2.shieldLength=9.5 # lunghezza media delle S 
+tbm2.frontShieldDiameter=10.37
+tbm2.tailShieldDiameter=10.37
+tbm2.excavationDiameter=10.47
+tbm2.overcut=0.1
+tbm2.loadPerCutter=250.
+tbm2.cutterSize=17.*0.0254 #diameter
+tbm2.cutterSpacing=0.1
+tbm2.cutterThickness=0.02
+tbm2.cutterCount=80
+tbm2.referenceRpm=5.
+tbm2.totalContactThrust=tbm2.loadPerCutter*tbm2.cutterCount
+tbm2.nominalTorque=9500.
+tbm2.breakawayTorque=9500.
+tbm2.backupDragForce=8000.
+tbm2.nominalThrustForce=tbm2.totalContactThrust+1.5*tbm2.backupDragForce
+tbm2.auxiliaryThrustForce=tbm2.nominalThrustForce
+tbm2.openingRatio=0.1
+tbm2.cutterheadThickness=1.05 # in metri lo spessore della testa di scavo
+tbm2.dotationForProspection=0.5 # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm2.name] = tbm2
+
 #TBM 3
 tbm3=TBMConfig()
 tbm3.name = 'CE_S_BBT_6.62'
@@ -57,6 +113,91 @@ tbm3.openingRatio=0.085 #media delle opening ratio dei produttori
 tbm3.dotationForProspection=0.5 # da 0 a 1 se e' per niente o molto dotata
 tbm3.cutterheadThickness=0.9 # media dei produttori
 tbms[tbm3.name] = tbm3
+
+#TBM 4
+tbm4=TBMConfig()
+tbm4.name = 'GL_O_HRK_9.72'
+tbm4.alignmentCode='GLSUD'
+tbm4.manifacturer='Herrenknecht'
+tbm4.type='O' # O = open, S = single shield, DS = double shield
+tbm4.shieldLength=1.05 
+tbm4.frontShieldDiameter=9.62
+tbm4.tailShieldDiameter=9.62
+tbm4.excavationDiameter=9.72
+tbm4.overcut=0.05
+tbm4.loadPerCutter=315.
+tbm4.cutterCount=56
+tbm4.cutterSize=19.*0.0254 #diameter
+tbm4.cutterSpacing=0.085
+tbm4.cutterThickness=0.02
+tbm4.totalContactThrust=tbm4.loadPerCutter*tbm4.cutterCount
+tbm4.referenceRpm=3.
+tbm4.nominalTorque=10238.
+tbm4.breakawayTorque=16381.
+tbm4.backupDragForce=6000.
+tbm4.nominalThrustForce=27489.
+tbm4.auxiliaryThrustForce=tbm4.nominalThrustForce
+tbm4.openingRatio=0.05
+tbm4.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
+tbm4.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm4.name] = tbm4
+
+#TBM 5
+tbm5=TBMConfig()
+tbm5.name = 'GL_S_HRK_10.54'
+tbm5.alignmentCode='GLSUD;GLNORD'
+tbm5.manifacturer='Herrenknecht'
+tbm5.type='S' # O = open, S = single shield, DS = double shield
+tbm5.shieldLength=9.845+1.1 
+tbm5.frontShieldDiameter=10.48
+tbm5.tailShieldDiameter=10.45
+tbm5.excavationDiameter=10.54
+tbm5.overcut=0.12
+tbm5.loadPerCutter=315.
+tbm5.cutterSize=19.*0.0254 #diameter
+tbm5.cutterSpacing=0.085
+tbm5.cutterThickness=0.02
+tbm5.cutterCount=64
+tbm5.referenceRpm=3.
+tbm5.totalContactThrust=tbm5.loadPerCutter*tbm5.cutterCount
+tbm5.nominalTorque=13500.
+tbm5.breakawayTorque=30300.
+tbm5.backupDragForce=8000.
+tbm5.nominalThrustForce=106965.
+tbm5.auxiliaryThrustForce=152800
+tbm5.openingRatio=0.05
+tbm5.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
+tbm5.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm5.name] = tbm5
+
+#TBM 6
+tbm6=TBMConfig()
+tbm6.name = 'GL_DS_HRK_10.64'
+tbm6.alignmentCode='GLSUD;GLNORD'
+tbm6.manifacturer='Herrenknecht'
+tbm6.type='DS' # O = open, S = single shield, DS = double shield
+tbm6.shieldLength=12.25+1.1 
+tbm6.frontShieldLength=4.82
+tbm6.frontShieldDiameter=10.58
+tbm6.tailShieldDiameter=10.44
+tbm6.excavationDiameter=10.64
+tbm6.overcut=0.1
+tbm6.loadPerCutter=315.
+tbm6.cutterSize=19.*0.0254 #diameter
+tbm6.cutterSpacing=0.085
+tbm6.cutterThickness=0.02
+tbm6.cutterCount=64
+tbm6.referenceRpm=3.
+tbm6.totalContactThrust=tbm6.loadPerCutter*tbm6.cutterCount
+tbm6.nominalTorque=13500.
+tbm6.breakawayTorque=30300.
+tbm6.backupDragForce=8000.
+tbm6.nominalThrustForce=79168.
+tbm6.auxiliaryThrustForce=152800.
+tbm6.openingRatio=0.05
+tbm6.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
+tbm6.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm6.name] = tbm6
 
 #TBM 7
 tbm7=TBMConfig()
@@ -114,6 +255,63 @@ tbm8.openingRatio=0.05
 tbm8.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
 tbm8.cutterheadThickness=0.9 
 tbms[tbm8.name] = tbm8
+
+#TBM 9
+tbm9=TBMConfig()
+tbm9.name = 'GL_O_RBS_9.72'
+tbm9.alignmentCode='GLSUD'
+tbm9.manifacturer='Robbins'
+tbm9.type='O' # O = open, S = single shield, DS = double shield
+tbm9.shieldLength=1. 
+tbm9.frontShieldDiameter=9.62
+tbm9.tailShieldDiameter=9.62
+tbm9.excavationDiameter=9.72
+tbm9.overcut=0.05
+tbm9.loadPerCutter=333.
+tbm9.cutterCount=62
+tbm9.cutterSize=19.*0.0254 #diameter
+tbm9.cutterSpacing=0.0732
+tbm9.cutterThickness=0.02
+tbm9.totalContactThrust=333.*62.
+tbm9.referenceRpm=2.5
+tbm9.nominalTorque=10220.
+tbm9.breakawayTorque=15330.
+tbm9.backupDragForce=6000.
+tbm9.nominalThrustForce=22640.
+tbm9.auxiliaryThrustForce=tbm9.nominalThrustForce
+tbm9.openingRatio=0.1
+tbm9.cutterheadThickness=1.0 # in metri lo spessore della testa di scavo
+tbm9.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm9.name] = tbm9
+
+#TBM 10
+tbm10=TBMConfig()
+tbm10.name = 'GL_DS_RBS_10.52'
+tbm10.alignmentCode='GLSUD;GLNORD'
+tbm10.manifacturer='Robbins'
+tbm10.type='DS' # O = open, S = single shield, DS = double shield
+tbm10.shieldLength=11. 
+tbm10.frontShieldLength=4.7
+tbm10.frontShieldDiameter=10.44
+tbm10.tailShieldDiameter=10.32
+tbm10.excavationDiameter=10.52
+tbm10.overcut=0.1
+tbm10.loadPerCutter=311.4
+tbm10.cutterCount=72
+tbm10.cutterSize=19.*0.0254 #diameter
+tbm10.cutterSpacing=0.0732
+tbm10.cutterThickness=0.02
+tbm10.totalContactThrust=tbm10.cutterCount*tbm10.loadPerCutter
+tbm10.referenceRpm=2.5
+tbm10.nominalTorque=18696.
+tbm10.breakawayTorque=33651.
+tbm10.backupDragForce=8000.
+tbm10.nominalThrustForce=69305.
+tbm10.auxiliaryThrustForce=217519.
+tbm10.openingRatio=0.1
+tbm10.cutterheadThickness=1.0 # in metri lo spessore della testa di scavo
+tbm10.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm10.name] = tbm10
 
 #TBM 11
 tbm11=TBMConfig()
@@ -286,191 +484,146 @@ tbm16.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
 tbm16.cutterheadThickness=0.85 
 tbms[tbm16.name] = tbm16
 
-"""
-#TBM 1
-tbm1=TBMConfig()
-tbm1.name = 'GL_O_BBT '
-tbm1.manifacturer='BBT'
-tbm1.alignmentCode='GLSUD'
-tbm1.type='O' # O = open, S = single shield, DS = double shield
-tbm1.shieldLength=2. 
-tbm1.frontShieldDiameter=0.
-tbm1.tailShieldDiameter=0.
-tbm1.excavationDiameter=9.72
-tbm1.overcut=0.05
-tbm1.loadPerCutter=250.
-tbm1.cutterSize=17.*0.0254 #diameter
-tbm1.cutterSpacing=0.1
-tbm1.cutterThickness=0.02
-tbm1.cutterCount=76
-tbm1.totalContactThrust=tbm1.loadPerCutter*tbm1.cutterCount
-tbm1.referenceRpm=5.
-tbm1.nominalTorque=9000.
-tbm1.breakawayTorque=9000.
-tbm1.backupDragForce=6000.
-tbm1.nominalThrustForce=tbm1.totalContactThrust+2.*tbm1.backupDragForce
-tbm1.auxiliaryThrustForce=1.1*tbm1.nominalThrustForce
-tbm1.openingRatio=0.1
-tbms[tbm1.name] = tbm1
+#TBM 18
+tbm18=TBMConfig()
+tbm18.name = 'GL_S_RBS_10.52'
+tbm18.alignmentCode='GLSUD;GLNORD'
+tbm18.manifacturer='Robbins'
+tbm18.type='S' # O = open, S = single shield, DS = double shield
+tbm18.shieldLength=9.5 
+tbm18.frontShieldDiameter=10.44
+tbm18.tailShieldDiameter=10.32
+tbm18.excavationDiameter=10.52
+tbm18.overcut=0.1
+tbm18.loadPerCutter=311.4
+tbm18.cutterSize=19.*0.0254 #diameter
+tbm18.cutterSpacing=0.0732
+tbm18.cutterThickness=0.02
+tbm18.cutterCount=72
+tbm18.referenceRpm=2.45
+tbm18.totalContactThrust=tbm18.loadPerCutter*tbm18.cutterCount
+tbm18.nominalTorque=20159.
+tbm18.breakawayTorque=39129.
+tbm18.backupDragForce=8000.
+tbm18.nominalThrustForce=137053.
+tbm18.auxiliaryThrustForce=208558
+tbm18.openingRatio=0.1
+tbm18.cutterheadThickness=1. # in metri lo spessore della testa di scavo
+tbm18.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm18.name] = tbm18
 
-#TBM 2
-tbm2=TBMConfig()
-tbm2.name = 'GL_S_BBT'
-tbm2.alignmentCode='GLSUD;GLNORD'
-tbm2.manifacturer='BBT'
-tbm2.type='S' # O = open, S = single shield, DS = double shield
-tbm2.shieldLength=10. 
-tbm2.frontShieldDiameter=10.27
-tbm2.tailShieldDiameter=10.27
-tbm2.excavationDiameter=10.47
-tbm2.overcut=0.1
-tbm2.loadPerCutter=250.
-tbm2.cutterSize=17.*0.0254 #diameter
-tbm2.cutterSpacing=0.1
-tbm2.cutterThickness=0.02
-tbm2.cutterCount=80
-tbm2.referenceRpm=5.
-tbm2.totalContactThrust=tbm2.loadPerCutter*tbm2.cutterCount
-tbm2.nominalTorque=9500.
-tbm2.breakawayTorque=9500.
-tbm2.backupDragForce=8000.
-tbm2.nominalThrustForce=tbm2.totalContactThrust+2.*tbm2.backupDragForce
-tbm2.auxiliaryThrustForce=1.1*tbm2.nominalThrustForce
-tbm2.openingRatio=0.1
-tbms[tbm2.name] = tbm2
+#TBM 19
+tbm19=TBMConfig()
+tbm19.name = 'GL_DS_LOV_10.50'
+tbm19.alignmentCode='GLSUD;GLNORD'
+tbm19.manifacturer='LOV'
+tbm19.type='DS' # O = open, S = single shield, DS = double shield
+tbm19.shieldLength=10.303 
+tbm19.frontShieldLength=4.445
+tbm19.frontShieldDiameter=10.453
+tbm19.tailShieldDiameter=10.441
+tbm19.excavationDiameter=10.479
+tbm19.overcut=0.1
+tbm19.loadPerCutter=320.
+tbm19.cutterCount=68
+tbm19.cutterSize=19.*0.0254 #diameter
+tbm19.cutterSpacing=0.085
+tbm19.cutterThickness=0.02
+tbm19.totalContactThrust=tbm19.cutterCount*tbm19.loadPerCutter
+tbm19.referenceRpm=5.39
+tbm19.nominalTorque=6910.
+tbm19.breakawayTorque=15900.
+tbm19.backupDragForce=8000.
+tbm19.nominalThrustForce=61680.
+tbm19.auxiliaryThrustForce=77100.
+tbm19.openingRatio=0.27
+tbm19.cutterheadThickness=1.0 # in metri lo spessore della testa di scavo
+tbm19.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm19.name] = tbm19
 
-#TBM 4
-tbm4=TBMConfig()
-tbm4.name = 'GL_O_HRK'
-tbm4.alignmentCode='GLSUD'
-tbm4.manifacturer='Herrenknecht'
-tbm4.type='O' # O = open, S = single shield, DS = double shield
-tbm4.shieldLength=3.88 
-tbm4.frontShieldDiameter=7.
-tbm4.tailShieldDiameter=7.
-tbm4.excavationDiameter=9.72
-tbm4.overcut=0.05
-tbm4.loadPerCutter=315.
-tbm4.cutterCount=56
-tbm4.cutterSize=19.*0.0254 #diameter
-tbm4.cutterSpacing=0.1
-tbm4.cutterThickness=0.02
-tbm4.totalContactThrust=tbm4.loadPerCutter*tbm4.cutterCount
-tbm4.referenceRpm=5.
-tbm4.nominalTorque=10238.
-tbm4.breakawayTorque=16381.
-tbm4.backupDragForce=6000.
-tbm4.nominalThrustForce=27489.
-tbm4.auxiliaryThrustForce=tbm4.nominalThrustForce
-tbm4.openingRatio=0.1
-tbms[tbm4.name] = tbm4
+#TBM 20
+tbm20=TBMConfig()
+tbm20.name = 'GL_S_LOV_10.47'
+tbm20.alignmentCode='GLSUD;GLNORD'
+tbm20.manifacturer='LOV'
+tbm20.type='S' # O = open, S = single shield, DS = double shield
+tbm20.shieldLength=9.563 
+tbm20.frontShieldDiameter=10.453
+tbm20.tailShieldDiameter=10.441
+tbm20.excavationDiameter=10.466
+tbm20.overcut=0.1
+tbm20.loadPerCutter=320.
+tbm20.cutterSize=19.*0.0254 #diameter
+tbm20.cutterSpacing=0.085
+tbm20.cutterThickness=0.02
+tbm20.cutterCount=68
+tbm20.referenceRpm=5.39
+tbm20.totalContactThrust=tbm20.loadPerCutter*tbm20.cutterCount
+tbm20.nominalTorque=6910.
+tbm20.breakawayTorque=15900.
+tbm20.backupDragForce=8000.
+tbm20.nominalThrustForce=53970.
+tbm20.auxiliaryThrustForce=77100
+tbm20.openingRatio=0.27
+tbm20.cutterheadThickness=1. # in metri lo spessore della testa di scavo
+tbm20.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm20.name] = tbm20
 
-#TBM 5
-tbm5=TBMConfig()
-tbm5.name = 'GL_S_HRK'
-tbm5.alignmentCode='GLSUD;GLNORD'
-tbm5.manifacturer='Herrenknecht'
-tbm5.type='S' # O = open, S = single shield, DS = double shield
-tbm5.shieldLength=9.915 
-tbm5.frontShieldDiameter=10.46
-tbm5.tailShieldDiameter=10.42
-tbm5.excavationDiameter=10.52
-tbm5.overcut=0.1
-tbm5.loadPerCutter=315.
-tbm5.cutterSize=19.*0.0254 #diameter
-tbm5.cutterSpacing=0.1
-tbm5.cutterThickness=0.02
-tbm5.cutterCount=62
-tbm5.referenceRpm=5.
-tbm5.totalContactThrust=tbm5.loadPerCutter*tbm5.cutterCount
-tbm5.nominalTorque=12618.
-tbm5.breakawayTorque=21451.
-tbm5.backupDragForce=8000.
-tbm5.frictionCoefficient=0.15
-tbm5.nominalThrustForce=106965.
-tbm5.auxiliaryThrustForce=tbm5.nominalThrustForce
-tbm5.openingRatio=0.1
-tbms[tbm5.name] = tbm5
+#TBM 21
+tbm21=TBMConfig()
+tbm21.name = 'GL_DS_NFM_10.52'
+tbm21.alignmentCode='GLSUD;GLNORD'
+tbm21.manifacturer='NFM'
+tbm21.type='DS' # O = open, S = single shield, DS = double shield
+tbm21.shieldLength=12.65 
+tbm21.frontShieldLength=5.2
+tbm21.frontShieldDiameter=10.48
+tbm21.tailShieldDiameter=10.44
+tbm21.excavationDiameter=10.52
+tbm21.overcut=0.105
+tbm21.loadPerCutter=315.
+tbm21.cutterCount=66
+tbm21.cutterSize=19.*0.0254 #diameter
+tbm21.cutterSpacing=0.09
+tbm21.cutterThickness=0.02
+tbm21.totalContactThrust=tbm21.cutterCount*tbm21.loadPerCutter
+tbm21.referenceRpm=2.5
+tbm21.nominalTorque=15000.
+tbm21.breakawayTorque=22500.
+tbm21.backupDragForce=8000.
+tbm21.nominalThrustForce=71400.
+tbm21.auxiliaryThrustForce=104200.
+tbm21.openingRatio=0.075
+tbm21.cutterheadThickness=1.2 # in metri lo spessore della testa di scavo
+tbm21.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm21.name] = tbm21
 
-#TBM 6
-tbm6=TBMConfig()
-tbm6.name = 'GL_DS_HRK'
-tbm6.alignmentCode='GLSUD;GLNORD'
-tbm6.manifacturer='Herrenknecht'
-tbm6.type='DS' # O = open, S = single shield, DS = double shield
-tbm6.shieldLength=12.25 
-tbm6.frontShieldDiameter=10.62
-tbm6.tailShieldDiameter=10.42
-tbm6.excavationDiameter=10.68
-tbm6.overcut=0.1
-tbm6.loadPerCutter=315.
-tbm6.cutterSize=19.*0.0254 #diameter
-tbm6.cutterSpacing=0.1
-tbm6.cutterThickness=0.02
-tbm6.cutterCount=62
-tbm6.referenceRpm=5.
-tbm6.totalContactThrust=tbm6.loadPerCutter*tbm6.cutterCount
-tbm6.nominalTorque=12618.
-tbm6.breakawayTorque=21451.
-tbm6.backupDragForce=8000.
-tbm6.frictionCoefficient=0.15
-tbm6.nominalThrustForce=79168.
-tbm6.auxiliaryThrustForce=106965.
-tbm6.openingRatio=0.1
-tbms[tbm6.name] = tbm6
+#TBM 22
+tbm22=TBMConfig()
+tbm22.name = 'GL_S_NFM_10.47'
+tbm22.alignmentCode='GLSUD;GLNORD'
+tbm22.manifacturer='NFM'
+tbm22.type='S' # O = open, S = single shield, DS = double shield
+tbm22.shieldLength=9.1 
+tbm22.frontShieldDiameter=10.48
+tbm22.tailShieldDiameter=10.44
+tbm22.excavationDiameter=10.52
+tbm22.overcut=0.105
+tbm22.loadPerCutter=315.
+tbm22.cutterSize=19.*0.0254 #diameter
+tbm22.cutterSpacing=0.09
+tbm22.cutterThickness=0.02
+tbm22.cutterCount=66
+tbm22.referenceRpm=2.5
+tbm22.totalContactThrust=tbm22.loadPerCutter*tbm22.cutterCount
+tbm22.nominalTorque=15000.
+tbm22.breakawayTorque=22500.
+tbm22.backupDragForce=8000.
+tbm22.nominalThrustForce=71400.
+tbm22.auxiliaryThrustForce=104200.
+tbm22.openingRatio=0.075
+tbm22.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
+tbm22.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
+tbms[tbm22.name] = tbm22
 
-
-#TBM 9
-tbm9=TBMConfig()
-tbm9.name = 'GL_O_RBS'
-tbm9.alignmentCode='GLSUD'
-tbm9.manifacturer='Robbins'
-tbm9.type='O' # O = open, S = single shield, DS = double shield
-tbm9.shieldLength=3.88 
-tbm9.frontShieldDiameter=7.
-tbm9.tailShieldDiameter=7.
-tbm9.excavationDiameter=9.72
-tbm9.overcut=0.05
-tbm9.loadPerCutter=311.
-tbm9.cutterCount=61
-tbm9.cutterSize=19.*0.0254 #diameter
-tbm9.cutterSpacing=0.1
-tbm9.cutterThickness=0.02
-tbm9.totalContactThrust=20600.
-tbm9.referenceRpm=5.
-tbm9.nominalTorque=10220.
-tbm9.breakawayTorque=15330.
-tbm9.backupDragForce=6000.
-tbm9.nominalThrustForce=22640.
-tbm9.auxiliaryThrustForce=tbm9.nominalThrustForce
-tbm9.openingRatio=0.1
-tbms[tbm9.name] = tbm9
-
-#TBM 10
-tbm10=TBMConfig()
-tbm10.name = 'GL_DS_RBS'
-tbm10.alignmentCode='GLSUD;GLNORD'
-tbm10.manifacturer='Robbins'
-tbm10.type='DS' # O = open, S = single shield, DS = double shield
-tbm10.shieldLength=12.25 
-tbm10.frontShieldDiameter=7.
-tbm10.tailShieldDiameter=7.
-tbm10.excavationDiameter=10.47
-tbm10.overcut=0.1
-tbm10.loadPerCutter=311.4
-tbm10.cutterCount=74
-tbm10.cutterSize=19.*0.0254 #diameter
-tbm10.cutterSpacing=0.0723
-tbm10.cutterThickness=0.02
-tbm10.totalContactThrust=22419.
-tbm10.referenceRpm=5.
-tbm10.nominalTorque=8560.
-tbm10.breakawayTorque=18696.
-tbm10.backupDragForce=8000.
-tbm10.nominalThrustForce=69305.
-tbm10.auxiliaryThrustForce=116952.
-tbm10.openingRatio=0.1
-tbms[tbm10.name] = tbm10
-
-"""
 
