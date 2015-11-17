@@ -683,9 +683,9 @@ class TBMSegment:
 
         #definisco il thrust che rimane per l'avanzamento tolti gli attriti e la convergenza sullo scudo
         if tbm.type == 'DS':
-            self.availableThrust = max(0., self.Tbm.installedThrustForce - self.frictionForce)
+            self.availableThrust = max(0., self.Tbm.installedAuxiliaryThrustForce - self.frictionForce)
         else:
-            self.availableThrust = max(0., self.Tbm.installedThrustForce - self.frictionForce - self.Tbm.BackupDragForce)
+            self.availableThrust = max(0., self.Tbm.installedAuxiliaryThrustForce - self.frictionForce - self.Tbm.BackupDragForce)
 
         #se non mi rimane thurst devo consolidare o sbloccare la macchina
         ratio = self.availableThrust/self.Tbm.totalContactThrust
