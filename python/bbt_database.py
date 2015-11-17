@@ -61,6 +61,21 @@ def insert_bbtreliability(sDBPath, reliability_list):
     conn.commit()
     conn.close()
 
+def compact_database(sDBPath):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    c.execute("VACUUM")
+    conn.commit()
+    conn.close()
+
+def insert_BbtTbm(sDBPath, tbm_list):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    c.execute('delete from BbtTbm')
+    for rel in reliability_list:
+        c.execute('insert into BbtTbm (id ,inizio, fine , gmr_class, gmr_val, reliability, eval_var) values (?,?,?,?,?,?,?)', rel)
+    conn.commit()
+    conn.close()
 
 def insert_bbtparameterseval_old(sDBPath, bbt_evalparameters, iteration_no=0):
     conn = sqlite3.connect(sDBPath)
@@ -196,5 +211,17 @@ def clean_all_eval_ad_kpi(sDBPath):
     c = conn.cursor()
     c.execute("delete from BbtParameterEval")
     c.execute("delete from BbtTbmKpi")
+    conn.commit()
+    conn.close()
+
+
+def load_tbm_table(sDBPath, tbmsDict):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    c.execute("delete from BbtTbm")
+    for tbmKey in tbmsDict:
+        tbmData = tbmsDict[tbmKey]
+        inputVal = (tbmData.name,tbmData.alignmentCode,tbmData.manifacturer,tbmData.type,tbmData.shieldLength,tbmData.overcut)
+        c.execute("INSERT INTO BbtTbm (name,alignmentCode,manufacturer,type,shieldLength,overcut) VALUES (?,?,?,?,?,?)", inputVal)
     conn.commit()
     conn.close()
