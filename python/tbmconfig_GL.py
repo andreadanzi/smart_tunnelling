@@ -80,7 +80,7 @@ tbm2.nominalTorque=9500.
 tbm2.breakawayTorque=9500.
 tbm2.backupDragForce=8000.
 tbm2.nominalThrustForce=tbm2.totalContactThrust+1.5*tbm2.backupDragForce
-tbm2.auxiliaryThrustForce=1.1*tbm2.nominalThrustForce
+tbm2.auxiliaryThrustForce=tbm2.nominalThrustForce
 tbm2.openingRatio=0.1
 tbm2.cutterheadThickness=1.05 # in metri lo spessore della testa di scavo
 tbm2.dotationForProspection=0.5 # da 0 a 1 se e' per niente o molto dotata
@@ -120,7 +120,7 @@ tbm5.name = 'GL_S_HRK_10.54'
 tbm5.alignmentCode='GLSUD;GLNORD'
 tbm5.manifacturer='Herrenknecht'
 tbm5.type='S' # O = open, S = single shield, DS = double shield
-tbm5.shieldLength=9.845 
+tbm5.shieldLength=9.845+1.1 
 tbm5.frontShieldDiameter=10.48
 tbm5.tailShieldDiameter=10.45
 tbm5.excavationDiameter=10.54
@@ -148,7 +148,7 @@ tbm6.name = 'GL_DS_HRK_10.64'
 tbm6.alignmentCode='GLSUD;GLNORD'
 tbm6.manifacturer='Herrenknecht'
 tbm6.type='DS' # O = open, S = single shield, DS = double shield
-tbm6.shieldLength=12.98 
+tbm6.shieldLength=12.25+1.1 
 tbm6.frontShieldLength=4.82
 tbm6.frontShieldDiameter=10.58
 tbm6.tailShieldDiameter=10.44
