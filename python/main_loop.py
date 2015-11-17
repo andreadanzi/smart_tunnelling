@@ -12,6 +12,7 @@ from collections import namedtuple
 from pprint import pprint
 from tbmkpi import FrictionCoeff
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
+# danzi.tn@20151117 compact database
 def main_loop(nIter):
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
@@ -38,6 +39,7 @@ def main_loop(nIter):
 
     # danzi.tn@20151116
     clean_all_eval_ad_kpi(sDBPath)
+    compact_database(sDBPath)
 
     #inizializzo le info sui tracciati dai file di configurazione
     inizio_GLEST = bbtConfig.getfloat('Import','inizio_GLEST')
@@ -74,6 +76,8 @@ def main_loop(nIter):
     alnAll.append(aln)
     kpiTbmList = []
     for iIterationNo in range(nIter):
+        if iIterationNo+1 % 9 ==0:
+            compact_database(sDBPath)
         # Per tutti i Tunnel
         print "########### iteration %d" % iIterationNo
         for alnCurr in alnAll:

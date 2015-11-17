@@ -17,6 +17,7 @@ from threading import Thread, Lock
 plock = Lock()
 
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
+# danzi.tn@20151117 versione multithread
 def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
 
     now = datetime.datetime.now()
