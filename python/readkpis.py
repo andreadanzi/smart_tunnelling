@@ -343,8 +343,6 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sT
         if len(tbmName)>0:
             sSql = sSql + " AND BbtTbm.type = '%s'" % tbmName
         sSql = sSql + " GROUP BY BbtTbm.type ORDER BY BbtTbm.type "
-
-    print sSql
     cur.execute(sSql)
     bbtTBMresults = cur.fetchall()
     tbmNo = len(bbtTBMresults)
@@ -369,7 +367,6 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sT
                     AND BbtTbm.type = '"""+ bbtTbm[0]+"""'
                     GROUP BY BbtTbmKpi.iterationNo
                     ORDER BY BbtTbmKpi.iterationNo """
-        print sSql
         cur.execute(sSql)
         bbtImpResults = cur.fetchall()
         tbmData = []
