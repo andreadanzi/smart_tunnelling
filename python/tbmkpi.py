@@ -206,24 +206,28 @@ class KpiTbm4Tunnel:
         self.kpis['G13'].finalizeIndex(alnCurr.length)
 
     def getBbtTbmKpis(self):
+        bbttbmkpis =[]
         for key in self.kpis:
             _kpi = self.kpis[key]
             bbttbmkpi = BbtTbmKpi(self.tunnelName, self.tbmName,self.iterationNo,key, _kpi.definition, _kpi.minImpact, _kpi.maxImpact, _kpi.avgImpact, _kpi.appliedLength, _kpi.percentOfApplication, _kpi.probabilityScore, _kpi.totalImpact)
-            self.bbttbmkpis.append(bbttbmkpi)
-        return self.bbttbmkpis
+            bbttbmkpis.append(bbttbmkpi)
+        return bbttbmkpis
 
     def saveBbtTbmKpis(self,sDBPath):
-        conn = sqlite3.connect(sDBPath)
-        c = conn.cursor()
-        c.execute("DELETE FROM BbtTbmKpi WHERE tunnelName='%s' AND tbmName='%s' AND iterationNo=%d" % (self.tunnelName,self.tbmName, self.iterationNo))
+        bbttbmkpis =[]
         for key in self.kpis:
             _kpi = self.kpis[key]
             bbttbmkpi = BbtTbmKpi(self.tunnelName, self.tbmName,self.iterationNo,key, _kpi.definition, _kpi.minImpact, _kpi.maxImpact, _kpi.avgImpact, _kpi.appliedLength, _kpi.percentOfApplication, _kpi.probabilityScore, _kpi.totalImpact)
-            c.execute("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpi)
-            self.bbttbmkpis.append(bbttbmkpi)
+            bbttbmkpis.append(bbttbmkpi)
+        conn = sqlite3.connect(sDBPath)
+        c = conn.cursor()
+        c.execute("DELETE FROM BbtTbmKpi WHERE tunnelName=? AND tbmName=? AND iterationNo=?" , (self.tunnelName,self.tbmName, self.iterationNo))
+        conn.commit()
+        print "bbttbmkpis ln = %d" % len(bbttbmkpis)
+        c.executemany("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpis)
         conn.commit()
         conn.close()
-        return self.bbttbmkpis
+        return bbttbmkpis
 
     def printoutKPI(self):
         for key in self.kpis:
