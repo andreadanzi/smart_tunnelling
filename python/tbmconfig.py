@@ -626,4 +626,32 @@ tbm22.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
 tbm22.dotationForProspection=0. # da 0 a 1 se e' per niente o molto dotata
 tbms[tbm22.name] = tbm22
 
+#TBM 23
+tbm23=TBMConfig()
+tbm23.name = 'CE_DS_RBS_6.73'
+tbm23.alignmentCode='CE'
+tbm23.manifacturer='Robbins'
+tbm23.type='DS' # O = open, S = single shield, DS = double shield
+tbm23.shieldLength=11.+.9 
+tbm23.frontShieldDiameter=6.67
+tbm23.frontShieldLength=4.3+.9
+tbm23.tailShieldDiameter=6.56
+tbm23.excavationDiameter=6.73
+tbm23.overcut=0.1
+tbm23.loadPerCutter=267.
+tbm23.cutterSize=17.*0.0254 #diameter
+tbm23.cutterSpacing=0.087
+tbm23.cutterThickness=0.02
+tbm23.cutterCount=42
+tbm23.totalContactThrust=tbm23.loadPerCutter*tbm23.cutterCount
+tbm23.referenceRpm=5.4
+tbm23.nominalTorque=4053.
+tbm23.breakawayTorque=14034.
+tbm23.backupDragForce=4000.
+tbm23.nominalThrustForce=27630.
+tbm23.auxiliaryThrustForce=97205.
+tbm23.openingRatio=0.1
+tbm23.dotationForProspection=1.
+tbm23.cutterheadThickness=.9 
+tbms[tbm23.name] = tbm23
 
