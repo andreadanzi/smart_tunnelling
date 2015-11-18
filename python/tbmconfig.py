@@ -167,7 +167,7 @@ tbm5.nominalThrustForce=106965.
 tbm5.auxiliaryThrustForce=152800
 tbm5.openingRatio=0.05
 tbm5.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
-tbm5.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbm5.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
 tbms[tbm5.name] = tbm5
 
 #TBM 6
@@ -176,7 +176,7 @@ tbm6.name = 'GL_DS_HRK_10.64'
 tbm6.alignmentCode='GLSUD;GLNORD'
 tbm6.manifacturer='Herrenknecht'
 tbm6.type='DS' # O = open, S = single shield, DS = double shield
-tbm6.shieldLength=12.25+1.1 
+tbm6.shieldLength=11.+1.1 
 tbm6.frontShieldLength=4.82+1.1
 tbm6.frontShieldDiameter=10.58
 tbm6.tailShieldDiameter=10.44
@@ -642,7 +642,7 @@ tbm23.loadPerCutter=267.
 tbm23.cutterSize=17.*0.0254 #diameter
 tbm23.cutterSpacing=0.087
 tbm23.cutterThickness=0.02
-tbm23.cutterCount=42
+tbm23.cutterCount=45
 tbm23.totalContactThrust=tbm23.loadPerCutter*tbm23.cutterCount
 tbm23.referenceRpm=5.4
 tbm23.nominalTorque=4053.
