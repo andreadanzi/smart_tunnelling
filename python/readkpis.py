@@ -108,6 +108,7 @@ def unit_poly_verts(theta):
     return verts
 
 
+# danzi.tn@20151118 filtro per tipologia TBM (sTypeToGroup)
 def radar_data(kpiArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup):
     data = []
     data.append(kpiArray)
@@ -148,7 +149,23 @@ def radar_data(kpiArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup):
             bbtTbmKpi.kpiKey,
             bbtTbmKpi.tbmName
             order by bbtTbmKpi.tbmName, bbtTbmKpi.kpiKey"""
-        if bGroupTypes:
+        if len(sTypeToGroup) > 0:
+            sSql = """SELECT
+                bbtTbmKpi.kpiKey,
+                bbtTbmKpi.tbmName,
+                avg(bbtTbmKpi.totalImpact) as val
+                FROM
+                bbtTbmKpi
+                JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
+                WHERE
+                bbtTbmKpi.tunnelName = '"""+tn+"""'
+                AND bbtTbmKpi.kpiKey in ('"""+sHavingKpis+"""')
+                AND BbtTbm.type = '"""+sTypeToGroup+"""'
+                group by
+                bbtTbmKpi.kpiKey,
+                bbtTbmKpi.tbmName
+                order by bbtTbmKpi.tbmName, bbtTbmKpi.kpiKey"""
+        elif bGroupTypes:
             sSql = """SELECT
                 bbtTbmKpi.kpiKey,
                 BbtTbm.type,
