@@ -61,8 +61,7 @@ def impactOnDelay(tDays):
 
 def impactOnCost(cost, costRef):
     if costRef<.0000000001:
-        print 'Error: reference cost is almost zero'
-        exit(-1)
+        raise ValueError('In impactOnCost, Error: reference cost is almost zero')
     ratio = cost/costRef
     if ratio<=0.:
         y0=1.
@@ -89,8 +88,7 @@ def impactOnCost(cost, costRef):
 
 def impactOnProduction(production, productionRef):
     if productionRef<.0000000001:
-        print 'Error: reference production is zero'
-        exit(-1)
+        raise ValueError('In impactOnProduction, Error: reference production is zero')
     ratio = production/productionRef
     if ratio>=1.:
         y0=0.
@@ -159,8 +157,7 @@ def tempoInterventiSpeciali(tbmType, length): #obsoleta
         #3 ore per campo di 6 metri
         t = length/6.*3.
     else:
-        print "Errore! Tipo TBM inesistente!"
-        exit(-1)
+        raise ValueError('In tempoInterventiSpeciali, Errore! Tipo TBM (%s) inesistente!' % tbmType)
     return t
 
 
@@ -241,8 +238,7 @@ class HoekBrown:	#caratteristiche ammasso secondo Hoek e Brown
         self.SigmaT = self.S*ucs/self.Mb # a meno del segno e' la resistenza a trazione
         self.SigmaCm = ucs*(((self.Mb+4.0*self.S-self.A*(self.Mb-8.0*self.S))*(self.Mb/4.0+self.S)**(self.A-1.0))/(2.0*(1.0+self.A)*(2.0+self.A)))	# parametro di Hoek & Brown
         if sv < 0.001 or self.SigmaCm < 0.001:
-            print "ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" %(ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv)
-            exit(-701)
+            raise ValueError("In HoekBrown__init__, Errore! ucs= %f mi= %f mb= %f s= %f a= %f SigmaCm= %f SigmaV= %f" % (ucs, mi, self.Mb, self.S, self.A, self.SigmaCm, sv))
         self.Sigma3max = (0.47*(self.SigmaCm/sv)**(-0.94))*self.SigmaCm # parametro di Hoek & Brown
 
         # parametri residui
@@ -382,7 +378,7 @@ class Breakaway:
         self.T3 = 0.
         self.T5 = 0.
         self.torque = 0.
-    
+
     def setupFrontInstability(self, overburden, mc, gamma, D):
         # nu e' opening Ratio della cutterhead
         # definisco tutto sulla base dei parametri di post picco del materiale
@@ -458,7 +454,7 @@ class TBM:
         self.excavationDiam = tbmData.excavationDiameter    #shield maximum diameter
         self.frontShieldDiameter = tbmData.frontShieldDiameter
         self.tailShieldDiameter = tbmData.tailShieldDiameter
-        
+
         self.dotation = tbmData.dotationForProspection #numero tra 0 e 1 dove 0 e' la meno dotata
         self.name = tbmData.name
 
@@ -491,8 +487,7 @@ class TBM:
         elif self.type == 'DS':
             self.uf = ufDS
         else:
-            print 'Errore: tipo TBM inesistente. Impossibile definire UF'
-            exit(-700)
+            raise ValueError("Errore: tipo TBM (%s) inesistente. Impossibile definire UF" % self.type)
         # definisco la massima produzione giornaliera in metri possibile (serve per dare un peso alla produzione)
         productionMax = 0.
         for iii in range(0, 10):
@@ -574,7 +569,7 @@ class TBMSegment:
             self.frontStabilityBreakawayTorque = 0.
         elif self.frontStability.lambdae > 0.3:
             # tra 0.3 e 0.6 ipotizzo che aumenti progressivamente il diametro di base
-            dEq = self.Excavation.Radius*2.*(0.6-self.frontStability.lambdae)/.3 
+            dEq = self.Excavation.Radius*2.*(0.6-self.frontStability.lambdae)/.3
             bat.setupFrontInstability(overburden, self.MohrCoulomb, gamma, dEq)
             bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
 #            print 'Breakaway torque for front stability mid = %f' % (bat.torque)
@@ -591,7 +586,7 @@ class TBMSegment:
             self.rockburstBreakawayTorque = 0.
         elif self.rockBurst.Val < .3:
             # tra 0.3 e 0.6 ipotizzo che aumenti progressivamente il diametro di base
-            dEq = self.Excavation.Radius*2.*(self.rockBurst.Val-0.2)/.1 
+            dEq = self.Excavation.Radius*2.*(self.rockBurst.Val-0.2)/.1
             bat.setupRockburst(self.MohrCoulomb, gamma, dEq)
             bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
 #            print 'Breakaway torque for rockbursting mid = %f' % (bat.torque)
@@ -657,7 +652,7 @@ class TBMSegment:
                 self.frontFrictionForce = total*self.Tbm.tailShieldDiameter*math.pi*frictionCoeff*1000.0 # forza in kN
                 self.tailFrictionForce = 0.
                 self.frictionForce = self.frontFrictionForce
-                
+
         elif self.TunnelClosureAtShieldEnd<=self.Tbm.gap and self.TunnelClosureAtShieldEnd1>self.Tbm.gap1:
             self.contactType = 2
             self.Xcontact = self.xLim(self.Tbm.gap1)
@@ -1008,8 +1003,7 @@ class G1:
         elif tbmType=='DS':
             imax = 1.5
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         if lambdae<.6:
             # tra 0.3 e 0.6 faccio calare linearmente sia la probabilita' che l'impatto
@@ -1018,7 +1012,7 @@ class G1:
         elif lambdae<.3:
             self.probability = 1.
             self.impact = imax
-        else:   
+        else:
             self.probability = 0.
             self.impact = 0.
         if availableTorque>=0.:
@@ -1058,8 +1052,7 @@ class G5:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         if 'KS' in mat:
             if lambdae >0.6:
@@ -1085,8 +1078,7 @@ class G6:
         elif tbmType=='DS':
             imax = 1.5
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         self.probability = 1.
         self.impact = imax
@@ -1101,9 +1093,7 @@ class G7:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
-
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.probability = 1.
         self.impact = imax
 
@@ -1117,8 +1107,7 @@ class G8:
         elif tbmType=='DS':
             imax = 2.25
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         self.probability = 1.
         self.impact = imax
@@ -1134,8 +1123,7 @@ class G11:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.probability = 0.
 
         if '-R-' in mat:
@@ -1158,8 +1146,7 @@ class G12:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         if 'KS' in mat:
             if lambdae<.6:
@@ -1169,7 +1156,7 @@ class G12:
             elif lambdae<.3:
                 self.probability = 1.
                 self.impact = imax
-            else:   
+            else:
                 self.probability = 0.
                 self.impact = 0.
             if availableTorque>0.:
@@ -1189,8 +1176,7 @@ class G13:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
 
         if rockBurstingPar<0.2:
             self.probability = 0.
@@ -1227,8 +1213,7 @@ class P2: #tempo di montaggio e smontaggio lo si puo' associare direttamente all
         elif tbmType=='DS':
             imax = 9.*30.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.duration = imax
         self.impact=0.
         self.probability=0.
@@ -1266,8 +1251,7 @@ class P4:
         elif tbmType=='DS':
             imax = .5/24. #ore al giorno spese per le prospezioni
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         # danzi.tn@20151112 duration modificata
         newProductivity = refProductivity/(1.+imax)
         self.duration = length*(1/newProductivity-1/refProductivity) # impatto in giorni sulla produzione di quel segmento
@@ -1294,8 +1278,7 @@ class P5:
         elif tbmType=='DS':
             imax = 4.5/24. # giorni per metro di apprestamento
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         imax*=length # tempo richiesto in giorni per consolidare tutta la lunghezza del segmento
         newProductivity = refProductivity/(1.+imax)
         impact = impactOnProduction(newProductivity, refProductivity)
@@ -1356,8 +1339,7 @@ class V1:
         elif tbmType=='DS':
             imax = 1.25
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=imax
 
 class V2:
@@ -1370,24 +1352,22 @@ class V2:
         self.probability=0.
         if 'CE' in tbmName:
             if tbmType=='O':
-                self.cost = 7. 
+                self.cost = 7.
             elif tbmType=='S':
-                self.cost = 14.5 
+                self.cost = 14.5
             elif tbmType=='DS':
-                self.cost = 16. 
+                self.cost = 16.
             else:
-                print 'Errore tipo di tbm inesistente!'
-                exit(1)
+                raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         else:
             if tbmType=='O':
-                self.cost = 15. 
+                self.cost = 15.
             elif tbmType=='S':
-                self.cost = 24 
+                self.cost = 24
             elif tbmType=='DS':
-                self.cost = 26. 
+                self.cost = 26.
             else:
-                print 'Errore tipo di tbm inesistente!'
-                exit(1)
+                raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=0.
 
     def defineImpact(self, costRef):
@@ -1401,7 +1381,7 @@ class V2:
 
 
 class V3:
-    def __init__(self, tbmType, dotation): 
+    def __init__(self, tbmType, dotation):
         # servira' avvantaggiare rbs perche' meglio dotata
         self.definition='Prospection tools'
         self.probability=1.
@@ -1412,8 +1392,7 @@ class V3:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=imax*(1.-dotation)
 
 class V4:
@@ -1427,8 +1406,7 @@ class V4:
         elif tbmType=='DS':
             imax = 1.5
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=imax
 
 class V5:
@@ -1442,8 +1420,7 @@ class V5:
         elif tbmType=='DS':
             imax = 1.
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=imax
 
 class V6:
@@ -1457,8 +1434,7 @@ class V6:
         elif tbmType=='DS':
             imax = 1.5
         else:
-            print 'Errore tipo di tbm inesistente!'
-            exit(1)
+            raise ValueError("Errore: tipo TBM (%s) inesistente." % tbmType)
         self.impact=imax
 
 class PerformanceIndex:
