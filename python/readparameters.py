@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 # danzi.tn@20151114 integrazione KPI in readparameters
 # danzi.tn@20151117 plot percentile
 # danzi.tn@20151117 plot aggregato per tipologia TBM
+# danzi.tn@20151118 filtro per tipologia TBM
 def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
@@ -40,7 +41,7 @@ def main(argv):
     sParm += "\n\t-c => raggruppamento per tipologia di TBM\n"
     sParm += "\n\t-m => per tipologia di TBM indicata viene eseguito raggruppamento per Produttore\n"
     try:
-        opts, args = getopt.getopt(argv,"hp:t:rkadicm:",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms","tbmtype","manufacturer"])
+        opts, args = getopt.getopt(argv,"hp:t:rkadicm:",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms","compact_types","bytype"])
     except getopt.GetoptError:
         print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % sParm
         sys.exit(2)
@@ -68,17 +69,20 @@ def main(argv):
             bShowDetailKPI = True
         elif opt in ("-i", "--histograms"):
             bPrintHist = True
-        elif opt in ("-c", "--tbmtype"):
+        elif opt in ("-c", "--compact_types"):
             bGroupTypes = True
-        elif opt in ("-m", "--manufacturer"):
+        elif opt in ("-m", "--bytype"):
             sTypeToGroup = arg
-            bGroupTypes = True
+            #bGroupTypes = True
 
+    if len(sTypeToGroup) >0 and sTypeToGroup not in ('DS','S','O'):
+        print "Wrong TBM Type -m=%s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % (sTypeToGroup,sParm)
+        sys.exit(2)
     if len(sParameterToShow) >0 and sParameterToShow not in parmDict:
-        print "Wrong parameter %s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % (sParameterToShow,sParm)
+        print "Wrong parameter -p=%s!\nreadparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % (sParameterToShow,sParm)
         sys.exit(2)
     if len(sTbmCode) >0 and sTbmCode not in tbms:
-        print "Wrong TBM Code %s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rkai]\r\n where\r\n %s" % (sTbmCode,sParm)
+        print "Wrong TBM Code -t=%s!\nreadparameters.py -p <parameter> -t <tbmcode> [-rkai]\r\n where\r\n %s" % (sTbmCode,sParm)
         sys.exit(2)
     # mi metto nella directory corrente
     path = os.path.dirname(os.path.realpath(__file__))
@@ -118,7 +122,7 @@ def main(argv):
     tunnelArray = []
     for bbtr in bbtresults:
         tunnelArray.append(bbtr[0])
-    # Legge tutte le TBM
+    # Legge tutte le TBM solo per associare i colori in maniera univoca
     sSql = """SELECT bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer, count(*) as cnt
             FROM
             bbtTbmKpi
@@ -158,7 +162,17 @@ def main(argv):
                     WHERE bbtTbmKpi.tunnelName = '"""+tun+"""' AND BbtTbm.name = '"""+sTbmCode+"""'
         			GROUP BY bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer
                     ORDER BY bbtTbmKpi.tbmName"""
-        if bGroupTypes:
+        # Filtro sulla eventuale Tipologia passata come parametro
+        elif len(sTypeToGroup) > 0:
+            sSql = """SELECT bbtTbmKpi.tbmName, count(*) as cnt, BbtTbm.type, BbtTbm.manufacturer
+                    FROM
+                    bbtTbmKpi
+        			JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
+                    WHERE bbtTbmKpi.tunnelName = '"""+tun+"""' AND BbtTbm.type = '"""+sTypeToGroup+"""'
+        			GROUP BY bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer
+                    ORDER BY bbtTbmKpi.tbmName"""
+        # Raggruppamento per Tipo TBM
+        elif bGroupTypes:
             sSql = """SELECT BbtTbm.type, count(*) as cnt_tbmtype
                     FROM
                     BbtTbm
