@@ -136,8 +136,10 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts,loopTbms):
                                                         tbmsect.LDP_Vlachopoulos_2009(tbm.Slen), \
                                                          ) )
                     kpiTbm.updateKPI(alnCurr)
-                    kpiTbm.saveBbtTbmKpis(sDBPath)
-                    insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
+                    with plock:
+                        kpiTbm.saveBbtTbmKpis(sDBPath)
+                    with plock:
+                        insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
     end_time = time.time()
