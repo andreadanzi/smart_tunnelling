@@ -13,7 +13,8 @@ from pprint import pprint
 from tbmkpi import FrictionCoeff
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
 # danzi.tn@20151117 compact database
-def main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts):
+# danzi.tn@20151118 gestione loop per singola TBM
+def main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts,loopTbms):
     start_time = time.time()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
@@ -62,8 +63,8 @@ def main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts):
         for alnCurr in alnAll:
             # Per tutte le tbm
             print "Tunnel: %s" % alnCurr.description
-            for tbmKey in tbms:
-                tbmData = tbms[tbmKey]
+            for tbmKey in loopTbms:
+                tbmData = loopTbms[tbmKey]
                 # Se la TBM e' conforme al TUnnell
                 if alnCurr.tbmKey in tbmData.alignmentCode:
                     print "\tTBM %s ok" % tbmKey
@@ -144,24 +145,35 @@ def main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts):
 
 def main(argv):
     nIter = 0
+    bPerformTBMClean = False
+    sTbmCode =""
+    loopTbms = {}
+    sParm = "\n t,tbmcode  in \n"
+    for k in tbms:
+        sParm += "\t%s - Produttore %s di tipo %s per tunnel %s\r\n" % (k,tbms[k].manifacturer, tbms[k].type, tbms[k].alignmentCode)
     try:
-        opts, args = getopt.getopt(argv,"hn:",["iteration_no="])
+        opts, args = getopt.getopt(argv,"hn:dt:",["iteration_no=","deletetbms=","tbmcode="])
     except getopt.GetoptError:
-        print "main_loop.py -n <number of iteration (positive integer)>"
+        print "main_loop.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n%s" % sParm
         sys.exit(2)
     if len(opts) < 1:
-        print "main_loop.py -n <number of iteration (positive integer)>"
+        print "main_loop.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n%s" % sParm
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "main_loop.py -n <number of iteration (positive integer)>"
+            print "main_loop.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n%s" % sParm
             sys.exit()
         elif opt in ("-n", "--iteration_no"):
             try:
                 nIter = int(arg)
             except ValueError:
-                print "main_loop.py -n <number of iteration (positive integer)>"
+                print "main_loop.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n%s" % sParm
                 sys.exit(2)
+        elif opt in ("-d", "--deletetbms"):
+            bPerformTBMClean = True
+        elif opt in ("-t", "--tbmcode"):
+            sTbmCode = arg
+            loopTbms[sTbmCode] = tbms[sTbmCode]
     if nIter > 0:
         # mi metto nella directory corrente
         path = os.path.dirname(os.path.realpath(__file__))
@@ -185,11 +197,13 @@ def main(argv):
             normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
 
         # danzi.tn@20151116
-        clean_all_eval_ad_kpi(sDBPath)
+        if bPerformTBMClean:
+            clean_all_eval_ad_kpi(sDBPath)
+            compact_database(sDBPath)
         load_tbm_table(sDBPath, tbms)
-        compact_database(sDBPath)
-        #
-        main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts)
+        if len(loopTbms) == 0:
+            loopTbms = tbms
+        main_loop(sDBPath, nIter,bbt_parameters,normfunc_dicts,loopTbms)
     else:
         print "main_loop.py -n <number of iteration (positive integer)>"
 

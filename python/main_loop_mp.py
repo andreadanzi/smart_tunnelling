@@ -18,7 +18,8 @@ plock = Lock()
 
 # danzi.tn@20151114 gestione main e numero di iterazioni da linea comando
 # danzi.tn@20151117 versione multithread
-def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
+# danzi.tn@20151118 gestione loop per singola TBM
+def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts,loopTbms):
     start_time = time.time()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
@@ -67,8 +68,8 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
         with plock:
             print "[%d]########### iteration %d - %d" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo)
         for alnCurr in alnAll:
-            for tbmKey in tbms:
-                tbmData = tbms[tbmKey]
+            for tbmKey in loopTbms:
+                tbmData = loopTbms[tbmKey]
                 # Se la TBM e' conforme al TUnnell
                 if alnCurr.tbmKey in tbmData.alignmentCode:
                     tbm = TBM(tbmData, 'V')
@@ -135,8 +136,10 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts):
                                                         tbmsect.LDP_Vlachopoulos_2009(tbm.Slen), \
                                                          ) )
                     kpiTbm.updateKPI(alnCurr)
-                    kpiTbm.saveBbtTbmKpis(sDBPath)
-                    insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
+                    with plock:
+                        kpiTbm.saveBbtTbmKpis(sDBPath)
+                    with plock:
+                        insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
     end_time = time.time()
@@ -148,24 +151,35 @@ if __name__ == "__main__":
     mp_np = cpu_count() - 1
     argv = sys.argv[1:]
     nIter = 0
+    bPerformTBMClean = False
+    sTbmCode =""
+    loopTbms = {}
+    sParm = "\n t,tbmcode  in \n"
+    for k in tbms:
+        sParm += "\t%s - Produttore %s di tipo %s per tunnel %s\r\n" % (k,tbms[k].manifacturer, tbms[k].type, tbms[k].alignmentCode)
     try:
-        opts, args = getopt.getopt(argv,"hn:",["iteration_no="])
+        opts, args = getopt.getopt(argv,"hn:dt:",["iteration_no=","deletetbms=","tbmcode="])
     except getopt.GetoptError:
-        print "main_loop_mp.py -n <number of iteration (positive integer)> \n\tCi sono %d processori disponibili" % mp_np
+        print "main_loop_mp.py -n <number of iteration (positive integer)> [-t <tbmcode>] \n\tCi sono %d processori disponibili\n%s" % (mp_np, sParm)
         sys.exit(2)
     if len(opts) < 1:
-        print "main_loop_mp.py -n <number of iteration (positive integer)>\n\tCi sono %d processori disponibili" % mp_np
+        print "main_loop_mp.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n\tCi sono %d processori disponibili\n%s" % (mp_np, sParm)
         sys.exit(2)
     for opt, arg in opts:
         if opt == '-h':
-            print "main_loop_mp.py -n <number of iteration (positive integer)>\n\tCi sono %d processori disponibili" % mp_np
+            print "main_loop_mp.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n\tCi sono %d processori disponibili\n%s" % (mp_np, sParm)
             sys.exit()
         elif opt in ("-n", "--iteration_no"):
             try:
                 nIter = int(arg)
             except ValueError:
-                print "main_loop_mp.py -n <number of iteration (positive integer)>\n\tCi sono %d processori disponibili" % mp_np
+                print "main_loop_mp.py -n <number of iteration (positive integer)> [-t <tbmcode>]\n\tCi sono %d processori disponibili\n%s" % (mp_np, sParm)
                 sys.exit(2)
+        elif opt in ("-d", "--deletetbms"):
+            bPerformTBMClean = True
+        elif opt in ("-t", "--tbmcode"):
+            sTbmCode = arg
+            loopTbms[sTbmCode] = tbms[sTbmCode]
     if nIter > 0:
         # mi metto nella directory corrente
         path = os.path.dirname(os.path.realpath(__file__))
@@ -188,12 +202,15 @@ if __name__ == "__main__":
             normfunc_dicts[int(bbt_parameter.fine)] = normfunc_dict
 
         # danzi.tn@20151116
-        clean_all_eval_ad_kpi(sDBPath)
-        compact_database(sDBPath)
+        if bPerformTBMClean:
+            clean_all_eval_ad_kpi(sDBPath)
+            compact_database(sDBPath)
 
+        load_tbm_table(sDBPath, tbms)
         print "%d mp_producers, ognuno con %d iterazioni" % (mp_np , nIter)
-
-        workers = [Thread(target=mp_producer, args=(i, nIter,bbt_parameters,normfunc_dicts))
+        if len(loopTbms) == 0:
+            loopTbms = tbms
+        workers = [Thread(target=mp_producer, args=(i, nIter,bbt_parameters,normfunc_dicts,loopTbms))
                         for i in xrange(mp_np)]
         for w in workers:
             w.start()
