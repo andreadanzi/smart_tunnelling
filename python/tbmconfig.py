@@ -196,7 +196,7 @@ tbm6.nominalThrustForce=79168.
 tbm6.auxiliaryThrustForce=152800.
 tbm6.openingRatio=0.05
 tbm6.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
-tbm6.dotationForProspection=0.75 # da 0 a 1 se e' per niente o molto dotata
+tbm6.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
 tbms[tbm6.name] = tbm6
 
 #TBM 7
