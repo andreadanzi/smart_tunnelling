@@ -105,7 +105,7 @@ def main(argv):
     cur.execute(sSql)
     bbtresult = cur.fetchone()
     M = float(bbtresult[0]) + 1.0
-    print "Numero di iterazioni presenti %d" % M
+    print "Numero massimo di iterazioni presenti %d" % M
     # Legge tutti i Tunnell
     sSql = """SELECT distinct
             bbtTbmKpi.tunnelName
@@ -177,6 +177,15 @@ def main(argv):
             tbmKey = tb[0]
             tbmCount = float(tb[1])
             if bShowProfile:
+                # danzi.tn@20151118 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
+                sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval WHERE BbtParameterEval.tbmName ='%s'" % tbmKey
+                if bGroupTypes:
+                    sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName WHERE BbtTbm.type ='%s'" % tbmKey
+                cur.execute(sSql)
+                bbtresult = cur.fetchone()
+                M = float(bbtresult[0]) + 1.0
+                print "Numero massimo di iterazioni per %s sono %d" % (tbmKey, M)
+
                 sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval  WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine"
                 if bGroupTypes:
                     sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval JOIN BbtTbm on BbtTbm.name = BBtParameterEval.tbmName WHERE BBtParameterEval.tunnelNAme = '"+tun+"' AND BbtTbm.type='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine, BbtTbm.type"
