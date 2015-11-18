@@ -62,8 +62,6 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts,loopTbms):
     alnAll.append(aln)
     kpiTbmList = []
     for iIterationNo in range(nIter):
-        if (iIterationNo+1) % 10 ==0:
-            compact_database(sDBPath)
         # Per tutti i Tunnel
         with plock:
             print "[%d]########### iteration %d - %d" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo)
@@ -140,6 +138,7 @@ def mp_producer(idWorker,  nIter,bbt_parameters,normfunc_dicts,loopTbms):
                         kpiTbm.saveBbtTbmKpis(sDBPath)
                     with plock:
                         insert_bbtparameterseval(sDBPath,bbt_evalparameters, idWorker*nIter + iIterationNo)
+                    sys.stdout.flush()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
     end_time = time.time()
