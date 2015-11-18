@@ -77,42 +77,6 @@ def insert_BbtTbm(sDBPath, tbm_list):
     conn.commit()
     conn.close()
 
-def insert_bbtparameterseval_old(sDBPath, bbt_evalparameters, iteration_no=0):
-    conn = sqlite3.connect(sDBPath)
-    c = conn.cursor()
-    c.execute("delete from BbtParameterEval WHERE iteration_no = %d" % iteration_no)
-    for bbtpar in bbt_evalparameters:
-        c.execute("insert into BbtParameterEval (           insertdate,\
-                                                            iteration_no, \
-                                                            fine,\
-                                                            he,\
-                                                            hp,\
-                                                            co,\
-                                                            gamma,\
-                                                            sigma,\
-                                                            mi,\
-                                                            ei,\
-                                                            cai,\
-                                                            gsi,\
-                                                            rmr,\
-                                                            pkgl,\
-                                                            closure,\
-                                                            rockburst,\
-                                                            front_stability_ns,\
-                                                            front_stability_lambda,\
-                                                            penetrationRate,\
-                                                            penetrationRateReduction,\
-                                                            contactThrust,\
-                                                            torque,\
-                                                            frictionForce,\
-                                                            requiredThrustForce,\
-                                                            availableThrust,\
-                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0 \
-        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
-    conn.commit()
-    conn.close()
-
-
 #danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
 def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
     conn = sqlite3.connect(sDBPath)
