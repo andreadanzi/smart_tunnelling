@@ -179,7 +179,7 @@ def insert_eval4Geo(sDBPath, bbt_evalparameters):
 
 def insert_eval4Iter(sDBPath, bbt_evalparameters, bbttbmkpis):
     if len(bbt_evalparameters) > 0 and len(bbttbmkpis) > 0:
-        conn = sqlite3.connect(sDBPath)
+        conn = sqlite3.connect(sDBPath, timeout=30.0)
         c = conn.cursor()
         c.executemany("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpis)
         conn.commit()
