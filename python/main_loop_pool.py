@@ -40,7 +40,6 @@ def insert_georandom(sDBPath,nIter, bbt_parameters):
                                         0,0 ,0,0,0,0,0 ,0, 0, 0, 0, 0, 0, bbt_parameter.profilo_id, bbt_parameter.geoitem_id, bbt_parameter.title,  sti, k0, \
                                         0,0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0, 0, 0, 0, 0,0, 0,0, 0,  ) )
         if (idx+1) % 5 == 0:
-            print "idx=%d" % idx
             insert_eval4Geo(sDBPath,bbt_evalparameters)
             bbt_evalparameters = []
     if len(bbt_evalparameters) > 0:
