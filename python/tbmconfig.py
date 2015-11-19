@@ -176,8 +176,8 @@ tbm6.name = 'GL_DS_HRK_10.64'
 tbm6.alignmentCode='GLSUD;GLNORD'
 tbm6.manifacturer='Herrenknecht'
 tbm6.type='DS' # O = open, S = single shield, DS = double shield
-tbm6.shieldLength=12.25+1.1 
-tbm6.frontShieldLength=4.82+1.1
+tbm6.shieldLength=11.85+1. 
+tbm6.frontShieldLength=4.82+1.
 tbm6.frontShieldDiameter=10.58
 tbm6.tailShieldDiameter=10.42
 tbm6.excavationDiameter=10.64
@@ -189,13 +189,13 @@ tbm6.cutterThickness=0.02
 tbm6.cutterCount=64
 tbm6.referenceRpm=3.
 tbm6.totalContactThrust=tbm6.loadPerCutter*tbm6.cutterCount
-tbm6.nominalTorque=13500.
+tbm6.nominalTorque=27000.
 tbm6.breakawayTorque=30300.
 tbm6.backupDragForce=8000.
 tbm6.nominalThrustForce=79168.
-tbm6.auxiliaryThrustForce=152800.
+tbm6.auxiliaryThrustForce=213000.
 tbm6.openingRatio=0.05
-tbm6.cutterheadThickness=1.1 # in metri lo spessore della testa di scavo
+tbm6.cutterheadThickness=1. # in metri lo spessore della testa di scavo
 tbm6.dotationForProspection=1. # da 0 a 1 se e' per niente o molto dotata
 tbms[tbm6.name] = tbm6
 
