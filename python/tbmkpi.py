@@ -223,7 +223,6 @@ class KpiTbm4Tunnel:
         c = conn.cursor()
         c.execute("DELETE FROM BbtTbmKpi WHERE tunnelName=? AND tbmName=? AND iterationNo=?" , (self.tunnelName,self.tbmName, self.iterationNo))
         conn.commit()
-        print "bbttbmkpis ln = %d" % len(bbttbmkpis)
         c.executemany("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpis)
         conn.commit()
         conn.close()
