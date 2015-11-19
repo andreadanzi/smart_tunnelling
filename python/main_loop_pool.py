@@ -109,6 +109,7 @@ def mp_producer(parms):
     alnAll.append(aln)
     kpiTbmList = []
     for iIterationNo in range(nIter):
+        tbmSegmentCum = 0
         iter_start_time = ttime()
         bbttbmkpis = []
         bbt_evalparameters = []
@@ -146,7 +147,10 @@ def mp_producer(parms):
                             alnCurr.frictionCoeff = fCShiledMode
                             alnCurr.fiRi = fCCutterMode
                         try:
+                            tbmSegBefore = ttime()
                             tbmsect = TBMSegment(bbtparameter4seg, tbm, alnCurr.fiRi, alnCurr.frictionCoeff)
+                            tbmSegAfter = ttime()
+                            tbmSegmentCum += (tbmSegAfter - tbmSegBefore)
                         except Exception as e:
                             main_logger.error("[%d] %s, %s per pk %d TBMSegment va in errore: %s" % (idWorker, alnCurr.description, tbmKey, bbt_parameter.fine , e) )
                             main_logger.error("[%d] bbtparameter4seg = %s" % str(bbtparameter4seg))
@@ -202,7 +206,7 @@ def mp_producer(parms):
                     bbttbmkpis += kpiTbm.getBbtTbmKpis()
                     sys.stdout.flush()
         iter_end_time = ttime()
-        main_logger.info("[%d]#### iteration %d - %d terminated in %d seconds" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo, iter_end_time-iter_start_time))
+        main_logger.info("[%d]#### iteration %d - %d terminated in %d seconds (%d)" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo, iter_end_time-iter_start_time, tbmSegmentCum))
         main_logger.debug("[%d]### Start inserting %d (%d) Parameters and %d (21x%d) KPIs" % (idWorker, len(bbt_evalparameters),iCheckEvalparameters,len(bbttbmkpis),iCheckBbttbmkpis))
         insert_eval4Iter(sDBPath,bbt_evalparameters,bbttbmkpis)
         insert_end_time = ttime()
