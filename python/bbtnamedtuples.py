@@ -4,7 +4,8 @@ BbtGeoitem = namedtuple('BbtGeoitem', ['id','inizio','fine','l','perc','type','g
 #id=Vertice altimetrico inizio(calcolato)	fine=Progressiva	Est	Nord	he=Quota altimetrica esistente	hp=Progetto quota altimetrica	co=Differenza quota altimetrica	tipo=Tipo di punto
 BbtProfilo = namedtuple('BbtProfilo',['id','inizio','fine','est','nord','he','hp','co','tipo'])
 BbtParameter =  namedtuple('BbtParameter',['inizio','fine','est','nord','he','hp','co','tipo','g_med','g_stddev','sigma_ci_avg','sigma_ci_stdev','mi_med','mi_stdev','ei_med','ei_stdev','cai_med','cai_stdev','gsi_med','gsi_stdev','rmr_med','rmr_stdev','profilo_id','geoitem_id','title','sigma_ti_min','sigma_ti_max','k0_min','k0_max'])
-BbtReliability = namedtuple('BbtReliability',['id','inizio','fine','gmr_class','gmr_val','reliability','eval_var'])
+BbtReliability = namedtuple('BbtReliability',['id','inizio','fine','gmr_class','gmr_val','reliability','eval_var'])                                                        
+BbtParameterEvalMin = namedtuple('BbtParameterEvalMin',['gamma','sigma','mi','ei','cai','rmr', 'gsi', 'sigma_ti', 'k0' ,'profilo_id'])
 #danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
 BbtParameterEval =  namedtuple('BbtParameterEval',[ 'insertdate',
                                                     'iteration_no',\
@@ -87,6 +88,8 @@ def bbtparametereval_factory(cursor, row):
 def bbttbmkpi_factory(cursor, row):
     return BbtTbmKpi(*row)
 
+def bbtParameterEvalMin_factory(cursor, row):
+    return BbtParameterEvalMin(*row)
 
 bbtClassReliabilityList = []
 BbtClassReliability = namedtuple('BbtClassReliability',['code','reliability','gmr_min','gmr_max','min_val','max_val'])
