@@ -12,3 +12,9 @@ python/kpis.log
 *.csv
 *.xls
 *.zip
+python/mp.py
+python/tmpplot.py
+db/bbt_mules_2-3_big.db
+db/bbt_mules_2-3_1.db
+*.log
+*.1

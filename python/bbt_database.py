@@ -6,13 +6,25 @@ def get_bbtparameterseval(sDBPath):
     conn = sqlite3.connect(sDBPath)
     conn.row_factory = bbtparametereval_factory
     cur = conn.cursor()
-    bbtresults = cur.execute("SELECT insertdate,iteration_no,fine,he,hp,co,gamma,sigma,mi,ei,cai,gsi,rmr,pkgl,closure,rockburst,front_stability_ns,front_stability_lambda,penetrationRate,penetrationRateReduction,contactThrust,torque,frictionForce,requiredThrustForce,availableThrust,dailyAdvanceRate,profilo_id,geoitem_id,title,sigma_ti,k0 FROM BbtParameterEval ORDER BY iteration_no, profilo_id")
+    cur.execute("SELECT insertdate,iteration_no,fine,he,hp,co,gamma,sigma,mi,ei,cai,gsi,rmr,pkgl,closure,rockburst,front_stability_ns,front_stability_lambda,penetrationRate,penetrationRateReduction,contactThrust,torque,frictionForce,requiredThrustForce,availableThrust,dailyAdvanceRate,profilo_id,geoitem_id,title,sigma_ti,k0 FROM BbtParameterEval ORDER BY iteration_no, profilo_id")
+    bbtresults = cur.fetchall()
     bbt_bbtparameterseval = []
     for bbt_parametereval in bbtresults:
         bbt_bbtparameterseval.append(bbt_parametereval)
     conn.close()
     return bbt_bbtparameterseval
 
+def get_bbtparameterseval4iter(sDBPath,nIter,sKey):
+    conn = sqlite3.connect(sDBPath)
+    conn.row_factory = bbtParameterEvalMin_factory
+    cur = conn.cursor()
+    bbt_bbtparameterseval = {}
+    cur.execute("SELECT gamma,sigma,mi,ei,cai,rmr, gsi, sigma_ti, k0 , profilo_id FROM BbtParameterEval WHERE iteration_no = ?AND tunnelName = ? ORDER BY profilo_id" , (nIter,sKey) )
+    bbtresults = cur.fetchall()
+    for bbt_parametereval in bbtresults:
+        bbt_bbtparameterseval[bbt_parametereval.profilo_id] = bbt_parametereval
+    conn.close()
+    return bbt_bbtparameterseval
 
 def get_bbtparameters(sDBPath):
     conn = sqlite3.connect(sDBPath)
@@ -77,16 +89,44 @@ def insert_BbtTbm(sDBPath, tbm_list):
     conn.commit()
     conn.close()
 
-#danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
-def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
+
+#danzi.tn@20151118 ottmizzazione scritture su DB
+def deleteEval4Tbm(sDBPath,loopTbms):
+    if len(loopTbms) > 0:
+        tbmList = []
+        for k in loopTbms:
+            tbmList.append((k,))
+        conn = sqlite3.connect(sDBPath)
+        c = conn.cursor()
+        c.executemany("DELETE FROM BbtTbmKpi WHERE tbmName = ? ", tbmList)
+        conn.commit()
+        c.executemany("DELETE FROM BbtParameterEval WHERE tbmName = ?" , tbmList)
+        conn.commit()
+        conn.close()
+
+def delete_eval4Geo(sDBPath,sKey):
     conn = sqlite3.connect(sDBPath)
     c = conn.cursor()
-    isFirst=True
-    for bbtpar in bbt_evalparameters:
-        if isFirst:
-            c.execute("delete from BbtParameterEval WHERE iteration_no = %d AND tunnelName ='%s' AND tbmName='%s'" % (bbtpar[1],bbtpar[2],bbtpar[3]))
-            isFirst=False
-        c.execute("insert into BbtParameterEval (           insertdate,\
+    c.execute("DELETE FROM BbtParameterEval WHERE tunnelName = '%s'" % sKey )
+    conn.commit()
+    conn.close()
+
+def check_eval4Geo(sDBPath,sKey):
+    iMax = 0
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    c.execute("SELECT  max(BbtParameterEval.iteration_no) +1 FROM BbtParameterEval WHERE BbtParameterEval.tunnelName = '%s'" % sKey )
+    bbtresult = c.fetchone()
+    iMax = float(bbtresult[0])
+    conn.close()
+    return iMax
+
+
+def insert_eval4Geo(sDBPath, bbt_evalparameters):
+    if len(bbt_evalparameters) > 0:
+        conn = sqlite3.connect(sDBPath)
+        c = conn.cursor()
+        c.executemany("INSERT INTO BbtParameterEval (           insertdate,\
                                                             iteration_no, \
                                                             tunnelName,\
                                                             tbmName,\
@@ -133,8 +173,125 @@ def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
                                                             picr,\
                                                             ldpVlachBegin,\
                                                             ldpVlachEnd\
-        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbtpar)
-    conn.commit()
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbt_evalparameters)
+        conn.commit()
+        conn.close()
+
+def insert_eval4Iter(sDBPath, bbt_evalparameters, bbttbmkpis):
+    if len(bbt_evalparameters) > 0 and len(bbttbmkpis) > 0:
+        conn = sqlite3.connect(sDBPath, timeout=30.0)
+        c = conn.cursor()
+        c.executemany("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpis)
+        conn.commit()
+        c.executemany("INSERT INTO BbtParameterEval (           insertdate,\
+                                                            iteration_no, \
+                                                            tunnelName,\
+                                                            tbmName,\
+                                                            fine,\
+                                                            he,\
+                                                            hp,\
+                                                            co,\
+                                                            gamma,\
+                                                            sigma,\
+                                                            mi,\
+                                                            ei,\
+                                                            cai,\
+                                                            gsi,\
+                                                            rmr,\
+                                                            pkgl,\
+                                                            closure,\
+                                                            rockburst,\
+                                                            front_stability_ns,\
+                                                            front_stability_lambda,\
+                                                            penetrationRate,\
+                                                            penetrationRateReduction,\
+                                                            contactThrust,\
+                                                            torque,\
+                                                            frictionForce,\
+                                                            requiredThrustForce,\
+                                                            availableThrust,\
+                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0,t0,t1,t3,t4,t5, \
+                                                            inSituConditionSigmaV,\
+                                                            tunnelRadius,\
+                                                            rockE,\
+                                                            mohrCoulombPsi,\
+                                                            rockUcs,\
+                                                            inSituConditionGsi,\
+                                                            hoekBrownMi,\
+                                                            hoekBrownD,\
+                                                            hoekBrownMb,\
+                                                            hoekBrownS,\
+                                                            hoekBrownA,\
+                                                            hoekBrownMr,\
+                                                            hoekBrownSr,\
+                                                            hoekBrownAr,\
+                                                            urPiHB,\
+                                                            rpl,\
+                                                            picr,\
+                                                            ldpVlachBegin,\
+                                                            ldpVlachEnd\
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbt_evalparameters)
+        conn.commit()
+        conn.close()
+
+
+#danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
+def insert_bbtparameterseval(sDBPath, bbt_evalparameters, iteration_no=0):
+    conn = sqlite3.connect(sDBPath)
+    c = conn.cursor()
+    isFirst=True
+    if len(bbt_evalparameters) > 0:
+        bbtpar = bbt_evalparameters[0]
+        c.execute("delete from BbtParameterEval WHERE iteration_no = %d AND tunnelName ='%s' AND tbmName='%s'" % (bbtpar[1],bbtpar[2],bbtpar[3]))
+        c.executemany("insert into BbtParameterEval (           insertdate,\
+                                                            iteration_no, \
+                                                            tunnelName,\
+                                                            tbmName,\
+                                                            fine,\
+                                                            he,\
+                                                            hp,\
+                                                            co,\
+                                                            gamma,\
+                                                            sigma,\
+                                                            mi,\
+                                                            ei,\
+                                                            cai,\
+                                                            gsi,\
+                                                            rmr,\
+                                                            pkgl,\
+                                                            closure,\
+                                                            rockburst,\
+                                                            front_stability_ns,\
+                                                            front_stability_lambda,\
+                                                            penetrationRate,\
+                                                            penetrationRateReduction,\
+                                                            contactThrust,\
+                                                            torque,\
+                                                            frictionForce,\
+                                                            requiredThrustForce,\
+                                                            availableThrust,\
+                                                            dailyAdvanceRate,profilo_id, geoitem_id ,title,sigma_ti,k0,t0,t1,t3,t4,t5, \
+                                                            inSituConditionSigmaV,\
+                                                            tunnelRadius,\
+                                                            rockE,\
+                                                            mohrCoulombPsi,\
+                                                            rockUcs,\
+                                                            inSituConditionGsi,\
+                                                            hoekBrownMi,\
+                                                            hoekBrownD,\
+                                                            hoekBrownMb,\
+                                                            hoekBrownS,\
+                                                            hoekBrownA,\
+                                                            hoekBrownMr,\
+                                                            hoekBrownSr,\
+                                                            hoekBrownAr,\
+                                                            urPiHB,\
+                                                            rpl,\
+                                                            picr,\
+                                                            ldpVlachBegin,\
+                                                            ldpVlachEnd\
+        ) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", bbt_evalparameters)
+        conn.commit()
     conn.close()
 
 

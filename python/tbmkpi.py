@@ -223,7 +223,6 @@ class KpiTbm4Tunnel:
         c = conn.cursor()
         c.execute("DELETE FROM BbtTbmKpi WHERE tunnelName=? AND tbmName=? AND iterationNo=?" , (self.tunnelName,self.tbmName, self.iterationNo))
         conn.commit()
-        print "bbttbmkpis ln = %d" % len(bbttbmkpis)
         c.executemany("INSERT INTO BbtTbmKpi (tunnelName,tbmName,iterationNo,kpiKey,kpiDescr,minImpact,maxImpact,avgImpact,appliedLength,percentOfApplication,probabilityScore,totalImpact) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)", bbttbmkpis)
         conn.commit()
         conn.close()
@@ -247,6 +246,23 @@ def build_normfunc_dict(bbt_parameter,nIter=1000):
     k0 = get_my_norm_min_max(bbt_parameter.k0_min,bbt_parameter.k0_max,'k0',nIter)
     return {'gamma':gamma,'sci':sci,'mi':mi,'ei':ei,'cai':cai,'gsi':gsi,'rmr':rmr,'sti':sti,'k0':k0}
 
+
+def build_bbtparameter4seg(bbt_parameter, bbtparametereval):
+    length = abs(bbt_parameter.fine - bbt_parameter.inizio)
+    gamma = bbtparametereval.gamma
+    sci = bbtparametereval.sigma
+    mi = bbtparametereval.mi
+    ei = bbtparametereval.ei
+    cai = bbtparametereval.cai
+    rmr =  bbtparametereval.rmr
+    gsi = bbtparametereval.gsi
+    sti = bbtparametereval.sigma_ti
+    k0 = bbtparametereval.k0
+    bbtparameter4seg = BbtParameter4Seg(bbt_parameter.inizio,bbt_parameter.fine,length,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameter.profilo_id ,bbt_parameter.geoitem_id, bbt_parameter.title, sti, k0, bbt_parameter.k0_min, bbt_parameter.k0_max )
+    return bbtparameter4seg
+
+
+
 def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict):
     length = abs(bbt_parameter.fine - bbt_parameter.inizio)
     gamma = normfunc_dict['gamma'].rvs()
@@ -258,17 +274,5 @@ def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict):
     rmr =  normfunc_dict['rmr'].rvs()
     sti = normfunc_dict['sti'].rvs()
     k0 = normfunc_dict['k0'].rvs()
-    """
-    else:
-        gamma = bbt_parameter.g_med
-        sci = bbt_parameter.sigma_ci_avg
-        mi = bbt_parameter.mi_med
-        ei = bbt_parameter.ei_med
-        cai = bbt_parameter.cai_med
-        gsi = bbt_parameter.gsi_med
-        rmr =  bbt_parameter.rmr_med
-        sti = (bbt_parameter.sigma_ti_max + bbt_parameter.sigma_ti_min)/2
-        k0 = (bbt_parameter.k0_max+ bbt_parameter.k0_min)/2
-    """
     bbtparameter4seg = BbtParameter4Seg(bbt_parameter.inizio,bbt_parameter.fine,length,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameter.profilo_id ,bbt_parameter.geoitem_id, bbt_parameter.title, sti, k0, bbt_parameter.k0_min, bbt_parameter.k0_max )
     return bbtparameter4seg
