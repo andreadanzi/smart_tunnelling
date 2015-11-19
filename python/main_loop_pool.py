@@ -15,6 +15,7 @@ from tbmkpi import FrictionCoeff
 from multiprocessing import cpu_count, Pool
 from logging import handlers
 from time import time as ttime
+from time import sleep as tsleep
 
 # danzi.tn@20151119 generazione variabili random per condizioni geotecniche
 def insert_georandom(sDBPath,nIter, bbt_parameters):
@@ -64,6 +65,8 @@ def createLogger(indx=0,name="main_loop"):
 # danzi.tn@20151118 gestione loop per singola TBM
 def mp_producer(parms):
     idWorker,  nIter, sDBPath, loopTbms ,bbt_parameters = parms
+    # ritardo per evitare conflitti su DB
+    tsleep(idWorker*30+1)
     start_time = ttime()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
