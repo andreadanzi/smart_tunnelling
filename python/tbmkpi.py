@@ -1,6 +1,7 @@
 from TunnelSegment import PerformanceIndex
 from bbtutils import *
 from bbtnamedtuples import *
+from bbt_database import getDBConnection
 from scipy.stats import triang
 import sqlite3, os
 
@@ -218,8 +219,10 @@ class KpiTbm4Tunnel:
         for key in self.kpis:
             _kpi = self.kpis[key]
             bbttbmkpi = BbtTbmKpi(self.tunnelName, self.tbmName,self.iterationNo,key, _kpi.definition, _kpi.minImpact, _kpi.maxImpact, _kpi.avgImpact, _kpi.appliedLength, _kpi.percentOfApplication, _kpi.probabilityScore, _kpi.totalImpact)
-            bbttbmkpis.append(bbttbmkpi)
-        conn = sqlite3.connect(sDBPath)
+            bbttbmkpis.append(bbttbmkpi)        
+        conn = getDBConnection(sDBPath)
+
+        conn = getDBConnection(sDBPath)
         c = conn.cursor()
         c.execute("DELETE FROM BbtTbmKpi WHERE tunnelName=? AND tbmName=? AND iterationNo=?" , (self.tunnelName,self.tbmName, self.iterationNo))
         conn.commit()

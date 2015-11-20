@@ -100,7 +100,7 @@ def main(argv):
     sDiagramsFolder = bbtConfig.get('Diagrams','folder')
     sDiagramsFolderPath = os.path.join(os.path.abspath('..'), sDiagramsFolder)
     # mi connetto al database
-    conn = sqlite3.connect(sDBPath)
+    conn = getDBConnection(sDBPath)
     # definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
