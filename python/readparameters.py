@@ -5,7 +5,7 @@ from bbtutils import *
 from bbtnamedtuples import *
 from readkpis import *
 from collections import defaultdict
-from bbt_database import load_tbm_table
+from bbt_database import load_tbm_table, getDBConnection
 
 import numpy as np
 import matplotlib.pyplot as plt
