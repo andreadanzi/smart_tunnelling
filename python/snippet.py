@@ -1,12 +1,13 @@
 import sys, getopt, logging, os
-from tbmconfig import tmbs
+from tbmconfig import tbms
 from bbt_database import *
+from bbtutils import *
 
 
 """
 DA Eseguire sul DB
 
-ALTER TABLE BbtTbm ADD COLUMN breakawayTorque
+ALTER TABLE BbtTbm ADD COLUMN breakawayTorque REAL
 
 SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, count(*) as cnt
 FROM BbtParameterEval
@@ -30,4 +31,4 @@ if not os.path.isfile(sDBPath):
     print "Errore! File %s inesistente!" % sDBPath
     exit(1)
 
-load_tbm_table(sDBPath, tmbs)
+load_tbm_table(sDBPath, tbms)

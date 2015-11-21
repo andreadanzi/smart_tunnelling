@@ -71,62 +71,136 @@ def main(argv):
         tbm = tbms[tbmName]
         thrustLim[tbm.name]=tbm.auxiliaryThrustForce
         torqueLim[tbm.name]=tbm.breakawayTorque
+    # carico tutti i segmenti ordinati dove posso avere blocco scudo o testa
+    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, count(*) as cnt
+        FROM BbtParameterEval
+        JOIN BbtTbm on BbtTbm.name = BbtParameterEval.tbmName
+        WHERE BbtParameterEval.tbmName !='XXX'
+        AND (
+        (BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.availableThrust< 3000) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.availableThrust< 5000)
+        OR
+        (BbtParameterEval.torque> BbtTbm.breakawayTorque)
+        )
+        GROUP BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine
+        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, cnt DESC"""
+    cur.execute(sSql)
+    bbtresults = cur.fetchall()
+    # definisco l'ordine di priorita' delle pk consolidabili per ogni cunicolo e tbm (ove posso applicare i consolidamenti)
+    tunnelRef=''
+    tbmRef=''
+    pkOrder={}
+    pos = 0
+    overallBlockArray = []
+    overallBlockArray.append(('Tunnel', 'TBM', 'PK', 'sim x segm', 'tot segmenti', 'sim tot tunnel', 'no blocchi',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento', 'no blocchi dc',  'no blocchi dc/sim tot tunnel',  'no blocchi dc/sim segmento'))
+    for res in bbtresults:
+        tunnel = res[0]
+        tbm = res[1]
+        pk = str(res[2])
+        if tunnel==tunnelRef and tbm==tbmRef:
+            pos+=1
+        else:
+            pos=0
+            tunnelRef=tunnel
+            tbmRef=tbm
+        pkOrder[tunnel+tbm+pk]=pos
+        impRid = res[3]
+        if res[0]=='Cunicolo esplorativo direzione Nord' and pos<48:
+            impRid = 0
+        elif res[0]=='Galleria di linea direzione Nord' and pos<38:
+            impRid = 0
+            
+        overallBlockArray.append((res[0], res[1], res[2], M, pkCountDict[res[0]], M*pkCountDict[res[0]], res[3], res[3]/M/pkCountDict[res[0]], res[3]/M, impRid, impRid/M/pkCountDict[res[0]], impRid/M))
 
     # carico in memoria tutti i record di BbtParmetersEval dove posso avere blocco scudo
     sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, count(*) as cnt
         FROM BbtParameterEval
+        JOIN BbtTbm on BbtTbm.name = BbtParameterEval.tbmName
         WHERE BbtParameterEval.tbmName !='XXX'
-        AND ((BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.availableThrust< 3000) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.availableThrust< 5000))
+        AND (
+        (BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.availableThrust< 3000) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.availableThrust< 5000)
+        )
         GROUP BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine
         ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, cnt DESC"""
     cur.execute(sSql)
     bbtresults = cur.fetchall()
     shieldBlockArray = []
-    shieldBlockArray.append(('Tunnel', 'TBM', 'PK', 'no blocchi', 'sim x segm', 'tot segmenti', 'sim tot tunnel',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento'))
+    shieldBlockArray.append(('Tunnel', 'TBM', 'PK', 'sim x segm', 'tot segmenti', 'sim tot tunnel', 'no blocchi',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento', 'no blocchi dc',  'no blocchi dc/sim tot tunnel',  'no blocchi dc/sim segmento'))
     for res in bbtresults:
-        shieldBlockArray.append((res[0], res[1], res[2], res[3], M, pkCountDict[res[0]], M*pkCountDict[res[0]], res[3]/M/pkCountDict[res[0]], res[3]/M))
-    # interrogo DB per vedere dove il torque e' maggiore di quello di base richiesto
-    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, BbtParameterEval.torque
+        pos = pkOrder[res[0]+res[1]+str(res[2])]
+        impRid = res[3]
+        if res[0]=='Cunicolo esplorativo direzione Nord' and pos<48:
+            impRid = 0
+        elif res[0]=='Galleria di linea direzione Nord' and pos<38:
+            impRid = 0
+            
+        shieldBlockArray.append((res[0], res[1], res[2], M, pkCountDict[res[0]], M*pkCountDict[res[0]], res[3], res[3]/M/pkCountDict[res[0]], res[3]/M, impRid, impRid/M/pkCountDict[res[0]], impRid/M))
+
+    # carico in memoria tutti i record di BbtParmetersEval dove posso avere blocco testa
+    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, count(*) as cnt
         FROM BbtParameterEval
+        JOIN BbtTbm on BbtTbm.name = BbtParameterEval.tbmName
         WHERE BbtParameterEval.tbmName !='XXX'
-        AND ((BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.torque> 7360) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.torque> 15900))
-        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, BbtParameterEval.fine"""
+        AND (
+        (BbtParameterEval.torque> BbtTbm.breakawayTorque)
+        )
+        GROUP BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine
+        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, cnt DESC"""
     cur.execute(sSql)
     bbtresults = cur.fetchall()
     frontBlockArray = []
-    frontBlockArray.append(('Tunnel', 'TBM', 'PK', 'no blocchi', 'sim x segm', 'tot segmenti', 'sim tot tunnel',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento'))
-    tunnelRef=''
-    tbmRef=''
-    pkRef=0
-    cntOut = 0
-    resCnt = len(bbtresults)
-    for i in range(0, resCnt-1):
-        res=bbtresults[i]
-        tunnel = res[0]
-        tbm = res[1]
-        pk = res[2]
-        toAdd = res[3]>torqueLim[tbm]
-        if tunnel == tunnelRef and tbm == tbmRef and pk == pkRef:
-            # e' un altro punto da aggiungere
-            # aggiurno la somma se toAdd
-            if toAdd:
-                cntOut+=1
-        else:
-            # ho iniziato un nuovo record
-            # se non e' il primo appendo il risultato ottenuto
-            if i>0 and cntOut>0:
-                frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
-            # azzero i conteggi e i riferimenti
-            tunnelRef=tunnel
-            tbmRef=tbm
-            pkRef=pk
-            cntOut=0
-            # aggiurno la somma se toAdd
-            if toAdd:
-                cntOut+=1
-        # se e' l'ultima iterazione aggiungo il risultato
-        if i == resCnt-1 and cntOut>0:
-            frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
+    frontBlockArray.append(('Tunnel', 'TBM', 'PK', 'sim x segm', 'tot segmenti', 'sim tot tunnel', 'no blocchi',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento', 'no blocchi dc',  'no blocchi dc/sim tot tunnel',  'no blocchi dc/sim segmento'))
+    for res in bbtresults:
+        pos = pkOrder[res[0]+res[1]+str(res[2])]
+        impRid = res[3]
+        if res[0]=='Cunicolo esplorativo direzione Nord' and pos<48:
+            impRid = 0
+        elif res[0]=='Galleria di linea direzione Nord' and pos<38:
+            impRid = 0
+            
+        frontBlockArray.append((res[0], res[1], res[2], M, pkCountDict[res[0]], M*pkCountDict[res[0]], res[3], res[3]/M/pkCountDict[res[0]], res[3]/M, impRid, impRid/M/pkCountDict[res[0]], impRid/M))
+
+##    # interrogo DB per vedere dove il torque e' maggiore di quello di base richiesto
+##    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, BbtParameterEval.torque
+##        FROM BbtParameterEval
+##        WHERE BbtParameterEval.tbmName !='XXX'
+##        AND ((BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.torque> 7360) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.torque> 15900))
+##        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, BbtParameterEval.fine"""
+##    cur.execute(sSql)
+##    bbtresults = cur.fetchall()
+##    frontBlockArray = []
+##    frontBlockArray.append(('Tunnel', 'TBM', 'PK', 'no blocchi', 'sim x segm', 'tot segmenti', 'sim tot tunnel',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento'))
+##    tunnelRef=''
+##    tbmRef=''
+##    pkRef=0
+##    cntOut = 0
+##    resCnt = len(bbtresults)
+##    for i in range(0, resCnt-1):
+##        res=bbtresults[i]
+##        tunnel = res[0]
+##        tbm = res[1]
+##        pk = res[2]
+##        toAdd = res[3]>torqueLim[tbm]
+##        if tunnel == tunnelRef and tbm == tbmRef and pk == pkRef:
+##            # e' un altro punto da aggiungere
+##            # aggiurno la somma se toAdd
+##            if toAdd:
+##                cntOut+=1
+##        else:
+##            # ho iniziato un nuovo record
+##            # se non e' il primo appendo il risultato ottenuto
+##            if i>0 and cntOut>0:
+##                frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
+##            # azzero i conteggi e i riferimenti
+##            tunnelRef=tunnel
+##            tbmRef=tbm
+##            pkRef=pk
+##            cntOut=0
+##            # aggiurno la somma se toAdd
+##            if toAdd:
+##                cntOut+=1
+##        # se e' l'ultima iterazione aggiungo il risultato
+##        if i == resCnt-1 and cntOut>0:
+##            frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
     conn.close()
     # esposrto in csv
     with open('bloccoFronte.csv', 'wb') as f:
@@ -137,6 +211,9 @@ def main(argv):
         writer = csv.writer(f,delimiter=",")
         writer.writerows(shieldBlockArray)
 
+    with open('blocco.csv', 'wb') as f:
+        writer = csv.writer(f,delimiter=",")
+        writer.writerows(overallBlockArray)
 
 if __name__ == "__main__":
    main(sys.argv[1:])
