@@ -36,6 +36,7 @@ def main(argv):
     # definisco il tipo di riga che vado a leggere, bbtparametereval_factory viene definita in bbtnamedtuples
     conn.row_factory = sqlite3.Row
     cur = conn.cursor()
+
     # Legge tutti i Tunnell
     sSql = """SELECT distinct
             bbtTbmKpi.tunnelName
@@ -48,83 +49,94 @@ def main(argv):
     tunnelArray = []
     for bbtr in bbtresults:
         tunnelArray.append(bbtr[0])
-    # definisco le tbm di cui mi interessa valutare la performance
-    #tbmToCheck = 'CE_DS_BBT_6.74; GL_DS_BBT_10.54; CE_DS_RBS_6.73; GL_DS_HRK_10.64'
+
+    # definisco numero di iterazioni e numero di pk per ogni tunnel
+    sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval"
+    cur.execute(sSql)
+    bbtresult = cur.fetchone()
+    M = float(bbtresult[0]) + 1.0
+
+    pkCountDict={}
     for tun in tunnelArray:
-        noSegmTreated=0
-        minThrust=20000.
-        if tun == 'Galleria di linea direzione Sud':
-            noSegmTreated = 0
-        elif tun == 'Cunicolo esplorativo direzione Nord':
-            noSegmTreated = 48
-            minThrust = 12000.
-        else:
-            noSegmTreated = 39
-        # conto il numero di pk presenti in quel tunnel
         sSql = "select count(distinct BbtParameterEval.fine) as pk_no from BbtParameterEval where BbtParameterEval.tunnelName='%s'" % tun
         cur.execute(sSql)
         bbtresult = cur.fetchone()
         pkNo = float(bbtresult[0])
-        #allTbmData = []
-        print "\r\n%f segmenti in %s" % (pkNo, tun)
+        pkCountDict[tun]=pkNo
 
-        sSql = """SELECT bbtTbmKpi.tbmName, count(*) as cnt, BbtTbm.type, BbtTbm.manufacturer
-                FROM
-                bbtTbmKpi
-                JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName
-                WHERE bbtTbmKpi.tunnelName = '"""+tun+"""'
-                GROUP BY bbtTbmKpi.tbmName, BbtTbm.type, BbtTbm.manufacturer
-                ORDER BY bbtTbmKpi.tbmName"""
-        cur.execute(sSql)
-        bbtresults = cur.fetchall()
-        print "Sono presenti %d diverse TBM" % len(bbtresults)
-        for tb in bbtresults:
-            if 1==1: #tb[0] in tbmToCheck:
-                tbmKey = tb[0]
-                #tbmCount = float(tb[1])
-                # danzi.tn@20151118 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
-                sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval WHERE BbtParameterEval.tbmName ='%s'" % tbmKey
-                cur.execute(sSql)
-                bbtresult = cur.fetchone()
-                M = float(bbtresult[0]) + 1.0
-                #print "Numero massimo di iterazioni per %s sono %d" % (tbmKey, M)
-                # seleziono tutti i segmenti dove l'available thrust e' inferiore al minimo richiesto
-                sSql = "SELECT  count(*) as cnt, BbtParameterEval.fine\
-                    FROM BbtParameterEval WHERE BbtParameterEval.tunnelName = '%s'\
-                    AND BbtParameterEval.tbmName = '%s'\
-                    AND BbtParameterEval.availableThrust< %f\
-                    GROUP BY BbtParameterEval.fine\
-                    ORDER BY cnt DESC" % (tun, tbmKey, minThrust)
-                cur.execute(sSql)
-                bbtresults = cur.fetchall()
-                i = 1
-                ptTot = 0.
-                ptOut = 0.
-                pkOut = 0.
-                percMin = 1.
-                percMax = 0.
-                noOut = False
+    # Legge tutte le TBM disponibili in tbmConfig per creare i dizionari di thrustLim e torqueLim
+    thrustLim = {}
+    torqueLim = {}
+    for tbmName in tbms:
+        tbm = tbms[tbmName]
+        thrustLim[tbm.name]=tbm.auxiliaryThrustForce
+        torqueLim[tbm.name]=tbm.breakawayTorque
 
-                for pk in bbtresults:
-                    if i>noSegmTreated:
-                        ptOut += pk[0] # aggiungo il numero di punti
-                        percCur = pk[0]/M*100.
-                        percMin = min(percMin, percCur)
-                        percMax = max(percMax, percCur)
-                        ptTot += M
-                        pkOut += 1
-                    i+=1
-                percApplicazione = pkOut/pkNo*100.
-                
-                if ptTot>0:
-                    percMed = ptOut/ptTot*100
-                else:
-                    percMin=0.
-                    percMed=0.
-                    
-                print "%s con %s presenta potenziali problemi di blocco in %d sezioni (%f percento del tracciato)" % (tun, tbmKey, pkOut, percApplicazione)
-                print "con percentuale minima %f massima %f e media %f" % (percMin, percMax, percMed)
+    # carico in memoria tutti i record di BbtParmetersEval dove posso avere blocco scudo
+    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, count(*) as cnt
+        FROM BbtParameterEval
+        WHERE BbtParameterEval.tbmName !='XXX'
+        AND ((BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.availableThrust< 3000) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.availableThrust< 5000))
+        GROUP BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine
+        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, cnt DESC"""
+    cur.execute(sSql)
+    bbtresults = cur.fetchall()
+    shieldBlockArray = []
+    shieldBlockArray.append(('Tunnel', 'TBM', 'PK', 'no blocchi', 'sim x segm', 'tot segmenti', 'sim tot tunnel',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento'))
+    for res in bbtresults:
+        shieldBlockArray.append((res[0], res[1], res[2], res[3], M, pkCountDict[res[0]], M*pkCountDict[res[0]], res[3]/M/pkCountDict[res[0]], res[3]/M))
+    # interrogo DB per vedere dove il torque e' maggiore di quello di base richiesto
+    sSql = """SELECT  BbtParameterEval.tunnelName, BbtParameterEval.tbmName, BbtParameterEval.fine, BbtParameterEval.torque
+        FROM BbtParameterEval
+        WHERE BbtParameterEval.tbmName !='XXX'
+        AND ((BbtParameterEval.tbmName LIKE 'CE%' and BbtParameterEval.torque> 7360) OR (BbtParameterEval.tbmName LIKE 'GL%' and BbtParameterEval.torque> 15900))
+        ORDER BY BbtParameterEval.tunnelName, BbtParameterEval.tbmName ASC, BbtParameterEval.fine"""
+    cur.execute(sSql)
+    bbtresults = cur.fetchall()
+    frontBlockArray = []
+    frontBlockArray.append(('Tunnel', 'TBM', 'PK', 'no blocchi', 'sim x segm', 'tot segmenti', 'sim tot tunnel',  'no blocchi/sim tot tunnel',  'no blocchi/sim segmento'))
+    tunnelRef=''
+    tbmRef=''
+    pkRef=0
+    cntOut = 0
+    resCnt = len(bbtresults)
+    for i in range(0, resCnt-1):
+        res=bbtresults[i]
+        tunnel = res[0]
+        tbm = res[1]
+        pk = res[2]
+        toAdd = res[3]>torqueLim[tbm]
+        if tunnel == tunnelRef and tbm == tbmRef and pk == pkRef:
+            # e' un altro punto da aggiungere
+            # aggiurno la somma se toAdd
+            if toAdd:
+                cntOut+=1
+        else:
+            # ho iniziato un nuovo record
+            # se non e' il primo appendo il risultato ottenuto
+            if i>0 and cntOut>0:
+                frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
+            # azzero i conteggi e i riferimenti
+            tunnelRef=tunnel
+            tbmRef=tbm
+            pkRef=pk
+            cntOut=0
+            # aggiurno la somma se toAdd
+            if toAdd:
+                cntOut+=1
+        # se e' l'ultima iterazione aggiungo il risultato
+        if i == resCnt-1 and cntOut>0:
+            frontBlockArray.append((tunnel, tbm, pk, cntOut, M, pkCountDict[res[0]], M*pkCountDict[res[0]], cntOut/M/pkCountDict[res[0]], cntOut/M))
     conn.close()
+    # esposrto in csv
+    with open('bloccoFronte.csv', 'wb') as f:
+        writer = csv.writer(f,delimiter=",")
+        writer.writerows(frontBlockArray)
+        
+    with open('bloccoScudo.csv', 'wb') as f:
+        writer = csv.writer(f,delimiter=",")
+        writer.writerows(shieldBlockArray)
+
 
 if __name__ == "__main__":
    main(sys.argv[1:])
