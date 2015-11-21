@@ -1,9 +1,10 @@
 import sqlite3, os
 from bbtnamedtuples import *
+from collections import defaultdict
 
 # danzi.tn@20151120 entry point per connessione db
 def getDBConnection(sDBPath):
-    return sqlite3.connect(sDBPath, timeout=30.0)
+    return sqlite3.connect(sDBPath, timeout=30)
 
 def get_bbtparameterseval(sDBPath):
     conn = getDBConnection(sDBPath)
@@ -14,6 +15,37 @@ def get_bbtparameterseval(sDBPath):
     bbt_bbtparameterseval = []
     for bbt_parametereval in bbtresults:
         bbt_bbtparameterseval.append(bbt_parametereval)
+    conn.close()
+    return bbt_bbtparameterseval
+
+def get_allbbtparameterseval(sDBPath,sKey):
+    conn = getDBConnection(sDBPath)
+    conn.row_factory = bbtParameterEvalMin_factory
+    cur = conn.cursor()
+    bbt_bbtparameterseval = []
+    cur.execute( "SELECT gamma,sigma,mi,ei,cai,rmr, gsi, sigma_ti, k0 , profilo_id, iteration_no FROM BbtParameterEval WHERE tunnelName = '"+sKey+"' ORDER BY profilo_id"  )
+    bbtresults = cur.fetchall()
+    for bbt_parametereval in bbtresults:
+        bbt_bbtparameterseval.append( bbt_parametereval )
+    conn.close()
+    return bbt_bbtparameterseval
+
+def get_mainbbtparameterseval(sDBPath,sKey,iterMin, iterMax):
+    conn = getDBConnection(sDBPath)
+    conn.row_factory = bbtParameterEvalMain_factory
+    cur = conn.cursor()
+    bbt_bbtparameterseval = defaultdict(list)
+    cur.execute( "SELECT \
+                BbtParameter.inizio,BbtParameter.fine,BbtParameter.est,BbtParameter.nord,BbtParameter.he,BbtParameter.hp,BbtParameter.co,BbtParameter.tipo,BbtParameter.g_med,BbtParameter.g_stddev,BbtParameter.sigma_ci_avg,BbtParameter.sigma_ci_stdev,BbtParameter.mi_med,BbtParameter.mi_stdev,BbtParameter.ei_med,BbtParameter.ei_stdev,BbtParameter.cai_med,BbtParameter.cai_stdev,BbtParameter.gsi_med,BbtParameter.gsi_stdev,BbtParameter.rmr_med,BbtParameter.rmr_stdev,BbtParameter.profilo_id,BbtParameter.geoitem_id,BbtParameter.title\
+                , BbtParameter.sigma_ti_min,BbtParameter.sigma_ti_max,BbtParameter.k0_min,BbtParameter.k0_max \
+                , BbtParameterEval.gamma,BbtParameterEval.sigma,BbtParameterEval.mi,BbtParameterEval.ei,BbtParameterEval.cai,BbtParameterEval.rmr, BbtParameterEval.gsi, BbtParameterEval.sigma_ti, BbtParameterEval.k0 , BbtParameterEval.iteration_no, BbtParameterEval.insertdate \
+                FROM \
+                BbtParameterEval \
+                JOIN BbtParameter ON BbtParameter.profilo_id = BbtParameterEval.profilo_id \
+                WHERE BbtParameterEval.tunnelName = ?  AND BbtParameterEval.iteration_no>=? AND BbtParameterEval.iteration_no < ? ORDER BY BbtParameterEval.profilo_id" , (sKey,iterMin,iterMax))
+    bbtresults = cur.fetchall()
+    for bbt_parametereval in bbtresults:
+        bbt_bbtparameterseval[bbt_parametereval.iteration_no].append( bbt_parametereval )
     conn.close()
     return bbt_bbtparameterseval
 
@@ -345,7 +377,7 @@ def load_tbm_table(sDBPath, tbmsDict):
     c.execute("delete from BbtTbm")
     for tbmKey in tbmsDict:
         tbmData = tbmsDict[tbmKey]
-        inputVal = (tbmData.name,tbmData.alignmentCode,tbmData.manifacturer,tbmData.type,tbmData.shieldLength,tbmData.overcut)
-        c.execute("INSERT INTO BbtTbm (name,alignmentCode,manufacturer,type,shieldLength,overcut) VALUES (?,?,?,?,?,?)", inputVal)
+        inputVal = (tbmData.name,tbmData.alignmentCode,tbmData.manifacturer,tbmData.type,tbmData.shieldLength,tbmData.overcut, tbmData.breakawayTorque)
+        c.execute("INSERT INTO BbtTbm (name,alignmentCode,manufacturer,type,shieldLength,overcut, breakawayTorque) VALUES (?,?,?,?,?,?,?)", inputVal)
     conn.commit()
     conn.close()
