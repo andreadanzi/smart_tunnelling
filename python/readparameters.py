@@ -234,7 +234,7 @@ def main(argv):
                         y = mlab.normpdf(bins, tbmMean, tbmSigma)
                         ax1.plot(bins, y, '--', color=tbmColors[tbmKey])
                         ax1.set_xlabel("%s (%f)" % (parmDict[sParameterToShow][0],tbmMean), color='r')
-                        ax1.set_ylabel("Probabilita'")
+                        ax1.set_ylabel("Probabilita'(%)")
                         ax1.axvline(tbmMean, color='r', linewidth=2)
                         ax1.yaxis.grid(True)
                         sFileNAme = "bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_"), replaceTBMName(tbmKey),sParameterToShow,sProg)
