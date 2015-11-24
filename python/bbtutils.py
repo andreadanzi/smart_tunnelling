@@ -1,5 +1,5 @@
 #from scipy.stats import *
-
+import matplotlib
 import numpy as np
 from pylab import *
 from scipy.stats import *
@@ -18,6 +18,16 @@ sCFGName = 'bbt.cfg'
 bbtConfig = ConfigParser.RawConfigParser()
 bbtConfig.read(sCFGName)
 
+def to_percent(y, position):
+    # Ignore the passed in position. This has the effect of scaling the default
+    # tick locations.
+    s = str(100 * y)
+
+    # The percent symbol needs escaping in latex
+    if matplotlib.rcParams['text.usetex'] is True:
+        return s + r'$\%$'
+    else:
+        return s + '%'
 # funzione che restituisce media e sigma di una gaussiana sulla base di valori minimi e massimi al 95 percentile
 def get_sigma_95(min,max):
     if min==-1 or max == -1:

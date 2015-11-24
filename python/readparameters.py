@@ -7,6 +7,7 @@ import matplotlib.mlab as mlab
 from readkpis import *
 from collections import defaultdict
 from bbt_database import load_tbm_table, getDBConnection
+from matplotlib.ticker import FuncFormatter
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -17,6 +18,7 @@ import matplotlib.pyplot as plt
 # danzi.tn@20151117 plot aggregato per tipologia TBM
 # danzi.tn@20151118 filtro per tipologia TBM
 # danzi.tn@20151124 generazione delle distribuzioni per pk
+# danzi.tn@20151124 formattazione in percentuale per istogrammi
 def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
@@ -204,9 +206,9 @@ def main(argv):
             if len(segmentsToShow) > 0:
                 for sCriteria, sProg in segmentsToShow:
                     # danzi.tn@20151123 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
-                    sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval  WHERE  BbtParameterEval.fine = "+sCriteria+" AND BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine"
+                    sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BbtParameter, BBtParameterEval  WHERE  BbtParameter.profilo_id = BBtParameterEval.profilo_id  AND BbtParameter.fine = "+sCriteria+" AND BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"'"
                     if bGroupTypes:
-                        sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval JOIN BbtTbm on BbtTbm.name = BBtParameterEval.tbmName WHERE  BbtParameterEval.fine = "+sCriteria+" AND BBtParameterEval.tunnelNAme = '"+tun+"' AND BbtTbm.type='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine, BbtTbm.type"
+                        sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BbtParameter, BBtParameterEval, BbtTbm  WHERE BbtParameter.profilo_id = BBtParameterEval.profilo_id  AND BbtParameter.fine = "+sCriteria+" AND  BbtTbm.name = BBtParameterEval.tbmName AND BbtParameter.profilo_id = BBtParameterEval.profilo_id  AND BBtParameterEval.tunnelNAme = '"+tun+"' AND BbtTbm.type='"+tbmKey+"'"
                     cur.execute(sSql)
                     bbtresults = cur.fetchall()
                     pValues = []
@@ -230,7 +232,12 @@ def main(argv):
                         ax1.set_ylabel("Probabilita'")
                         ax1.axvline(tbmMean, color='r', linewidth=2)
                         ax1.yaxis.grid(True)
-                        outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow,sProg), format="svg")
+                        formatter = FuncFormatter(to_percent)
+                        # Set the formatter
+                        fig.gca().yaxis.set_major_formatter(formatter)
+                        sFileNAme = "bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_"), tbmKey,sParameterToShow,sProg)
+                        outputFigure(sDiagramsFolderPath, sFileNAme, format="svg")
+                        print "Output su %s disponibile" % sFileNAme
                         plt.close(fig)
             elif bShowProfile:
                 # danzi.tn@20151118 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
