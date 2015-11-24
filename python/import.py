@@ -10,6 +10,7 @@ import numpy as np
 from pylab import *
 from scipy.stats import *
 import xlrd
+from tbmconfig import tbms
 ########## Mi metto nella directory corrente
 path = os.path.dirname(os.path.realpath(__file__))
 os.chdir(path)
@@ -187,4 +188,5 @@ for k in geoitems:
 # salvo parametri
 insert_parameters(sDBPath,bbtpar_items)
 ######### BbtParameter fine
+load_tbm_table(sDBPath, tbms)
 print "######### BbtParameter fine"
