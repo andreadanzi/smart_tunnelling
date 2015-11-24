@@ -18,12 +18,13 @@ from time import time as ttime
 from time import sleep as tsleep
 
 # danzi.tn@20151119 generazione variabili random per condizioni geotecniche
-def insert_georandom(sDBPath,nIter, bbt_parameters):
-    sKey = "XXX"
+
+# danzi.tn@20151119 generazione variabili random per condizioni geotecniche
+def insert_georandom(sDBPath,nIter, bbt_parameters,sKey):
     delete_eval4Geo(sDBPath,sKey)
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
-    bbt_evalparameters = []
+    bbt_insertval = []
     for idx, bbt_parameter in enumerate(bbt_parameters):
         mynorms = build_normfunc_dict(bbt_parameter,nIter)
         for n in range(nIter):
@@ -36,16 +37,18 @@ def insert_georandom(sDBPath,nIter, bbt_parameters):
             rmr =  mynorms['rmr'].rvs()
             sti = mynorms['sti'].rvs()
             k0 = mynorms['k0'].rvs()
-            bbt_evalparameters.append((strnow, n,sKey, sKey , bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,\
+            ppv = bbt_parameter + (gamma,sci,mi,ei,cai,rmr,gsi, sti, k0, n,strnow)
+            bbtParameterEvalMain_item = BbtParameterEvalMain(*ppv)
+            bbt_insertval.append((strnow, n,sKey, sKey , bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,\
                                         gamma,sci,mi,ei,cai,gsi,rmr,\
                                         0,0 ,0,0,0,0,0 ,0, 0, 0, 0, 0, 0, bbt_parameter.profilo_id, bbt_parameter.geoitem_id, bbt_parameter.title,  sti, k0, \
                                         0,0, 0, 0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,0,0, 0, 0, 0, 0,0, 0,0, 0,  ) )
-        if (idx+1) % 20 == 0:
-            insert_eval4Geo(sDBPath,bbt_evalparameters)
-            bbt_evalparameters = []
-    if len(bbt_evalparameters) > 0:
-        print "ultimi %d da inserire" % len(bbt_evalparameters)
-        insert_eval4Geo(sDBPath,bbt_evalparameters)
+        if (idx+1) % 100 == 0:
+            insert_eval4Geo(sDBPath,bbt_insertval)
+            bbt_insertval = []
+    if len(bbt_insertval) > 0:
+        print "ultimi %d da inserire" % len(bbt_insertval)
+        insert_eval4Geo(sDBPath,bbt_insertval)
 
 # danzi.tn@20151119 profiling logging ed ottimizzazione con Pool
 def createLogger(indx=0,name="main_loop"):
@@ -64,9 +67,9 @@ def createLogger(indx=0,name="main_loop"):
 # danzi.tn@20151117 versione multithread
 # danzi.tn@20151118 gestione loop per singola TBM
 def mp_producer(parms):
-    idWorker,  nIter, sDBPath, loopTbms ,bbt_parameters = parms
+    idWorker,  nIter, sDBPath, loopTbms ,sKey = parms
     # ritardo per evitare conflitti su DB
-    tsleep(idWorker*30+1)
+    tsleep(idWorker*10+1)
     start_time = ttime()
     now = datetime.datetime.now()
     strnow = now.strftime("%Y%m%d%H%M%S")
@@ -110,7 +113,11 @@ def mp_producer(parms):
     aln=InfoAlignment('Galleria di linea direzione Nord', 'GLNORD',inizio_GLEST, fine_GLEST, fCCutterMode, fCShiledMode)
     alnAll.append(aln)
     kpiTbmList = []
+    main_logger.debug("[%d]############################# Inizia a recuperare le itarazioni di %s dalla %d alla %d" % (idWorker,sKey,idWorker*nIter, (idWorker+1)*nIter))
+    bbt_bbtparameterseval = get_mainbbtparameterseval(sDBPath,sKey,idWorker*nIter, (idWorker+1)*nIter)
+    main_logger.debug("[%d]############################# ...recuperate %d iterazioni, memoria totale" % (idWorker,len(bbt_bbtparameterseval)))
     for iIterationNo in range(nIter):
+        mainIterationNo = idWorker*nIter + iIterationNo
         tbmSegmentCum = 0
         iter_start_time = ttime()
         bbttbmkpis = []
@@ -118,25 +125,21 @@ def mp_producer(parms):
         iCheckEvalparameters = 0
         iCheckBbttbmkpis = 0
         # Per tutti i Tunnel
-        main_logger.info("[%d]########### iteration %d - %d" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo))
-        # recupero i dati dal DB con i dati geotecnici random
-        bbrGeoDict = get_bbtparameterseval4iter(sDBPath,idWorker*nIter + iIterationNo,"XXX")
-        main_logger.debug("[%d] trovati %d pk per iterazione %d releativa a %s" % (idWorker, len(bbrGeoDict),idWorker*nIter + iIterationNo,"XXX" ))
-        #with plock:
-        #    print "[%d]########### iteration %d - %d" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo)
+        main_logger.info("[%d]########### iteration %d - %d" % (idWorker, iIterationNo, mainIterationNo))        #with plock:
+        #    print "[%d]########### iteration %d - %d" % (idWorker, iIterationNo, mainIterationNo)
         for alnCurr in alnAll:
             for tbmKey in loopTbms:
                 tbmData = loopTbms[tbmKey]
                 # Se la TBM e' conforme al TUnnell
                 if alnCurr.tbmKey in tbmData.alignmentCode:
                     tbm = TBM(tbmData, 'V')
-                    kpiTbm = KpiTbm4Tunnel(alnCurr.description, idWorker*nIter + iIterationNo)
+                    kpiTbm = KpiTbm4Tunnel(alnCurr.description, mainIterationNo)
                     iCheckBbttbmkpis += 1
                     kpiTbm.setKPI4TBM(alnCurr,tbmKey,tbm,projectRefCost)
                     # cerco i segmenti che rientrano tra inizio e fine del Tunnell
-                    matches_params = [bpar for bpar in bbt_parameters if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
+                    matches_params = [bpar for bpar in bbt_bbtparameterseval[mainIterationNo] if alnCurr.pkStart <= bpar.inizio and bpar.fine <= alnCurr.pkEnd]
                     for bbt_parameter in matches_params:
-                        bbtparameter4seg = build_bbtparameter4seg(bbt_parameter,bbrGeoDict[bbt_parameter.profilo_id])
+                        bbtparameter4seg = build_bbtparameterVal4seg(bbt_parameter)
                         iCheckEvalparameters += 1
                         if bbtparameter4seg == None:
                             main_logger.error("[%d] %s, %s per pk %d parametri Geo non trovati" % (idWorker, alnCurr.description, tbmKey, bbt_parameter.fine) )
@@ -159,7 +162,7 @@ def mp_producer(parms):
                             continue
                         kpiTbm.setKPI4SEG(alnCurr,tbmsect,bbtparameter4seg)
                         #danzi.tn@20151114 inseriti nuovi parametri calcolati su TunnelSegment
-                        bbt_evalparameters.append((strnow, idWorker*nIter + iIterationNo,alnCurr.description, tbmKey, bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,bbtparameter4seg.gamma,\
+                        bbt_evalparameters.append((strnow, mainIterationNo,alnCurr.description, tbmKey, bbt_parameter.fine,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,bbtparameter4seg.gamma,\
                                                         bbtparameter4seg.sci,bbtparameter4seg.mi,bbtparameter4seg.ei,bbtparameter4seg.cai,bbtparameter4seg.gsi,bbtparameter4seg.rmr,\
                                                         tbmsect.pkCe2Gl(bbt_parameter.fine),\
                                                         tbmsect.TunnelClosureAtShieldEnd*100. ,\
@@ -208,7 +211,7 @@ def mp_producer(parms):
                     bbttbmkpis += kpiTbm.getBbtTbmKpis()
                     sys.stdout.flush()
         iter_end_time = ttime()
-        main_logger.info("[%d]#### iteration %d - %d terminated in %d seconds (%d)" % (idWorker, iIterationNo, idWorker*nIter + iIterationNo, iter_end_time-iter_start_time, tbmSegmentCum))
+        main_logger.info("[%d]#### iteration %d - %d terminated in %d seconds (%d)" % (idWorker, iIterationNo, mainIterationNo, iter_end_time-iter_start_time, tbmSegmentCum))
         main_logger.debug("[%d]### Start inserting %d (%d) Parameters and %d (21x%d) KPIs" % (idWorker, len(bbt_evalparameters),iCheckEvalparameters,len(bbttbmkpis),iCheckBbttbmkpis))
         insert_eval4Iter(sDBPath,bbt_evalparameters,bbttbmkpis)
         insert_end_time = ttime()
@@ -222,6 +225,7 @@ def mp_producer(parms):
 
 
 if __name__ == "__main__":
+    sKey = "XXX"
     main_logger = createLogger()
     main_logger.info("__main__ Started!")
     mp_np = cpu_count() - 1
@@ -285,7 +289,7 @@ if __name__ == "__main__":
         totIterations = mp_np*nIter
         if bGeorandom:
             geo_start_time = ttime()
-            insert_georandom(sDBPath,totIterations, bbt_parameters)
+            insert_georandom(sDBPath,totIterations, bbt_parameters,sKey)
             geo_tot_time = ttime() - geo_start_time
             main_logger.info("Generazione dei parametri geotecnici per %d iterazioni su %d segmenti ha richiesto %d secondi" % (totIterations,len(bbt_parameters) ,geo_tot_time ) )
         else:
@@ -313,7 +317,7 @@ if __name__ == "__main__":
             main_logger.info( tbk )
         list_a = range(mp_np)
         start_time = ttime()
-        job_args = [(i, nIter, sDBPath, loopTbms, bbt_parameters) for i, item_a in enumerate(list_a)]
+        job_args = [(i, nIter, sDBPath, loopTbms, sKey) for i, item_a in enumerate(list_a)]
         workers = Pool(processes=mp_np)
         main_logger.info("Istanziati %d processi" % mp_np  )
         results = workers.map(mp_producer, job_args)

@@ -263,7 +263,19 @@ def build_bbtparameter4seg(bbt_parameter, bbtparametereval):
     bbtparameter4seg = BbtParameter4Seg(bbt_parameter.inizio,bbt_parameter.fine,length,bbt_parameter.he,bbt_parameter.hp,bbt_parameter.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameter.profilo_id ,bbt_parameter.geoitem_id, bbt_parameter.title, sti, k0, bbt_parameter.k0_min, bbt_parameter.k0_max )
     return bbtparameter4seg
 
-
+def build_bbtparameterVal4seg(bbt_parameterVal):
+    length = abs(bbt_parameterVal.fine - bbt_parameterVal.inizio)
+    gamma = bbt_parameterVal.gamma
+    sci = bbt_parameterVal.sigma
+    mi = bbt_parameterVal.mi
+    ei = bbt_parameterVal.ei
+    cai = bbt_parameterVal.cai
+    rmr =  bbt_parameterVal.rmr
+    gsi = bbt_parameterVal.gsi
+    sti = bbt_parameterVal.sigma_ti
+    k0 = bbt_parameterVal.k0
+    bbtparameter4seg = BbtParameter4Seg(bbt_parameterVal.inizio,bbt_parameterVal.fine,length,bbt_parameterVal.he,bbt_parameterVal.hp,bbt_parameterVal.co,gamma,sci,mi,ei,cai ,gsi, rmr, bbt_parameterVal.profilo_id ,bbt_parameterVal.geoitem_id, bbt_parameterVal.title, sti, k0, bbt_parameterVal.k0_min, bbt_parameterVal.k0_max )
+    return bbtparameter4seg
 
 def build_bbtparameter4seg_from_bbt_parameter(bbt_parameter, normfunc_dict):
     length = abs(bbt_parameter.fine - bbt_parameter.inizio)
