@@ -227,7 +227,8 @@ def main(argv):
                         fig = plt.figure(figsize=(32, 20), dpi=100)
                         ax1 = fig.add_subplot(111)
                         title("%s - %s" % (tun,replaceTBMName(tbmKey)))
-                        n, bins, patches = ax1.hist(pValues,num_bins , normed=1, histtype ='stepfilled', color=tbmColors[tbmKey], alpha=0.3)
+                        weights = np.ones_like(pValues)/float(len(pValues))
+                        n, bins, patches = ax1.hist(pValues,num_bins , normed=1, histtype ='stepfilled', weights=weights , color=tbmColors[tbmKey], alpha=0.3)
                         tbmMean = np.mean(pValues)
                         tbmSigma = np.std(pValues)
                         y = mlab.normpdf(bins, tbmMean, tbmSigma)
@@ -236,9 +237,6 @@ def main(argv):
                         ax1.set_ylabel("Probabilita'")
                         ax1.axvline(tbmMean, color='r', linewidth=2)
                         ax1.yaxis.grid(True)
-                        formatter = FuncFormatter(to_percent)
-                        # Set the formatter
-                        fig.gca().yaxis.set_major_formatter(formatter)
                         sFileNAme = "bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_"), replaceTBMName(tbmKey),sParameterToShow,sProg)
                         outputFigure(sDiagramsFolderPath, sFileNAme, format="svg")
                         print "Output su %s disponibile" % sFileNAme
