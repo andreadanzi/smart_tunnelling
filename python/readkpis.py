@@ -184,8 +184,7 @@ def radar_data(kpiArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup):
         cur.execute(sSql)
         bbtresults = cur.fetchall()
         for bbtr in bbtresults:
-            sTbmHidden = replaceTBMName(bbtr[1])
-            tbmGroups[sTbmHidden].append((float(bbtr[2]),bbtr[0]))
+            tbmGroups[bbtr[1]].append((float(bbtr[2]),bbtr[0]))
         data.append((tn,tbmGroups))
 
     return data
@@ -215,7 +214,7 @@ def plotRadarKPIS(cur,tunnelArray,sDiagramsFolderPath,tbmColors,bGroupTypes, sTy
                 pkeys = map(lambda y:y[1],key_list[tmb])
                 plot_data.append(key_list[tmb])
                 color_data.append(tbmColors[tmb])
-                tbm_name.append(tmb)
+                tbm_name.append(replaceTBMName(tmb))
             theta = radar_factory(len(pkeys), frame='polygon')
             ax = fig.add_subplot(3, 3, pltIndex, projection='radar')
             plt.xticks(theta,pkeys)
