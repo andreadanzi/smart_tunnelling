@@ -3,6 +3,7 @@ import sys, getopt
 from tbmconfig import tbms
 from bbtutils import *
 from bbtnamedtuples import *
+import matplotlib.mlab as mlab
 from readkpis import *
 from collections import defaultdict
 from bbt_database import load_tbm_table, getDBConnection
@@ -15,9 +16,11 @@ import matplotlib.pyplot as plt
 # danzi.tn@20151117 plot percentile
 # danzi.tn@20151117 plot aggregato per tipologia TBM
 # danzi.tn@20151118 filtro per tipologia TBM
+# danzi.tn@20151124 generazione delle distribuzioni per pk
 def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
+    segmentsToShow = []
     sTbmCode = ""
     sTypeToGroup = ""
     bPrintHist = False
@@ -40,8 +43,9 @@ def main(argv):
     sParm += "\n\t-i => generazione delle distribuzioni per ogni tipo di KPI selezionato\n"
     sParm += "\n\t-c => raggruppamento per tipologia di TBM\n"
     sParm += "\n\t-m => per tipologia di TBM indicata viene eseguito raggruppamento per Produttore\n"
+    sParm += "\n\t-s => per segmento progressivo indicata con km+m\n"
     try:
-        opts, args = getopt.getopt(argv,"hp:t:rkadicm:",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms","compact_types","bytype"])
+        opts, args = getopt.getopt(argv,"hp:t:rkadicm:s:",["parameter=","tbmcode=","radar","kpi","allkpi","detailkpi","histograms","compact_types","bytype","segment"])
     except getopt.GetoptError:
         print "readparameters.py -p <parameter> [-t <tbmcode>] [-rkai]\r\n where\r\n %s" % sParm
         sys.exit(2)
@@ -57,6 +61,13 @@ def main(argv):
             bShowProfile = True
             if sParameterToShow =='adv':
                 bShowAdvance = True
+        elif opt in ("-s", "--segment"):
+            sSegmentToShow = arg
+            splitted = sSegmentToShow.split(",")
+            for s in splitted:
+                sf= s.split("+")
+                fSegmentToShow = float(sf[0])*1000+float(sf[1])
+                segmentsToShow.append((str(fSegmentToShow),"+".join(sf)))
         elif opt in ("-t", "--tbmcode"):
             sTbmCode = arg
         elif opt in ("-r", "--radar"):
@@ -95,7 +106,7 @@ def main(argv):
         print "Errore! File %s inesistente!" % sDBPath
         exit(1)
 
-    load_tbm_table(sDBPath, tbms)
+    #load_tbm_table(sDBPath, tbms)
     ########### Outupt Folder
     sDiagramsFolder = bbtConfig.get('Diagrams','folder')
     sDiagramsFolderPath = os.path.join(os.path.abspath('..'), sDiagramsFolder)
@@ -190,11 +201,42 @@ def main(argv):
         for tb in bbtresults:
             tbmKey = tb[0]
             tbmCount = float(tb[1])
-            if bShowProfile:
+            if len(segmentsToShow) > 0:
+                for sCriteria, sProg in segmentsToShow:
+                    # danzi.tn@20151123 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
+                    sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval  WHERE  BbtParameterEval.fine = "+sCriteria+" AND BBtParameterEval.tunnelNAme = '"+tun+"' AND tbmNAme='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine"
+                    if bGroupTypes:
+                        sSql = "SELECT BBtParameterEval.*, BBtParameterEval.t1 +BBtParameterEval.t3 +BBtParameterEval.t4 +BBtParameterEval.t5 as tsum, 1 as adv FROM BBtParameterEval JOIN BbtTbm on BbtTbm.name = BBtParameterEval.tbmName WHERE  BbtParameterEval.fine = "+sCriteria+" AND BBtParameterEval.tunnelNAme = '"+tun+"' AND BbtTbm.type='"+tbmKey+"' order by BBtParameterEval.iteration_no, BBtParameterEval.fine, BbtTbm.type"
+                    cur.execute(sSql)
+                    bbtresults = cur.fetchall()
+                    pValues = []
+                    for bbt_parametereval in bbtresults:
+                        pVal = bbt_parametereval[sParameterToShow]
+                        if pVal == None:
+                            pVal = 0
+                        pVal = float(pVal)
+                        pValues.append(pVal)
+                    if len(pValues) > 0:
+                        num_bins = 50
+                        fig = plt.figure(figsize=(32, 20), dpi=100)
+                        ax1 = fig.add_subplot(111)
+                        title("%s - %s" % (tun,tbmKey))
+                        n, bins, patches = ax1.hist(pValues,num_bins , normed=1, histtype ='stepfilled', color=tbmColors[tbmKey], alpha=0.3)
+                        tbmMean = np.mean(pValues)
+                        tbmSigma = np.std(pValues)
+                        y = mlab.normpdf(bins, tbmMean, tbmSigma)
+                        ax1.plot(bins, y, '--', color=tbmColors[tbmKey])
+                        ax1.set_xlabel("%s (%f)" % (parmDict[sParameterToShow][0],tbmMean), color='r')
+                        ax1.set_ylabel("Probabilita'")
+                        ax1.axvline(tbmMean, color='r', linewidth=2)
+                        ax1.yaxis.grid(True)
+                        outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow,sProg), format="svg")
+                        plt.close(fig)
+            elif bShowProfile:
                 # danzi.tn@20151118 calcolo iterazioni per la TBM corrente (non e' detto che siano tutte uguali)
                 sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval WHERE BbtParameterEval.tbmName ='%s'" % tbmKey
                 if bGroupTypes:
-                    sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval JOIN BbtTbm on BbtTbm.name = bbtTbmKpi.tbmName WHERE BbtTbm.type ='%s'" % tbmKey
+                    sSql = "select max(BbtParameterEval.iteration_no) as max_iter from BbtParameterEval JOIN BbtTbm on BbtTbm.name = BbtParameterEval.tbmName WHERE BbtTbm.type ='%s'" % tbmKey
                 cur.execute(sSql)
                 bbtresult = cur.fetchone()
                 M = float(bbtresult[0]) + 1.0
@@ -284,7 +326,7 @@ def main(argv):
                     ax2.set_ylabel("%s (%s)" % (parmDict[sParameterToShow][0],parmDict[sParameterToShow][1]), color='r')
                     for tl in ax2.get_yticklabels():
                         tl.set_color('r')
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.png" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.svg" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow), format="svg")
                     plt.close(fig)
                     # esposrto in csv i valori di confronto
                     csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_%s_%s.csv" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
@@ -292,6 +334,9 @@ def main(argv):
                         writer = csv.writer(f,delimiter=";")
                         writer.writerow(('iterazione','fine','he','hp',sParameterToShow,'media','min95' ,'max95' ))
                         writer.writerows(outValues)
+
+
+
             if bShowKPI:
                 print "%s %s" % (tun, tbmKey)
                 allTbmData += plotKPIS(cur,sDiagramsFolderPath,tun,tbmKey,tbmColors,bGroupTypes, sTypeToGroup, bPrintHist)
@@ -358,7 +403,7 @@ def main(argv):
                         plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
                         plt.xticks(xind + width/2., tbmNames)
 
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_comp.png" % (tun.replace (" ", "_") , key))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_comp.svg" % (tun.replace (" ", "_") , key), format="svg")
                 plt.close(fig)
 
 

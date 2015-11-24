@@ -208,8 +208,8 @@ def geo_ritardo_eventi_straordinari(l,rmr):
 
 
 
-def outputFigure(sDiagramsFolderPath, sFilename):
+def outputFigure(sDiagramsFolderPath, sFilename, format="png"):
     imagefname=os.path.join(sDiagramsFolderPath,sFilename)
     if os.path.exists(imagefname):
         os.remove(imagefname)
-    plt.savefig(imagefname,format='png', bbox_inches='tight', pad_inches=0)
+    plt.savefig(imagefname,format=format, bbox_inches='tight', pad_inches=0)
