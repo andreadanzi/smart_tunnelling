@@ -6,6 +6,7 @@ from scipy.stats import *
 import ConfigParser, os
 # danzi.tn@20151115 colori per nuove TBM
 # danzi.tn@20151118 colori per la nuova TBM
+# danzi.tn@20151124 replaceTBMName
 main_colors = ['#1f77b4',  '#ff7f0e', '#ffbb78',
                   '#98df8a', '#d62728', '#ff9896', '#9467bd', '#c5b0d5',
                   '#8c564b', '#c49c94', '#e377c2', '#f7b6d2', '#7f7f7f',
@@ -223,3 +224,18 @@ def outputFigure(sDiagramsFolderPath, sFilename, format="png"):
     if os.path.exists(imagefname):
         os.remove(imagefname)
     plt.savefig(imagefname,format=format, bbox_inches='tight', pad_inches=0)
+
+
+def replaceTBMName(inputStr):
+    outputStr = ""
+    strTbmReplace ={}
+    strTbmReplace['BBT'] ='A'
+    strTbmReplace['RBS'] ='B'
+    strTbmReplace['HRK'] ='C'
+    strTbmReplace['LOV'] ='D'
+    strTbmReplace['NFM'] ='E'
+    for sKey in strTbmReplace:
+        if sKey in inputStr:
+            outputStr = inputStr.replace(sKey,strTbmReplace[sKey])
+            break
+    return outputStr

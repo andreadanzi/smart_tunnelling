@@ -184,7 +184,8 @@ def radar_data(kpiArray,tunnelArray,cur,tbmColors,bGroupTypes, sTypeToGroup):
         cur.execute(sSql)
         bbtresults = cur.fetchall()
         for bbtr in bbtresults:
-            tbmGroups[bbtr[1]].append((float(bbtr[2]),bbtr[0]))
+            sTbmHidden = replaceTBMName(bbtr[1])
+            tbmGroups[sTbmHidden].append((float(bbtr[2]),bbtr[0]))
         data.append((tn,tbmGroups))
 
     return data
@@ -329,16 +330,16 @@ def plotKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sTypeToG
                     plt.axvline(tbmMean, color='r', linewidth=2)
 
                     ax.yaxis.grid(True)
-                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.svg" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]), format="svg")
+                    ax.set_title("%s TBM %s (%s)" % (tun, replaceTBMName(bbtTbm[0]),bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_hist.svg" % ( tun.replace (" ", "_") , bbtKpi[0], replaceTBMName(bbtTbm[0])), format="svg")
                 else:
                     x = range(resNo)
                     plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
                     plt.xlabel("Iterazioni")
                     plt.ylabel("Totale indicatori di tipo %s=%f" % (bbtKpi[0],tbmMean))
                     ax.yaxis.grid(True)
-                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.svg" % ( tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0]), format="svg")
+                    ax.set_title("%s TBM %s (%s)" % (tun, replaceTBMName(bbtTbm[0]),bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%sX_%s_iterations.svg" % ( tun.replace (" ", "_") , bbtKpi[0], replaceTBMName(bbtTbm[0])), format="svg")
                 plt.close(fig)
             all_data.append(( bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, kpiDescrDict[bbtKpi[0]]))
     return all_data
@@ -410,16 +411,16 @@ def plotTotalsKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sT
                 plt.ylabel("Probabilita'")
                 plt.axvline(tbmMean, color='r', linewidth=2)
                 ax.yaxis.grid(True)
-                ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.svg" % (tun.replace(" ", "_") , bbtTbm[0]), format="svg")
+                ax.set_title("%s TBM %s" % (tun, replaceTBMName(bbtTbm[0])))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_hist.svg" % (tun.replace(" ", "_") ,  replaceTBMName( bbtTbm[0])), format="svg")
             else:
                 x = range(resNo)
                 plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
                 plt.xlabel("Iterazioni")
                 plt.ylabel("Valore KPI Totale=%f" % tbmMean)
                 ax.yaxis.grid(True)
-                ax.set_title("%s TBM %s" % (tun,bbtTbm[0]))
-                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.svg" % (tun.replace(" ", "_") , bbtTbm[0]), format="svg")
+                ax.set_title("%s TBM %s" % (tun, replaceTBMName(bbtTbm[0])))
+                outputFigure(sDiagramsFolderPath,"bbt_%s_%s_iterations.svg" % (tun.replace(" ", "_") ,  replaceTBMName(bbtTbm[0])), format="svg")
             plt.close(fig)
         all_data.append(('KPI', str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, 'Totale KPI'))
     return all_data
@@ -510,17 +511,17 @@ def plotDetailKPIS(cur,sDiagramsFolderPath,tun,tbmName,tbmColors,bGroupTypes, sT
                     plt.xlabel("%s - valore medio %f" % (bbtKpi[1], tbmMean))
                     plt.ylabel("Probabilita'")
                     plt.axvline(tbmMean, color='r', linewidth=2)
-                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0],bbtKpi[0]))
+                    ax.set_title("%s TBM %s (%s)" % (tun, replaceTBMName(bbtTbm[0]),bbtKpi[0]))
                     ax.yaxis.grid(True)
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.svg" % (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ), format="svg")
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_hist.svg" % (tun.replace (" ", "_") , bbtKpi[0], replaceTBMName(bbtTbm[0]) ), format="svg")
                 else:
                     x = range(resNo)
                     plt.plot(x, tbmData, 'o', color=tbmColors[bbtTbm[0]])
                     plt.xlabel("Iterazioni")
                     plt.ylabel("Valore KPI %s = %f" % (bbtKpi[1],tbmMean))
                     ax.yaxis.grid(True)
-                    ax.set_title("%s TBM %s (%s)" % (tun,bbtTbm[0], bbtKpi[0]))
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.svg" %  (tun.replace (" ", "_") , bbtKpi[0],bbtTbm[0] ), format="svg")
+                    ax.set_title("%s TBM %s (%s)" % (tun, replaceTBMName(bbtTbm[0]), bbtKpi[0]))
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s_iterations.svg" %  (tun.replace (" ", "_") , bbtKpi[0], replaceTBMName(bbtTbm[0]) ), format="svg")
                 plt.close(fig)
             all_data.append((bbtKpi[0], str(bbtTbm[0]),tbmMean,tbmSigma,tbmData, bbtKpi[1]))
     return all_data

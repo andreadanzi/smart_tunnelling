@@ -11,6 +11,9 @@ from matplotlib.ticker import FuncFormatter
 
 import numpy as np
 import matplotlib.pyplot as plt
+
+
+
 # qui vedi come leggere i parametri dal Database bbt_mules_2-3.db
 # danzi.tn@20151114 completamento lettura nuovi parametri e TBM
 # danzi.tn@20151114 integrazione KPI in readparameters
@@ -19,6 +22,7 @@ import matplotlib.pyplot as plt
 # danzi.tn@20151118 filtro per tipologia TBM
 # danzi.tn@20151124 generazione delle distribuzioni per pk
 # danzi.tn@20151124 formattazione in percentuale per istogrammi
+# danzi.tn@20151124 replaceTBMName
 def main(argv):
     sParm = "p,parameter in \n"
     sParameterToShow = ""
@@ -222,7 +226,7 @@ def main(argv):
                         num_bins = 50
                         fig = plt.figure(figsize=(32, 20), dpi=100)
                         ax1 = fig.add_subplot(111)
-                        title("%s - %s" % (tun,tbmKey))
+                        title("%s - %s" % (tun,replaceTBMName(tbmKey)))
                         n, bins, patches = ax1.hist(pValues,num_bins , normed=1, histtype ='stepfilled', color=tbmColors[tbmKey], alpha=0.3)
                         tbmMean = np.mean(pValues)
                         tbmSigma = np.std(pValues)
@@ -235,7 +239,7 @@ def main(argv):
                         formatter = FuncFormatter(to_percent)
                         # Set the formatter
                         fig.gca().yaxis.set_major_formatter(formatter)
-                        sFileNAme = "bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_"), tbmKey,sParameterToShow,sProg)
+                        sFileNAme = "bbt_%s_%s_%s_%s_hist.svg" % ( tun.replace (" ", "_"), replaceTBMName(tbmKey),sParameterToShow,sProg)
                         outputFigure(sDiagramsFolderPath, sFileNAme, format="svg")
                         print "Output su %s disponibile" % sFileNAme
                         plt.close(fig)
@@ -313,7 +317,7 @@ def main(argv):
                     fig = plt.figure(figsize=(32, 20), dpi=100)
                     ax1 = fig.add_subplot(111)
                     ax1.set_ylim(0,max(he)+100)
-                    title("%s - %s" % (tun,tbmKey))
+                    title("%s - %s" % (tun,replaceTBMName(tbmKey)))
                     ax1.plot(pi,he,'b-', linewidth=1)
                     if bShowlTunnel:
                         ax1.plot(pi,hp,'k-', linewidth=1)
@@ -333,10 +337,10 @@ def main(argv):
                     ax2.set_ylabel("%s (%s)" % (parmDict[sParameterToShow][0],parmDict[sParameterToShow][1]), color='r')
                     for tl in ax2.get_yticklabels():
                         tl.set_color('r')
-                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.svg" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow), format="svg")
+                    outputFigure(sDiagramsFolderPath,"bbt_%s_%s_%s.svg" % ( tun.replace (" ", "_") , replaceTBMName(tbmKey),sParameterToShow), format="svg")
                     plt.close(fig)
                     # esposrto in csv i valori di confronto
-                    csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_%s_%s.csv" % ( tun.replace (" ", "_") , tbmKey,sParameterToShow))
+                    csvfname=os.path.join(sDiagramsFolderPath,"bbt_%s_%s_%s.csv" % ( tun.replace (" ", "_") , replaceTBMName(tbmKey),sParameterToShow))
                     with open(csvfname, 'wb') as f:
                         writer = csv.writer(f,delimiter=";")
                         writer.writerow(('iterazione','fine','he','hp',sParameterToShow,'media','min95' ,'max95' ))
@@ -382,13 +386,15 @@ def main(argv):
                 ax.set_title("%s, comparazione %s " % (tun,keyDescr))
                 xind = np.arange(len(tbmDatas))
                 plotColors =[]
+                tbmHiddenNames = []
                 for tk in tbmNames:
                     plotColors.append(tbmColors[tk])
+                    tbmHiddenNames.append(replaceTBMName(tk))
                 if len(tbmDatas[0]) < 3:
                     #Stampa per quando len(tbmDatas) < 3
                     width = 0.35
                     plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
-                    plt.xticks(xind + width/2., tbmNames)
+                    plt.xticks(xind + width/2., tbmHiddenNames)
                 else:
                     try:
                         violin_parts = violinplot(tbmDatas,showmeans = True, points=50)
@@ -403,12 +409,12 @@ def main(argv):
                                 vp.set_linewidth(2)
                             idx +=1
 
-                        plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmNames)
+                        plt.setp(ax, xticks=[y+1 for y in range(len(tbmDatas))],xticklabels=tbmHiddenNames)
                     except Exception as e:
                         print "Impossibile generare violin di %s per: %s" % ( key ,e)
                         width = 0.35
                         plt.bar(xind, tbmMeans, width,color=plotColors, yerr=tbmSigmas)
-                        plt.xticks(xind + width/2., tbmNames)
+                        plt.xticks(xind + width/2., tbmHiddenNames)
 
                 outputFigure(sDiagramsFolderPath,"bbt_%s_%s_comp.svg" % (tun.replace (" ", "_") , key), format="svg")
                 plt.close(fig)
