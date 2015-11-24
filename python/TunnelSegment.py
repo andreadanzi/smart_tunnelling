@@ -582,11 +582,11 @@ class TBMSegment:
 
         # definisco il breakawayTorque per il rockburst
         bat = Breakaway()
-        if self.rockBurst.Val < .2:
+        if self.rockBurst.Val < .3:
             self.rockburstBreakawayTorque = 0.
-        elif self.rockBurst.Val < .3:
+        elif self.rockBurst.Val < .4:
             # tra 0.3 e 0.6 ipotizzo che aumenti progressivamente il diametro di base
-            dEq = self.Excavation.Radius*2.*(self.rockBurst.Val-0.2)/.1
+            dEq = self.Excavation.Radius*2.*(self.rockBurst.Val-0.3)/.1
             bat.setupRockburst(self.MohrCoulomb, gamma, dEq)
             bat.calculate(tbm.openingRatio, tbm.cutterheadThickness, fiRi)
 #            print 'Breakaway torque for rockbursting mid = %f' % (bat.torque)
