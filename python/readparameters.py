@@ -296,15 +296,16 @@ def main(argv):
                     i += 1
                 for i in range(int(N)):
                     pki_mean = np.nanmean(parm2show[i,:])
-                    pki_std = np.nanstd(parm2show[i,:])
-                    mean2Show[i][0] = pki_mean - 2*pki_std
+					# gabriele@20151124 rimosso 95o percentile sui grafi
+                    #pki_std = np.nanstd(parm2show[i,:])
+                    #mean2Show[i][0] = pki_mean - 2*pki_std
                     mean2Show[i][1] = pki_mean
-                    mean2Show[i][2] = pki_mean + 2*pki_std
+                    #mean2Show[i][2] = pki_mean + 2*pki_std
                 i=0
                 for outVal in outValues:
                     outValues[i].append(mean2Show[i%N][1])
-                    outValues[i].append(mean2Show[i%N][0])
-                    outValues[i].append(mean2Show[i%N][2])
+                    #outValues[i].append(mean2Show[i%N][0])
+                    #outValues[i].append(mean2Show[i%N][2])
                     i += 1
                 if N==0:
                     print "\tPer TBM %s non ci sono dati in %s" % (tbmKey, tun)
@@ -329,9 +330,9 @@ def main(argv):
                     if ylimSup > 0:
                         ax2.set_ylim(ylimInf,ylimSup)
                     ax2.plot(pi,parm2show,'r.',markersize=1.0)
-                    ax2.plot(pi,mean2Show[:,0],'m-',linewidth=0.5, alpha=0.4)
+                    #ax2.plot(pi,mean2Show[:,0],'m-',linewidth=0.5, alpha=0.4)
                     ax2.plot(pi,mean2Show[:,1],'g-',linewidth=2, alpha=0.6)
-                    ax2.plot(pi,mean2Show[:,2],'c-',linewidth=0.5, alpha=0.4)
+                    #ax2.plot(pi,mean2Show[:,2],'c-',linewidth=0.5, alpha=0.4)
                     ax2.set_ylabel("%s (%s)" % (parmDict[sParameterToShow][0],parmDict[sParameterToShow][1]), color='r')
                     for tl in ax2.get_yticklabels():
                         tl.set_color('r')
